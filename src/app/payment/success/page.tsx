@@ -13,15 +13,22 @@ export const metadata: Metadata = { title: "Payment Successful", robots: { index
 export default async function PaymentSuccessPage({ searchParams }: { searchParams: Promise<{ order?: string; report?: string; token?: string }> }) {
   const query = await searchParams;
   if (!query.order || !query.report || !query.token) return <InvalidSuccess />;
+  let access;
   try {
-    const payload = await verifyAccessToken(query.token, "report_access");
-    if (payload.sub !== query.report) throw new Error("Report token mismatch");
+    access = await verifyAccessToken(query.token, "report_access");
+    if (access.sub !== query.report) throw new Error("Report token mismatch");
   } catch {
     return <InvalidSuccess />;
   }
 
   const report = await prisma.report.findUnique({ where: { id: query.report }, include: { order: { include: { product: true, lead: true } } } });
-  if (!report || report.order.orderReference !== query.order || report.order.status !== "PAID") return <InvalidSuccess />;
+  if (
+    !report
+    || report.order.orderReference !== query.order
+    || report.order.status !== "PAID"
+    || access.leadId !== report.leadId
+    || access.orderId !== report.orderId
+  ) return <InvalidSuccess />;
   const env = getServerEnv();
 
   return (

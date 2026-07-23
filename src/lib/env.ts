@@ -88,21 +88,21 @@ export function validateProductionEnvironment(environment: NodeJS.ProcessEnv): S
   return config;
 }
 
-let cached: ServerEnv | undefined;
-
-export function getServerEnv(): ServerEnv {
-  if (cached) return cached;
-  const parsed = serverEnvSchema.safeParse(process.env);
+export function validateRuntimeEnvironment(environment: NodeJS.ProcessEnv): ServerEnv {
+  const parsed = serverEnvSchema.safeParse(environment);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join(", ");
     throw new Error(`Invalid server environment: ${issues}`);
   }
 
-  if (parsed.data.NODE_ENV === "production") {
-    cached = validateProductionEnvironment(process.env);
-    return cached;
-  }
-  cached = parsed.data;
+  return parsed.data.NODE_ENV === "production" ? validateBuildEnvironment(environment) : parsed.data;
+}
+
+let cached: ServerEnv | undefined;
+
+export function getServerEnv(): ServerEnv {
+  if (cached) return cached;
+  cached = validateRuntimeEnvironment(process.env);
   return cached;
 }
 

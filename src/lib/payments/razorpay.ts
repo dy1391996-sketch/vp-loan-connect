@@ -21,6 +21,7 @@ export async function createProviderOrder(input: { amountPaise: number; receipt:
     if (env.NODE_ENV === "production") throw new Error("Mock payments are disabled in production.");
     return { provider: "mock" as const, orderId: `mock_order_${crypto.randomUUID()}`, keyId: "mock" };
   }
+  if (!env.RAZORPAY_KEY_ID || !env.RAZORPAY_KEY_SECRET) throw new Error("Razorpay order credentials are not configured.");
   const response = await fetch("https://api.razorpay.com/v1/orders", {
     method: "POST",
     headers: { authorization: `Basic ${Buffer.from(`${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`).toString("base64")}`, "content-type": "application/json" },
@@ -38,6 +39,7 @@ export async function createProviderRefund(input: { paymentId: string; amountPai
     if (env.NODE_ENV === "production") throw new Error("Mock refunds are disabled in production.");
     return { refundId: `mock_refund_${crypto.randomUUID()}` };
   }
+  if (!env.RAZORPAY_KEY_ID || !env.RAZORPAY_KEY_SECRET) throw new Error("Razorpay refund credentials are not configured.");
   const response = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(input.paymentId)}/refund`, {
     method: "POST",
     headers: { authorization: `Basic ${Buffer.from(`${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`).toString("base64")}`, "content-type": "application/json" },

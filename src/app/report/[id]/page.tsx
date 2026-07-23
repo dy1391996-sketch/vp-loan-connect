@@ -13,15 +13,21 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
   const { token } = await searchParams;
   if (!token) return <InvalidReport />;
 
+  let access;
   try {
-    const payload = await verifyAccessToken(token, "report_access");
-    if (payload.sub !== id) throw new Error("mismatch");
+    access = await verifyAccessToken(token, "report_access");
+    if (access.sub !== id) throw new Error("mismatch");
   } catch {
     return <InvalidReport />;
   }
 
   const report = await prisma.report.findUnique({ where: { id }, include: { lead: true, order: { include: { product: true } } } });
-  if (!report || report.order.status !== "PAID") return <InvalidReport />;
+  if (
+    !report
+    || report.order.status !== "PAID"
+    || access.leadId !== report.leadId
+    || access.orderId !== report.orderId
+  ) return <InvalidReport />;
   if (report.status === "QUEUED") await prisma.report.update({ where: { id }, data: { status: "READY", generatedAt: new Date() } });
 
   return (
