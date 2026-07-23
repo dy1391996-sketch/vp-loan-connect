@@ -100,7 +100,7 @@ async function main() {
 
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   const password = process.env.ADMIN_INITIAL_PASSWORD;
-  if (email && password && password !== "replace-before-seeding" && password.length >= 12) {
+  if (email && password && password.length >= 12) {
     const passwordHash = await bcrypt.hash(password, 12);
     await prisma.adminUser.upsert({
       where: { email },
