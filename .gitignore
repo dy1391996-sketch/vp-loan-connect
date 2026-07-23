@@ -13,16 +13,13 @@ coverage/
 next-env.d.ts
 
 # environment and secrets
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env*
 !.env.example
 
 # logs and local files
 *.log
 .DS_Store
+.vercel/
 prisma/*.db
 prisma/*.db-journal
 generated-reports/
