@@ -46,7 +46,7 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-The initial admin is created only when `ADMIN_EMAIL` is valid and `ADMIN_INITIAL_PASSWORD` is at least 12 characters and is not the placeholder. Remove or rotate the bootstrap password after seeding.
+The initial admin is created only when `ADMIN_EMAIL` is valid and `ADMIN_INITIAL_PASSWORD` is at least 12 characters. Remove or rotate the bootstrap password after seeding.
 
 ## Database migration and seed
 
@@ -138,6 +138,19 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
+```
+
+The same local gates are available through npm:
+
+```bash
+npm install
+npx prisma generate
+npm run verify:migration
+npm run verify:readiness
+npm run lint
+npm run type-check
+npm test
+npm run build
 ```
 
 Automated tests cover assessment consent, scoring, EMI calculation, marketing withdrawal, referral self/duplicate controls, payment/webhook signatures, paid report access, admin export authorization and bilingual PDF output. Browser/device QA should additionally cover 320px, 375px, 768px and 1440px widths, keyboard navigation, Android/iOS download behavior and real Razorpay/WhatsApp test accounts.
