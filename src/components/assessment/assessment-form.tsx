@@ -108,20 +108,20 @@ export function AssessmentForm() {
   }
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-line bg-white shadow-soft">
-      <div className="border-b border-line bg-navy-950 px-5 py-6 text-white sm:px-8">
-        <div className="flex items-center justify-between text-xs font-semibold text-slate-300"><span>Step {step} of 5</span><span>{steps[step - 1]}</span></div>
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-brand-500 transition-all duration-500" style={{ width: `${step * 20}%` }} /></div>
-        <div className="mt-3 hidden grid-cols-5 text-[10px] text-slate-400 sm:grid">{steps.map((label, index) => <span key={label} className={cn(index + 1 <= step && "text-brand-500")}>{label}</span>)}</div>
+    <div className="overflow-hidden rounded-[2rem] border border-line/80 bg-white shadow-soft">
+      <div className="bg-navy-950 px-5 py-7 text-white sm:px-9">
+        <div className="flex items-center justify-between text-xs font-bold text-slate-300"><span>Step {step} of 5</span><span className="text-brand-100">{steps[step - 1]}</span></div>
+        <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-brand-500 transition-all duration-500" style={{ width: `${step * 20}%` }} /></div>
+        <div className="mt-4 hidden grid-cols-5 gap-3 text-[10px] font-semibold text-slate-400 sm:grid">{steps.map((label, index) => <span key={label} className={cn(index + 1 <= step && "text-brand-500")} aria-current={index + 1 === step ? "step" : undefined}>{label}</span>)}</div>
       </div>
-      <div className="p-5 sm:p-8 lg:p-10">
+      <div className="p-5 sm:p-9 lg:p-11">
         {step === 1 ? <BasicStep form={form} update={update} otpRequestId={otpRequestId} otpCode={otpCode} setOtpCode={setOtpCode} otpVerified={otpVerified} developmentCode={developmentCode} busy={busy} requestOtp={requestOtp} verifyOtp={verifyOtp} /> : null}
         {step === 2 ? <IncomeStep form={form} update={update} /> : null}
         {step === 3 ? <ObligationStep form={form} update={update} /> : null}
         {step === 4 ? <DocumentStep form={form} update={update} /> : null}
         {step === 5 ? <ConsentStep form={form} update={update} /> : null}
-        {error ? <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium leading-6 text-red-800" role="alert">{error}</div> : null}
-        <div className="mt-8 flex items-center justify-between gap-3 border-t border-line pt-6">
+        {error ? <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-medium leading-6 text-red-800" role="alert">{error}</div> : null}
+        <div className="mt-9 flex items-center justify-between gap-3 border-t border-line pt-7">
           <Button type="button" variant="ghost" disabled={step === 1 || busy} onClick={() => setStep((value) => value - 1)}><ArrowLeft size={18} />Back</Button>
           {step < 5 ? <Button type="button" disabled={busy} onClick={next}>Continue <ArrowRight size={18} /></Button> : <Button type="button" disabled={busy} onClick={submit}>{busy ? <Loader2 className="animate-spin" size={18} /> : <ShieldCheck size={18} />}Generate free result</Button>}
         </div>
@@ -156,5 +156,5 @@ function YesNo<K extends keyof FormState>({ label, field, value, update }: { lab
   return <Field label={label} required><div className="grid grid-cols-2 gap-2"><Choice name={String(field)} value="yes" label="Yes" checked={value === true} onChange={() => update(field, true as FormState[K])} /><Choice name={String(field)} value="no" label="No" checked={value === false} onChange={() => update(field, false as FormState[K])} /></div></Field>;
 }
 
-function StepTitle({ title, description }: { title: string; description: string }) { return <div><h2 className="text-2xl font-bold tracking-[-0.03em] text-navy-950">{title}</h2><p className="mt-2 text-sm leading-7 text-slate-600">{description}</p></div>; }
+function StepTitle({ title, description }: { title: string; description: string }) { return <div><h2 className="text-2xl font-extrabold tracking-[-0.035em] text-navy-950 sm:text-3xl">{title}</h2><p className="mt-3 text-sm leading-7 text-slate-600">{description}</p></div>; }
 function SafetyNote() { return <div className="mt-7 flex items-start gap-3 rounded-2xl border border-brand-100 bg-brand-100/50 p-5 text-sm leading-7 text-brand-700"><LockKeyhole className="mt-1 shrink-0" size={18} />Never share UPI PIN, CVV, net-banking password, Aadhaar OTP or banking credentials.</div>; }

@@ -1,35 +1,38 @@
 import type { Metadata } from "next";
-import { Mail, MapPin, MessageCircle, ShieldAlert } from "lucide-react";
-import { BUSINESS_NAME } from "@/lib/constants";
+import { Building2, Headphones, Mail, MapPin, MessageCircle, ShieldAlert } from "lucide-react";
 
-export const metadata: Metadata = { title: "Contact Us" };
+export const metadata: Metadata = { title: "Contact Us", description: "Contact the VP Loan Connect support team for assessment, payment, report or privacy assistance." };
 
 export default function ContactPage() {
   const email = process.env.SUPPORT_EMAIL || "support@vploanconnect.in";
   const whatsapp = process.env.SUPPORT_WHATSAPP;
+  const businessName = process.env.BUSINESS_NAME;
   const address = process.env.BUSINESS_ADDRESS;
-  const grievanceName = process.env.GRIEVANCE_NAME;
   const grievanceEmail = process.env.GRIEVANCE_EMAIL || email;
 
   return (
-    <section className="min-h-[75vh] bg-surface py-14">
+    <section className="surface-grid min-h-[75vh] bg-surface py-14 sm:py-20">
       <div className="page-shell">
-        <div className="mx-auto max-w-4xl">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-700">Contact & support</p>
-          <h1 className="mt-3 text-4xl font-bold tracking-[-0.04em] text-navy-950">We’re here to clarify the process</h1>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">Never share UPI PIN, CVV, bank password or Aadhaar OTP with anyone claiming to represent VP Loan Connect.</p>
-          <div className="mt-8 grid gap-5 sm:grid-cols-2">
-            <Card icon={Mail} title="Support email" value={email} href={`mailto:${email}`} />
-            {whatsapp ? <Card icon={MessageCircle} title="WhatsApp support" value={whatsapp} href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`} /> : null}
-            <Card icon={MapPin} title="Legal business" value={BUSINESS_NAME} />
-            {address ? <Card icon={MapPin} title="Business address" value={address} /> : null}
+        <div className="mx-auto max-w-5xl">
+          <div className="max-w-3xl">
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-brand-700">Contact & support</p>
+            <h1 className="mt-4 text-balance text-4xl font-extrabold tracking-[-0.05em] text-navy-950 sm:text-5xl">Clear help, without pressure</h1>
+            <p className="mt-5 text-base leading-8 text-slate-600">The Support Team can help with an assessment, payment, report, referral or privacy request. Never share a UPI PIN, CVV, bank password or Aadhaar OTP.</p>
           </div>
-          <div id="grievance" className="mt-8 rounded-3xl border border-amber-200 bg-amber-50 p-7">
-            <ShieldAlert className="text-amber-700" />
-            <h2 className="mt-5 text-2xl font-bold text-amber-950">Grievance contact</h2>
-            <p className="mt-3 text-sm leading-7 text-amber-950">
-              {grievanceName ? `${grievanceName} is the designated grievance contact. ` : ""}
-              Email <a className="font-bold underline" href={`mailto:${grievanceEmail}?subject=Grievance`}>{grievanceEmail}</a> with “Grievance” in the subject and include your registered mobile and order/reference where relevant.
+
+          <div className="mt-10 grid gap-5 sm:grid-cols-2">
+            <Card icon={Mail} title="Support Email" value={email} href={`mailto:${email}`} />
+            {whatsapp ? <Card icon={MessageCircle} title="Support Number" value={whatsapp} href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`} /> : null}
+            <Card icon={Headphones} title="Support Team" value="Assessment, payment, report and privacy assistance" />
+            {businessName ? <Card icon={Building2} title="Business Name" value={businessName} /> : null}
+            {address ? <Card icon={MapPin} title="Registered Office" value={address} /> : null}
+          </div>
+
+          <div id="grievance" className="mt-8 rounded-[2rem] border border-amber-200 bg-amber-50 p-7 sm:p-9">
+            <ShieldAlert className="text-amber-700" size={28} />
+            <h2 className="mt-5 text-2xl font-extrabold text-amber-950">Grievance Support Team</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-amber-950">
+              Email <a className="font-bold underline underline-offset-4" href={`mailto:${grievanceEmail}?subject=Grievance`}>{grievanceEmail}</a> with “Grievance” in the subject and include your registered mobile and order or report reference where relevant.
             </p>
           </div>
         </div>
@@ -39,6 +42,7 @@ export default function ContactPage() {
 }
 
 function Card({ icon: Icon, title, value, href }: { icon: typeof Mail; title: string; value: string; href?: string }) {
-  const content = <><Icon className="text-brand-700" /><p className="mt-5 text-xs font-semibold text-slate-500">{title}</p><p className="mt-1 break-words font-bold text-navy-950">{value}</p></>;
-  return href ? <a href={href} className="rounded-3xl border border-line bg-white p-6 shadow-card hover:border-brand-600">{content}</a> : <div className="rounded-3xl border border-line bg-white p-6 shadow-card">{content}</div>;
+  const content = <><span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-100 text-brand-700"><Icon size={21} /></span><p className="mt-6 text-xs font-semibold text-slate-500">{title}</p><p className="mt-1 break-words font-extrabold leading-7 text-navy-950">{value}</p></>;
+  const className = "rounded-3xl border border-line bg-white p-6 shadow-card transition hover:-translate-y-0.5 hover:border-brand-500/50";
+  return href ? <a href={href} className={className}>{content}</a> : <div className={className}>{content}</div>;
 }

@@ -35,11 +35,16 @@ const serverEnvSchema = z.object({
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
 
-const requiredProductionValues: Array<keyof ServerEnv> = [
+const requiredBuildValues: Array<keyof ServerEnv> = [
   "DATABASE_URL",
   "NEXT_PUBLIC_APP_URL",
   "NEXTAUTH_SECRET",
   "REPORT_SIGNING_SECRET",
+  "BUSINESS_NAME",
+  "SUPPORT_EMAIL",
+];
+
+const requiredProductionValues: Array<keyof ServerEnv> = [
   "RAZORPAY_KEY_ID",
   "RAZORPAY_KEY_SECRET",
   "RAZORPAY_WEBHOOK_SECRET",
@@ -50,29 +55,34 @@ const requiredProductionValues: Array<keyof ServerEnv> = [
   "WHATSAPP_APP_SECRET",
   "OTP_API_URL",
   "OTP_API_KEY",
-  "BUSINESS_NAME",
   "BUSINESS_GSTIN",
   "BUSINESS_ADDRESS",
-  "SUPPORT_EMAIL",
   "SUPPORT_WHATSAPP",
   "GRIEVANCE_NAME",
   "GRIEVANCE_EMAIL",
 ];
 
-export function validateProductionEnvironment(environment: NodeJS.ProcessEnv): ServerEnv {
+export function validateBuildEnvironment(environment: NodeJS.ProcessEnv): ServerEnv {
   const parsed = serverEnvSchema.safeParse({ ...environment, NODE_ENV: "production" });
   if (!parsed.success) {
     const issues = parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join(", ");
-    throw new Error(`Invalid production environment: ${issues}`);
+    throw new Error(`Invalid build environment: ${issues}`);
   }
 
   const config = parsed.data;
+  const missing = requiredBuildValues.filter((key) => String(config[key] ?? "").trim().length === 0);
+  if (missing.length) throw new Error(`Missing build environment variables: ${missing.join(", ")}`);
+  if (!config.NEXT_PUBLIC_APP_URL.startsWith("https://")) throw new Error("NEXT_PUBLIC_APP_URL must use HTTPS in production.");
+  return config;
+}
+
+export function validateProductionEnvironment(environment: NodeJS.ProcessEnv): ServerEnv {
+  const config = validateBuildEnvironment(environment);
   const missing = requiredProductionValues.filter((key) => String(config[key] ?? "").trim().length === 0);
   if (missing.length) throw new Error(`Missing production environment variables: ${missing.join(", ")}`);
   if (config.PAYMENT_PROVIDER !== "razorpay") throw new Error("PAYMENT_PROVIDER must be razorpay in production.");
   if (config.OTP_PROVIDER !== "custom") throw new Error("OTP_PROVIDER must be custom in production.");
   if (config.WHATSAPP_PROVIDER !== "meta") throw new Error("WHATSAPP_PROVIDER must be meta in production.");
-  if (!config.NEXT_PUBLIC_APP_URL.startsWith("https://")) throw new Error("NEXT_PUBLIC_APP_URL must use HTTPS in production.");
   if (!/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(config.BUSINESS_GSTIN)) throw new Error("BUSINESS_GSTIN must use the official 15-character format.");
   if (!/^\+?[1-9]\d{9,14}$/.test(config.SUPPORT_WHATSAPP)) throw new Error("SUPPORT_WHATSAPP must be in international format.");
   return config;

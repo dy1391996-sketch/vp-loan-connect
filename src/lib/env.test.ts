@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { validateProductionEnvironment } from "./env";
+import { validateBuildEnvironment, validateProductionEnvironment } from "./env";
 
 const validEnvironment: NodeJS.ProcessEnv = {
   NODE_ENV: "production",
@@ -35,6 +35,23 @@ test("production environment accepts only complete official-provider configurati
   assert.equal(result.PAYMENT_PROVIDER, "razorpay");
   assert.equal(result.OTP_PROVIDER, "custom");
   assert.equal(result.WHATSAPP_PROVIDER, "meta");
+});
+
+test("build environment does not require credentials for runtime-only integrations", () => {
+  const buildEnvironment = {
+    NODE_ENV: "production" as const,
+    DATABASE_URL: validEnvironment.DATABASE_URL,
+    NEXT_PUBLIC_APP_URL: validEnvironment.NEXT_PUBLIC_APP_URL,
+    NEXTAUTH_SECRET: validEnvironment.NEXTAUTH_SECRET,
+    REPORT_SIGNING_SECRET: validEnvironment.REPORT_SIGNING_SECRET,
+    BUSINESS_NAME: validEnvironment.BUSINESS_NAME,
+    SUPPORT_EMAIL: validEnvironment.SUPPORT_EMAIL,
+    PAYMENT_PROVIDER: validEnvironment.PAYMENT_PROVIDER,
+    OTP_PROVIDER: validEnvironment.OTP_PROVIDER,
+    WHATSAPP_PROVIDER: validEnvironment.WHATSAPP_PROVIDER,
+  };
+
+  assert.equal(validateBuildEnvironment(buildEnvironment).NODE_ENV, "production");
 });
 
 test("production environment rejects mock providers", () => {

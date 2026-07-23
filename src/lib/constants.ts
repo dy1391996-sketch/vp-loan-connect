@@ -1,5 +1,4 @@
 export const APP_NAME = "VP Loan Connect";
-export const BUSINESS_NAME = "THE99CREW FACILITY MANAGEMENT";
 export const TAGLINE = "Smart Profile Check Before Your Loan Application";
 export const DOMAIN = "vploanconnect.in";
 
