@@ -1,0 +1,630 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LeadStage {
+  NEW_LEAD
+  OTP_VERIFIED
+  ASSESSMENT_STARTED
+  ASSESSMENT_COMPLETED
+  FREE_RESULT_VIEWED
+  PAYMENT_PENDING
+  PAID
+  REPORT_PROCESSING
+  REPORT_DELIVERED
+  CONSULTATION_REQUESTED
+  LENDER_REFERRAL_REQUESTED
+  REFERRED
+  APPLICATION_SUBMITTED
+  APPROVED
+  REJECTED
+  FOLLOW_UP_LATER
+  OPTED_OUT
+}
+
+enum AssessmentStatus {
+  STARTED
+  COMPLETED
+  ABANDONED
+}
+
+enum ConsentType {
+  SERVICE
+  MARKETING
+  LENDER_REFERRAL
+}
+
+enum OrderStatus {
+  CREATED
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum PaymentStatus {
+  CREATED
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum ReportStatus {
+  QUEUED
+  PROCESSING
+  READY
+  DELIVERED
+  FAILED
+}
+
+enum ProductType {
+  CREDIT_HEALTH_ACTION_PLAN
+  LOAN_READINESS_REPORT
+}
+
+enum CommunicationChannel {
+  WHATSAPP
+  SMS
+  CALL
+  EMAIL
+  SYSTEM
+}
+
+enum CommunicationDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum CommunicationStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  SKIPPED
+}
+
+enum RewardStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+  REVERSED
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  ANALYST
+  SUPPORT
+}
+
+enum ReferralRequestStatus {
+  REQUESTED
+  REVIEWING
+  REFERRED
+  SUBMITTED
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ConsultationStatus {
+  REQUESTED
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum RefundStatus {
+  REQUESTED
+  APPROVED
+  PROCESSING
+  COMPLETED
+  REJECTED
+  FAILED
+}
+
+enum DataRequestStatus {
+  REQUESTED
+  VERIFYING
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
+
+model Lead {
+  id                    String   @id @default(uuid()) @db.Uuid
+  fullName              String
+  mobile                String   @unique
+  state                 String?
+  city                  String?
+  stage                 LeadStage @default(NEW_LEAD)
+  source                String?  @db.VarChar(120)
+  utm                    Json?
+  referralCode          String   @unique
+  referredByCode        String?
+  mobileVerifiedAt      DateTime?
+  marketingOptedOutAt   DateTime?
+  lastContactedAt       DateTime?
+  notes                 String?
+  deletedAt             DateTime?
+  deletionRequestedAt   DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  otpRequests           OtpRequest[]
+  assessments           Assessment[]
+  orders                Order[]
+  reports               Report[]
+  consentLogs           ConsentLog[]
+  communications        CommunicationLog[]
+  outgoingReferrals     Referral[] @relation("Referrer")
+  incomingReferral      Referral?  @relation("ReferredLead")
+  referralClicks        ReferralClick[] @relation("ClickOwner")
+  referralRewards       ReferralReward[] @relation("RewardOwner")
+  consultations         Consultation[]
+  lenderRequests        LenderReferralRequest[]
+  dataRequests          DataDeletionRequest[]
+  analyticsEvents       AnalyticsEvent[]
+
+  @@index([stage, createdAt])
+  @@index([state, city])
+  @@index([source])
+  @@index([referredByCode])
+  @@index([deletedAt])
+}
+
+model OtpRequest {
+  id           String   @id @default(uuid()) @db.Uuid
+  leadId       String?  @db.Uuid
+  mobile       String
+  otpHash      String
+  providerRef  String?
+  attemptCount Int      @default(0)
+  expiresAt    DateTime
+  verifiedAt   DateTime?
+  userAgent    String?
+  ipHash       String?
+  createdAt    DateTime @default(now())
+  lead         Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([mobile, createdAt])
+  @@index([expiresAt])
+}
+
+model Assessment {
+  id                 String   @id @default(uuid()) @db.Uuid
+  leadId             String   @db.Uuid
+  status             AssessmentStatus @default(STARTED)
+  loanAmount         Decimal? @db.Decimal(12, 2)
+  loanPurpose        String?
+  loanType           String?
+  employmentType     String?
+  monthlyIncomeRange String?
+  monthlyIncome      Decimal? @db.Decimal(12, 2)
+  existingEmi        Decimal? @db.Decimal(12, 2)
+  creditRange        String?
+  source             String?
+  referralCode       String?
+  completionPercent  Int      @default(0)
+  startedAt          DateTime @default(now())
+  completedAt        DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  lead               Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  answers             AssessmentAnswer[]
+  score               Score?
+  orders              Order[]
+  reports             Report[]
+
+  @@index([leadId, createdAt])
+  @@index([status, completedAt])
+  @@index([loanType, creditRange])
+}
+
+model AssessmentAnswer {
+  id           String   @id @default(uuid()) @db.Uuid
+  assessmentId String   @db.Uuid
+  questionKey  String
+  value        Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, questionKey])
+  @@index([questionKey])
+}
+
+model Score {
+  id                    String   @id @default(uuid()) @db.Uuid
+  assessmentId          String   @unique @db.Uuid
+  readinessScore        Int
+  readinessLabel        String
+  emiRatio               Decimal? @db.Decimal(6, 2)
+  emiBurden              String
+  documentationStatus   String
+  creditHealthStatus    String
+  comfortableEmiMin     Decimal  @db.Decimal(12, 2)
+  comfortableEmiMax     Decimal  @db.Decimal(12, 2)
+  suitableCategories    Json
+  strengths             Json
+  improvements          Json
+  factorBreakdown       Json
+  engineVersion         String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  assessment            Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id              String   @id @default(uuid()) @db.Uuid
+  slug            String   @unique
+  name            String
+  type            ProductType @unique
+  regularPrice    Decimal  @db.Decimal(10, 2)
+  salePrice       Decimal  @db.Decimal(10, 2)
+  gstRate         Decimal  @db.Decimal(5, 2)
+  active          Boolean  @default(true)
+  deliverables    Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  orders          Order[]
+}
+
+model Order {
+  id                String   @id @default(uuid()) @db.Uuid
+  orderReference    String   @unique
+  leadId            String   @db.Uuid
+  assessmentId      String?  @db.Uuid
+  productId         String   @db.Uuid
+  subtotal          Decimal  @db.Decimal(10, 2)
+  gstAmount         Decimal  @db.Decimal(10, 2)
+  totalAmount       Decimal  @db.Decimal(10, 2)
+  currency          String   @default("INR")
+  status            OrderStatus @default(CREATED)
+  providerOrderId   String?  @unique
+  referralCode      String?
+  source            String?
+  paidAt            DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  lead              Lead     @relation(fields: [leadId], references: [id])
+  assessment        Assessment? @relation(fields: [assessmentId], references: [id])
+  product           Product  @relation(fields: [productId], references: [id])
+  payments          Payment[]
+  reports           Report[]
+  referralReward    ReferralReward?
+  refunds           Refund[]
+
+  @@index([leadId, createdAt])
+  @@index([status, createdAt])
+  @@index([referralCode])
+}
+
+model Payment {
+  id                 String   @id @default(uuid()) @db.Uuid
+  orderId            String   @db.Uuid
+  provider           String
+  providerPaymentId  String?  @unique
+  amount             Decimal  @db.Decimal(10, 2)
+  currency           String   @default("INR")
+  status             PaymentStatus @default(CREATED)
+  failureCode        String?
+  failureDescription String?
+  capturedAt         DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  order              Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  webhookEvents      PaymentWebhookEvent[]
+
+  @@index([orderId, status])
+}
+
+model PaymentWebhookEvent {
+  id              String   @id @default(uuid()) @db.Uuid
+  providerEventId String   @unique
+  eventType       String
+  paymentId       String?  @db.Uuid
+  payloadHash     String
+  processedAt     DateTime?
+  error           String?
+  createdAt       DateTime @default(now())
+  payment         Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([eventType, createdAt])
+}
+
+model Report {
+  id                  String   @id @default(uuid()) @db.Uuid
+  reportReference     String   @unique
+  leadId              String   @db.Uuid
+  assessmentId        String   @db.Uuid
+  orderId             String   @unique @db.Uuid
+  type                 ProductType
+  status               ReportStatus @default(QUEUED)
+  snapshot             Json?
+  accessTokenHash      String?
+  accessTokenExpiresAt DateTime?
+  generatedAt          DateTime?
+  deliveredAt          DateTime?
+  failureReason        String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  lead                 Lead @relation(fields: [leadId], references: [id])
+  assessment           Assessment @relation(fields: [assessmentId], references: [id])
+  order                Order @relation(fields: [orderId], references: [id])
+
+  @@index([leadId, status])
+  @@index([status, createdAt])
+}
+
+model ConsentLog {
+  consentId      String   @id @default(uuid()) @map("consent_id") @db.Uuid
+  leadId         String   @map("lead_id") @db.Uuid
+  consentType    ConsentType @map("consent_type")
+  consentText    String   @map("consent_text")
+  consentVersion String   @map("consent_version")
+  accepted       Boolean
+  acceptedAt     DateTime? @map("accepted_at")
+  withdrawnAt    DateTime? @map("withdrawn_at")
+  source         String?
+  userAgent      String?  @map("user_agent")
+  ipAddress      String?  @map("ip_address")
+  createdAt      DateTime @default(now()) @map("created_at")
+  lead           Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, consentType, createdAt])
+  @@map("consent_logs")
+}
+
+model CommunicationLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  leadId         String   @db.Uuid
+  channel        CommunicationChannel
+  direction      CommunicationDirection
+  templateKey    String?
+  purpose        String
+  messagePreview String?
+  providerRef    String?
+  status         CommunicationStatus @default(QUEUED)
+  failureReason  String?
+  sentAt         DateTime?
+  createdAt      DateTime @default(now())
+  lead           Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, createdAt])
+  @@index([status, createdAt])
+}
+
+model Referral {
+  id             String   @id @default(uuid()) @db.Uuid
+  referrerLeadId String   @db.Uuid
+  referredLeadId String   @unique @db.Uuid
+  referralCode   String
+  attributedAt   DateTime @default(now())
+  invalidReason  String?
+  referrer       Lead @relation("Referrer", fields: [referrerLeadId], references: [id])
+  referredLead   Lead @relation("ReferredLead", fields: [referredLeadId], references: [id])
+
+  @@index([referrerLeadId, attributedAt])
+  @@index([referralCode])
+}
+
+model ReferralClick {
+  id             String   @id @default(uuid()) @db.Uuid
+  referrerLeadId String   @db.Uuid
+  referralCode   String
+  sessionHash    String?
+  source         String?
+  utm            Json?
+  createdAt      DateTime @default(now())
+  referrer       Lead @relation("ClickOwner", fields: [referrerLeadId], references: [id], onDelete: Cascade)
+
+  @@index([referrerLeadId, createdAt])
+  @@index([referralCode, createdAt])
+}
+
+model ReferralReward {
+  id             String   @id @default(uuid()) @db.Uuid
+  referrerLeadId String   @db.Uuid
+  orderId        String   @unique @db.Uuid
+  amount         Decimal  @db.Decimal(10, 2)
+  status         RewardStatus @default(PENDING)
+  validationEndsAt DateTime
+  approvedAt     DateTime?
+  paidAt         DateTime?
+  payoutReference String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  referrer       Lead @relation("RewardOwner", fields: [referrerLeadId], references: [id])
+  order          Order @relation(fields: [orderId], references: [id])
+
+  @@index([referrerLeadId, status])
+}
+
+model Consultation {
+  id            String   @id @default(uuid()) @db.Uuid
+  leadId        String   @db.Uuid
+  preferredSlot DateTime?
+  timezone      String   @default("Asia/Kolkata")
+  notes         String?
+  status        ConsultationStatus @default(REQUESTED)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lead          Lead @relation(fields: [leadId], references: [id])
+
+  @@index([status, createdAt])
+}
+
+model LenderReferralRequest {
+  id             String   @id @default(uuid()) @db.Uuid
+  leadId         String   @db.Uuid
+  lenderId       String?  @db.Uuid
+  lenderProductId String? @db.Uuid
+  consentLogId   String?  @db.Uuid
+  status         ReferralRequestStatus @default(REQUESTED)
+  externalRef    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  lead           Lead @relation(fields: [leadId], references: [id])
+  lender         Lender? @relation(fields: [lenderId], references: [id])
+  lenderProduct  LenderProduct? @relation(fields: [lenderProductId], references: [id])
+  application    LenderApplication?
+
+  @@index([leadId, status])
+  @@index([lenderId, status])
+}
+
+model Lender {
+  id                    String   @id @default(uuid()) @db.Uuid
+  legalName             String
+  displayName           String
+  regulatedEntityType  String?
+  registrationReference String?
+  verified              Boolean @default(false)
+  legalAgreementActive  Boolean @default(false)
+  logoUsePermitted      Boolean @default(false)
+  productDetailsApproved Boolean @default(false)
+  active                Boolean @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  products              LenderProduct[]
+  referralRequests      LenderReferralRequest[]
+}
+
+model LenderProduct {
+  id                String   @id @default(uuid()) @db.Uuid
+  lenderId          String   @db.Uuid
+  name              String
+  category          String
+  eligibilityRules  Json?
+  documentChecklist Json?
+  active            Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  lender            Lender @relation(fields: [lenderId], references: [id], onDelete: Cascade)
+  referralRequests  LenderReferralRequest[]
+
+  @@index([lenderId, active])
+}
+
+model LenderApplication {
+  id                String   @id @default(uuid()) @db.Uuid
+  referralRequestId String   @unique @db.Uuid
+  status            ReferralRequestStatus @default(REFERRED)
+  externalReference String?
+  commissionExpected Decimal? @db.Decimal(10, 2)
+  commissionReceived Decimal? @db.Decimal(10, 2)
+  submittedAt       DateTime?
+  decidedAt         DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  referralRequest   LenderReferralRequest @relation(fields: [referralRequestId], references: [id])
+}
+
+model AdminUser {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String
+  fullName     String
+  role         AdminRole @default(ADMIN)
+  active       Boolean  @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  sessions     AdminSession[]
+  auditLogs    AuditLog[]
+}
+
+model AdminSession {
+  id        String   @id @default(uuid()) @db.Uuid
+  adminId   String   @db.Uuid
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  admin     AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId, expiresAt])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  adminId     String?  @db.Uuid
+  action      String
+  entityType  String
+  entityId    String?
+  metadata    Json?
+  userAgent   String?
+  ipHash      String?
+  createdAt   DateTime @default(now())
+  admin       AdminUser? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([adminId, createdAt])
+  @@index([entityType, entityId])
+}
+
+model AppSetting {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  value       Json
+  description String?
+  public      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Refund {
+  id               String   @id @default(uuid()) @db.Uuid
+  orderId          String   @db.Uuid
+  amount           Decimal  @db.Decimal(10, 2)
+  reason           String
+  status           RefundStatus @default(REQUESTED)
+  providerRefundId String?  @unique
+  approvedBy       String?
+  processedAt      DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  order            Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId, status])
+}
+
+model DataDeletionRequest {
+  id          String   @id @default(uuid()) @db.Uuid
+  leadId      String?  @db.Uuid
+  mobile      String
+  reason      String?
+  status      DataRequestStatus @default(REQUESTED)
+  verifiedAt  DateTime?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  lead        Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([mobile, status])
+}
+
+model AnalyticsEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  leadId     String?  @db.Uuid
+  eventName  String
+  sessionId  String?
+  page       String?
+  source     String?
+  properties Json?
+  createdAt  DateTime @default(now())
+  lead       Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([eventName, createdAt])
+  @@index([leadId, createdAt])
+}
