@@ -1,0 +1,6 @@
+import { AdminShell } from "@/components/admin/admin-shell";
+import { SettingsForm } from "@/components/admin/settings-form";
+import { requireAdmin } from "@/lib/admin/auth";
+import { prisma } from "@/lib/db";
+export const dynamic="force-dynamic";
+export default async function AdminSettingsPage(){const{admin}=await requireAdmin(["SUPER_ADMIN","ADMIN"]);const settings=await prisma.appSetting.findMany();const byKey=Object.fromEntries(settings.map(s=>[s.key,s.value]));const reward=Number((byKey.referral_reward_credit_health as {amount?:number}|undefined)?.amount??20);const minimum=Number((byKey.referral_minimum_payout as {amount?:number}|undefined)?.amount??250);const bonus=byKey.referral_milestone_bonuses as Record<string,number>|undefined;return <AdminShell title="Settings" description="Centralized referral and operational configuration." adminName={admin.fullName}><SettingsForm initial={{reward,validationDays:Number(byKey.referral_validation_days??14),minimumPayout:minimum,bonus5:Number(bonus?.["5"]??0),bonus10:Number(bonus?.["10"]??0),bonus25:Number(bonus?.["25"]??0)}}/><div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-7 text-amber-950">Business identity, payment keys, provider secrets and support contacts remain environment variables; they are intentionally not editable in the browser.</div></AdminShell>}

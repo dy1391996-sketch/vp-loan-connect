@@ -1,0 +1,8 @@
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Field, Input, Textarea } from "@/components/ui/form";
+import { trackEvent } from "@/lib/analytics-client";
+
+export function ConsultationForm({ assessmentId, token }: { assessmentId: string; token: string }) { const [slot, setSlot] = useState(""); const [notes, setNotes] = useState(""); const [status, setStatus] = useState(""); const [busy, setBusy] = useState(false); async function submit(e: React.FormEvent) { e.preventDefault(); setBusy(true); const response = await fetch("/api/consultations", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ assessmentId, resultToken: token, preferredSlot: slot ? new Date(slot).toISOString() : "", notes }) }); const data = await response.json(); setStatus(response.ok ? "Consultation request received. Support will confirm availability on your verified contact." : data.error); if (response.ok) trackEvent("consultation_requested"); setBusy(false); } return <form onSubmit={submit} className="rounded-3xl border border-line bg-white p-7 shadow-card"><div className="grid gap-5"><Field label="Preferred date and time" hint="Final slot requires support confirmation."><Input type="datetime-local" value={slot} onChange={(e) => setSlot(e.target.value)} /></Field><Field label="What would you like to discuss?"><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} /></Field></div>{status ? <p className="mt-5 rounded-xl bg-surface p-4 text-sm leading-6 text-slate-700">{status}</p> : null}<Button type="submit" className="mt-6 w-full" disabled={busy}>{busy ? "Submitting…" : "Request consultation"}</Button></form>; }
