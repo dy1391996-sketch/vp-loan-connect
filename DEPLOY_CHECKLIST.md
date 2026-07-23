@@ -76,4 +76,3 @@ npm run build
 - [ ] Verify STOP prevents later promotional messages.
 - [ ] Run accessibility, SEO and performance audits against the production URL.
 - [ ] Confirm monitoring, alerting, log redaction and incident contacts.
-

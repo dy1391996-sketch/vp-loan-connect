@@ -78,4 +78,3 @@ A consultation request does not promise a lender or loan. A future verified-lend
 Use `/data-deletion` to submit a verified deletion request. Some payment, tax, fraud-prevention and audit records may need to be retained or de-identified where law requires.
 
 For support or grievance handling, use `/contact`. Include your registered mobile and order/report reference, but never send passwords, OTPs, PINs or full card information.
-

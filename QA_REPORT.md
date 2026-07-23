@@ -1,8 +1,11 @@
 # QA Report
 
-Project: VP Loan Connect  
-Release: 0.1.0  
-Test date: 23 July 2026  
+Project: VP Loan Connect
+
+Release: 0.1.0
+
+Test date: 23 July 2026
+
 Environment: local production build, Node.js 24, Next.js 15.5.21
 
 ## Result

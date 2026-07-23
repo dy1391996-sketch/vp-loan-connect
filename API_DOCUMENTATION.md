@@ -166,4 +166,3 @@ Roles: `SUPER_ADMIN`, `ADMIN`. Updates reward, validation, payout threshold and 
 - `404`: unavailable record or production-disabled mock endpoint.
 - `429`: rate limit exceeded.
 - `500`/`502`: safe generic processing/provider error; secrets and raw sensitive payloads are not returned.
-

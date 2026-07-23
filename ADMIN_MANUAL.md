@@ -97,4 +97,3 @@ If unauthorized access, secret exposure, suspicious exports or payment abuse is 
 3. Preserve audit evidence without exposing customer data.
 4. Notify the designated owner/security and grievance contacts.
 5. Follow legal breach-assessment and notification requirements.
-
