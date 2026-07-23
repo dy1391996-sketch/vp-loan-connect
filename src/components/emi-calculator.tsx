@@ -1,0 +1,22 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { Field, Input } from "@/components/ui/form";
+import { calculateEmi } from "@/lib/domain/emi";
+import { formatInr } from "@/lib/utils";
+
+export function EmiCalculator() {
+  const [principal, setPrincipal] = useState(500000);
+  const [rate, setRate] = useState(14);
+  const [months, setMonths] = useState(36);
+  const result = useMemo(() => calculateEmi(Math.max(1, principal), Math.max(0, rate), Math.max(1, Math.round(months))), [principal, rate, months]);
+  return (
+    <div className="rounded-3xl border border-line bg-white p-6 shadow-card sm:p-8">
+      <div className="grid gap-5 sm:grid-cols-3"><Field label="Principal (₹)"><Input className="number-field" type="number" min={50000} max={1500000} step={10000} value={principal} onChange={(e) => setPrincipal(Number(e.target.value))} /></Field><Field label="Annual rate (%)"><Input className="number-field" type="number" min={0} max={100} step={0.25} value={rate} onChange={(e) => setRate(Number(e.target.value))} /></Field><Field label="Tenure (months)"><Input className="number-field" type="number" min={1} max={360} value={months} onChange={(e) => setMonths(Number(e.target.value))} /></Field></div>
+      <div className="mt-7 grid gap-3 sm:grid-cols-3"><Result label="Indicative monthly EMI" value={formatInr(result.monthlyEmi)} strong /><Result label="Total repayment" value={formatInr(result.totalRepayment)} /><Result label="Total interest" value={formatInr(result.totalInterest)} /></div>
+      <p className="mt-5 text-xs leading-5 text-slate-500">Estimate only. This calculator uses the reducing-balance formula and excludes lender fees, insurance and other charges.</p>
+    </div>
+  );
+}
+
+function Result({ label, value, strong }: { label: string; value: string; strong?: boolean }) { return <div className={strong ? "rounded-2xl bg-navy-950 p-5 text-white" : "rounded-2xl bg-surface p-5 text-navy-950"}><p className="text-xs font-semibold opacity-65">{label}</p><p className="mt-2 text-xl font-extrabold tracking-[-0.03em]">{value}</p></div>; }
