@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
-import { Building2, Headphones, Mail, MapPin, MessageCircle, ShieldAlert } from "lucide-react";
+import { Building2, Headphones, Mail, MapPin, ShieldAlert } from "lucide-react";
 
 export const metadata: Metadata = { title: "Contact Us", description: "Contact the VP Loan Connect support team for assessment, payment, report or privacy assistance." };
 
+const PUBLIC_SUPPORT_EMAIL = "support@vploanconnect.in";
+
 export default function ContactPage() {
-  const email = process.env.SUPPORT_EMAIL || "support@vploanconnect.in";
-  const whatsapp = process.env.SUPPORT_WHATSAPP;
   const businessName = process.env.BUSINESS_NAME;
   const address = process.env.BUSINESS_ADDRESS;
-  const grievanceEmail = process.env.GRIEVANCE_EMAIL || email;
 
   return (
     <section className="surface-grid min-h-[75vh] bg-surface py-14 sm:py-20">
@@ -21,8 +20,7 @@ export default function ContactPage() {
           </div>
 
           <div className="mt-10 grid gap-5 sm:grid-cols-2">
-            <Card icon={Mail} title="Support Email" value={email} href={`mailto:${email}`} />
-            {whatsapp ? <Card icon={MessageCircle} title="Support Number" value={whatsapp} href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`} /> : null}
+            <Card icon={Mail} title="Support Email" value={PUBLIC_SUPPORT_EMAIL} href={`mailto:${PUBLIC_SUPPORT_EMAIL}`} />
             <Card icon={Headphones} title="Support Team" value="Assessment, payment, report and privacy assistance" />
             {businessName ? <Card icon={Building2} title="Business Name" value={businessName} /> : null}
             {address ? <Card icon={MapPin} title="Registered Office" value={address} /> : null}
@@ -32,7 +30,7 @@ export default function ContactPage() {
             <ShieldAlert className="text-amber-700" size={28} />
             <h2 className="mt-5 text-2xl font-extrabold text-amber-950">Grievance Support Team</h2>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-amber-950">
-              Email <a className="font-bold underline underline-offset-4" href={`mailto:${grievanceEmail}?subject=Grievance`}>{grievanceEmail}</a> with “Grievance” in the subject and include your registered mobile and order or report reference where relevant.
+              Email <a className="font-bold underline underline-offset-4" href={`mailto:${PUBLIC_SUPPORT_EMAIL}?subject=Grievance`}>{PUBLIC_SUPPORT_EMAIL}</a> with “Grievance” in the subject and include your registered mobile and order or report reference where relevant.
             </p>
           </div>
         </div>
