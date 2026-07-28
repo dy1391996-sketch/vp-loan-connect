@@ -11,8 +11,8 @@ import { APP_NAME, TAGLINE } from "@/lib/constants";
 
 export const metadata: Metadata = {
   verification: {
-  google: "4F1i1VfD52pj7yuswc0nHv-FPUd1gqBV7IaHNjl",
-},
+    google: "4F1i1VfD52pj7yuswc0nHv-FPUd1gqBV7IaHNjIZzfY",
+  },
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://vploanconnect.in"),
   title: { default: `${APP_NAME} | ${TAGLINE}`, template: `%s | ${APP_NAME}` },
   description: "Check your loan readiness in two minutes with a free preliminary analysis of income, EMI, documents and credit profile.",
