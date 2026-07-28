@@ -16,6 +16,10 @@ function normalizeIndianMobile(mobile: string): string {
   throw new Error("Mobile number must be a valid 10-digit Indian number.");
 }
 
+function getMsg91ErrorMessage(data: Msg91Response) {
+  return typeof data.message === "string" && data.message.trim().length > 0 ? data.message : "MSG91 rejected the OTP request.";
+}
+
 export async function sendOtp(mobile: string, code: string): Promise<OtpSendResult> {
   const env = getServerEnv();
 
@@ -29,17 +33,25 @@ export async function sendOtp(mobile: string, code: string): Promise<OtpSendResu
   }
 
   const url = new URL(env.OTP_API_URL);
+  url.searchParams.delete("authkey");
   url.searchParams.set("mobile", normalizeIndianMobile(mobile));
-  url.searchParams.set("authkey", env.OTP_API_KEY);
   url.searchParams.set("otp", code);
 
   if (!url.searchParams.get("template_id")) {
     throw new Error("MSG91 OTP template_id is missing from OTP_API_URL.");
   }
 
+  if (!url.searchParams.get("otp_length")) {
+    url.searchParams.set("otp_length", "6");
+  }
+
+  if (!url.searchParams.get("otp_expiry")) {
+    url.searchParams.set("otp_expiry", "10");
+  }
+
   const response = await fetch(url, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", authkey: env.OTP_API_KEY },
     body: JSON.stringify({}),
     signal: AbortSignal.timeout(10_000),
     cache: "no-store",
@@ -53,7 +65,7 @@ export async function sendOtp(mobile: string, code: string): Promise<OtpSendResu
   }
 
   if (!response.ok || data.type === "error") {
-    throw new Error(data.message || "MSG91 rejected the OTP request.");
+    throw new Error(getMsg91ErrorMessage(data));
   }
 
   return {
