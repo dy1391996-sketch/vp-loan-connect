@@ -1,1 +1,45 @@
-const WA='917827110079';function menuToggle(){document.querySelector('.links').classList.toggle('show')}function sendWA(id){const f=document.getElementById(id),d=new FormData(f),a=['Hello VP Loan Connect, I want loan assistance.'];for(const[k,v]of d.entries())if(v)a.push(k+': '+v);a.push('I understand approval is subject to lender eligibility and policies.');window.open('https://wa.me/'+WA+'?text='+encodeURIComponent(a.join('\n')),'_blank');return false}function calc(){let P=+amount.value||0,r=(+rate.value||0)/1200,n=+months.value||0;if(!P||!n)return;let e=r?P*r*(1+r)**n/((1+r)**n-1):P/n,t=e*n;emi.textContent='₹'+Math.round(e).toLocaleString('en-IN');interest.textContent='₹'+Math.round(t-P).toLocaleString('en-IN');total.textContent='₹'+Math.round(t).toLocaleString('en-IN')}document.addEventListener('click',e=>{if(e.target.classList.contains('fq'))e.target.parentElement.classList.toggle('open')});document.addEventListener('DOMContentLoaded',calc);
+const WA = "917827110079";
+
+window.menuToggle = function menuToggle() {
+  document.querySelector(".links")?.classList.toggle("show");
+};
+
+window.sendWA = function sendWA(id) {
+  const form = document.getElementById(id);
+  if (!(form instanceof HTMLFormElement)) return false;
+
+  const data = new FormData(form);
+  const message = ["Hello VP Loan Connect, I want loan assistance."];
+
+  for (const [key, value] of data.entries()) {
+    if (value) message.push(`${key}: ${value}`);
+  }
+
+  message.push("I understand approval is subject to lender eligibility and policies.");
+  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(message.join("\n"))}`, "_blank");
+  return false;
+};
+
+function calc() {
+  const principal = Number(amount.value) || 0;
+  const monthlyRate = (Number(rate.value) || 0) / 1200;
+  const tenureMonths = Number(months.value) || 0;
+  if (!principal || !tenureMonths) return;
+
+  const emiValue = monthlyRate
+    ? (principal * monthlyRate * (1 + monthlyRate) ** tenureMonths) / ((1 + monthlyRate) ** tenureMonths - 1)
+    : principal / tenureMonths;
+  const totalValue = emiValue * tenureMonths;
+
+  emi.textContent = `₹${Math.round(emiValue).toLocaleString("en-IN")}`;
+  interest.textContent = `₹${Math.round(totalValue - principal).toLocaleString("en-IN")}`;
+  total.textContent = `₹${Math.round(totalValue).toLocaleString("en-IN")}`;
+}
+
+document.addEventListener("click", (event) => {
+  if (event.target instanceof Element && event.target.classList.contains("fq")) {
+    event.target.parentElement?.classList.toggle("open");
+  }
+});
+
+document.addEventListener("DOMContentLoaded", calc);

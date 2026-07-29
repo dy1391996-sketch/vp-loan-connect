@@ -85,7 +85,7 @@ Copy `.env.example` and configure:
 | `RAZORPAY_KEY_SECRET` | Production | Server-only API/signature secret |
 | `RAZORPAY_WEBHOOK_SECRET` | Production | Server-only webhook HMAC secret |
 | `OTP_PROVIDER` | Yes | `mock` locally; `custom` in production |
-| `OTP_API_URL`, `OTP_API_KEY` | Production | Official OTP provider endpoint and secret |
+| `OTP_API_URL`, `OTP_API_KEY` | Production | MSG91 SendOTP v5 endpoint with `template_id`; MSG91 auth key |
 | `MOCK_OTP_CODE` | Local only | Six-digit mock code; rejected in production |
 | `WHATSAPP_PROVIDER` | Yes | `mock` locally; `meta` for official Business Platform |
 | `WHATSAPP_API_URL` | Meta | Graph API base URL |
@@ -107,7 +107,15 @@ Generate strong secrets with your approved secret manager or `openssl rand -base
 
 ### OTP
 
-`OTP_PROVIDER=mock` returns the development code to the browser and is explicitly rejected when `NODE_ENV=production`. The custom provider adapter posts `{ mobile, code, purpose }` to `OTP_API_URL` with a bearer token. Adjust the adapter contract in `src/lib/providers/otp.ts` for the chosen official provider.
+`OTP_PROVIDER=mock` returns the development code to the browser and is explicitly rejected when `NODE_ENV=production`.
+
+For MSG91, set `OTP_PROVIDER=custom`, `OTP_API_KEY` to the MSG91 auth key, and `OTP_API_URL` to the SendOTP v5 endpoint with the approved template id, for example:
+
+```text
+https://control.msg91.com/api/v5/otp?template_id=YOUR_MSG91_TEMPLATE_ID&otp_length=6&otp_expiry=10
+```
+
+The adapter sends the app-generated six-digit OTP to MSG91 with the mobile number in `91XXXXXXXXXX` format and the auth key in the `authkey` header. Keep the MSG91 template text aligned with the approved DLT template and the `##OTP##` placeholder.
 
 ### Razorpay
 
