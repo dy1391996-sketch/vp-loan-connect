@@ -20,6 +20,20 @@ function getMsg91ErrorMessage(data: Msg91Response) {
   return typeof data.message === "string" && data.message.trim().length > 0 ? data.message : "MSG91 rejected the OTP request.";
 }
 
+function maskMobile(mobile: string) {
+  return mobile.replace(/^(\d{2})(\d+)(\d{4})$/, (_, country: string, middle: string, suffix: string) => `${country}${"*".repeat(middle.length)}${suffix}`);
+}
+
+function logMsg91Result(status: number, mobile: string, data: Msg91Response) {
+  console.info("msg91_otp_response", {
+    status,
+    mobile: maskMobile(mobile),
+    type: data.type ?? null,
+    message: data.message ?? null,
+    requestId: data.request_id ?? data.requestId ?? null,
+  });
+}
+
 export async function sendOtp(mobile: string, code: string): Promise<OtpSendResult> {
   const env = getServerEnv();
 
@@ -32,9 +46,10 @@ export async function sendOtp(mobile: string, code: string): Promise<OtpSendResu
     throw new Error("Custom OTP provider is not configured.");
   }
 
+  const normalizedMobile = normalizeIndianMobile(mobile);
   const url = new URL(env.OTP_API_URL);
   url.searchParams.delete("authkey");
-  url.searchParams.set("mobile", normalizeIndianMobile(mobile));
+  url.searchParams.set("mobile", normalizedMobile);
   url.searchParams.set("otp", code);
 
   if (!url.searchParams.get("template_id")) {
@@ -64,7 +79,13 @@ export async function sendOtp(mobile: string, code: string): Promise<OtpSendResu
     // Keep a safe generic error below when MSG91 does not return JSON.
   }
 
+  logMsg91Result(response.status, normalizedMobile, data);
+
   if (!response.ok || data.type === "error") {
+    throw new Error(getMsg91ErrorMessage(data));
+  }
+
+  if (data.type && data.type !== "success") {
     throw new Error(getMsg91ErrorMessage(data));
   }
 
