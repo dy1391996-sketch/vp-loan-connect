@@ -99,9 +99,10 @@ export function AssessmentForm() {
 
     const failVerification = (reason: unknown) => {
       console.error("msg91_widget_failed", reason);
+      const detail = typeof reason === "string" ? reason : reason instanceof Error ? reason.message : JSON.stringify(reason);
       setOtpStarted(false);
       setBusy(false);
-      setError("OTP verification पूरी नहीं हुई. कृपया दोबारा कोशिश करें.");
+      setError(detail && detail !== "{}" ? `OTP verification failed: ${detail}` : "OTP verification पूरी नहीं हुई. कृपया दोबारा कोशिश करें.");
     };
 
     const configuration = {
