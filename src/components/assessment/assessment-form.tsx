@@ -10,7 +10,7 @@ import { trackEvent } from "@/lib/analytics-client";
 import { cn } from "@/lib/utils";
 
 type FormState = {
-  fullName: string; mobile: string; state: string; city: string; loanAmount: string; loanPurpose: string; loanType: string;
+  fullName: string; mobile: string; email: string; state: string; city: string; loanAmount: string; loanPurpose: string; loanType: string;
   employmentType: string; monthlyIncomeRange: string; durationMonths: string; salaryBankCredit: boolean | null; itrAvailable: boolean | null; gstAvailable: boolean | null; udyamAvailable: boolean | null; sixMonthBankStatement: boolean | null;
   existingEmi: string; activeLoans: string; cardOutstanding: string; currentOverdue: boolean | null; settledOrWrittenOff: boolean | null; creditRange: string;
   panAvailable: boolean | null; aadhaarAvailable: boolean | null; addressProofAvailable: boolean | null; incomeProofAvailable: boolean | null; bankStatementAvailable: boolean | null; businessRegistrationAvailable: boolean | null; securedAssetAvailable: boolean | null;
@@ -18,7 +18,7 @@ type FormState = {
 };
 
 const initialState: FormState = {
-  fullName: "", mobile: "", state: "", city: "", loanAmount: "", loanPurpose: "", loanType: "",
+  fullName: "", mobile: "", email: "", state: "", city: "", loanAmount: "", loanPurpose: "", loanType: "",
   employmentType: "", monthlyIncomeRange: "", durationMonths: "", salaryBankCredit: null, itrAvailable: null, gstAvailable: null, udyamAvailable: null, sixMonthBankStatement: null,
   existingEmi: "0", activeLoans: "0", cardOutstanding: "0", currentOverdue: null, settledOrWrittenOff: null, creditRange: "",
   panAvailable: null, aadhaarAvailable: null, addressProofAvailable: null, incomeProofAvailable: null, bankStatementAvailable: null, businessRegistrationAvailable: null, securedAssetAvailable: null,
@@ -62,12 +62,12 @@ export function AssessmentForm() {
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
     setError("");
-    if (key === "mobile") { setOtpVerified(false); setOtpToken(""); setOtpStarted(false); }
+    if (key === "mobile" || key === "email") { setOtpVerified(false); setOtpToken(""); setOtpStarted(false); }
   }
 
   async function requestOtp() {
-    if (form.fullName.trim().length < 2 || !/^[6-9]\d{9}$/.test(form.mobile)) {
-      setError("पहले valid full name और 10-digit mobile number enter करें.");
+    if (form.fullName.trim().length < 2 || !/^[6-9]\d{9}$/.test(form.mobile) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      setError("Valid full name, mobile number और email address enter करें.");
       return;
     }
 
@@ -82,16 +82,16 @@ export function AssessmentForm() {
         const response = await fetch("/api/otp/verify", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ fullName: form.fullName, mobile: form.mobile, source, accessToken }),
+          body: JSON.stringify({ fullName: form.fullName, mobile: form.mobile, email: form.email, source, accessToken }),
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Unable to verify mobile.");
+        if (!response.ok) throw new Error(data.error || "Unable to verify email.");
         setOtpVerified(true);
         setOtpToken(data.verificationToken);
-        trackEvent("mobile_verified");
+        trackEvent("email_verified");
       } catch (err) {
         setOtpStarted(false);
-        setError(err instanceof Error ? err.message : "Unable to verify mobile.");
+        setError(err instanceof Error ? err.message : "Unable to verify email.");
       } finally {
         setBusy(false);
       }
@@ -107,7 +107,7 @@ export function AssessmentForm() {
     const configuration = {
       widgetId: MSG91_WIDGET_ID,
       tokenAuth: MSG91_WIDGET_TOKEN,
-      identifier: `91${form.mobile}`,
+      identifier: form.email,
       exposeMethods: false,
       success: completeVerification,
       failure: failVerification,
@@ -148,7 +148,7 @@ export function AssessmentForm() {
   }
 
   function validateCurrentStep() {
-    if (step === 1 && (!form.fullName || !form.state || !form.city || !form.loanAmount || !form.loanPurpose || !form.loanType || !otpVerified)) return "सभी basic details भरें और mobile verify करें.";
+    if (step === 1 && (!form.fullName || !form.state || !form.city || !form.loanAmount || !form.loanPurpose || !form.loanType || !otpVerified)) return "सभी basic details भरें और email verify करें.";
     if (step === 2 && (!form.employmentType || !form.monthlyIncomeRange || form.durationMonths === "" || [form.salaryBankCredit, form.itrAvailable, form.gstAvailable, form.udyamAvailable, form.sixMonthBankStatement].some((v) => v === null))) return "Income profile के सभी questions answer करें.";
     if (step === 3 && (form.existingEmi === "" || form.activeLoans === "" || form.cardOutstanding === "" || form.currentOverdue === null || form.settledOrWrittenOff === null || !form.creditRange)) return "Current obligations के सभी questions answer करें.";
     if (step === 4 && [form.panAvailable, form.aadhaarAvailable, form.addressProofAvailable, form.incomeProofAvailable, form.bankStatementAvailable, form.businessRegistrationAvailable, form.securedAssetAvailable].some((v) => v === null)) return "Document availability के सभी questions answer करें.";
@@ -207,7 +207,7 @@ export function AssessmentForm() {
 type StepProps = { form: FormState; update: <K extends keyof FormState>(key: K, value: FormState[K]) => void };
 
 function BasicStep({ form, update, otpStarted, otpVerified, busy, requestOtp }: StepProps & { otpStarted: boolean; otpVerified: boolean; busy: boolean; requestOtp: () => void }) {
-  return <div><StepTitle title="Basic profile और mobile verification" description="Result link इसी verified WhatsApp number से जुड़ा होगा." /><div className="mt-7 grid gap-5 sm:grid-cols-2"><Field label="Full name" required><Input autoComplete="name" value={form.fullName} onChange={(e) => update("fullName", e.target.value)} placeholder="Your full name" /></Field><Field label="WhatsApp mobile number" required hint="Indian 10-digit mobile number"><div className="flex gap-2"><Input className="number-field" inputMode="numeric" autoComplete="tel" maxLength={10} value={form.mobile} disabled={otpVerified} onChange={(e) => update("mobile", e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="98XXXXXXXX" />{!otpVerified ? <Button type="button" variant="secondary" className="shrink-0" disabled={busy} onClick={requestOtp}>{busy ? <Loader2 className="animate-spin" size={17} /> : null}{otpStarted ? "Retry OTP" : "Verify by SMS"}</Button> : <span className="grid min-w-12 place-items-center rounded-xl bg-brand-100 text-brand-700"><Check size={19} /></span>}</div>{otpStarted && !otpVerified ? <p className="mt-2 text-xs text-slate-500">Secure MSG91 window में SMS OTP enter करके verification complete करें.</p> : null}</Field><Field label="State" required><Input autoComplete="address-level1" value={form.state} onChange={(e) => update("state", e.target.value)} placeholder="e.g. Haryana" /></Field><Field label="City" required><Input autoComplete="address-level2" value={form.city} onChange={(e) => update("city", e.target.value)} placeholder="e.g. Gurugram" /></Field><Field label="Required loan amount" required hint="₹50,000 to ₹15,00,000"><Input className="number-field" type="number" inputMode="numeric" min={50000} max={1500000} step={10000} value={form.loanAmount} onChange={(e) => update("loanAmount", e.target.value)} placeholder="500000" /></Field><Field label="Loan purpose" required><Input value={form.loanPurpose} onChange={(e) => update("loanPurpose", e.target.value)} placeholder="e.g. business expansion" /></Field><Field label="Loan type" required><Select value={form.loanType} onChange={(e) => update("loanType", e.target.value)}><option value="">Select category</option><option value="PERSONAL">Personal Loan</option><option value="BUSINESS">Business Loan</option><option value="MSME">MSME Loan</option><option value="MUDRA_GUIDANCE">Mudra Loan Guidance</option><option value="GOLD">Gold Loan</option><option value="PROPERTY">Loan Against Property</option><option value="CREDIT_HEALTH">Credit Health Support</option></Select></Field></div><SafetyNote /></div>;
+  return <div><StepTitle title="Basic profile और email verification" description="Mobile number application में रहेगा; verification OTP email पर आएगा." /><div className="mt-7 grid gap-5 sm:grid-cols-2"><Field label="Full name" required><Input autoComplete="name" value={form.fullName} onChange={(e) => update("fullName", e.target.value)} placeholder="Your full name" /></Field><Field label="WhatsApp mobile number" required hint="Indian 10-digit mobile number"><Input className="number-field" inputMode="numeric" autoComplete="tel" maxLength={10} value={form.mobile} disabled={otpVerified} onChange={(e) => update("mobile", e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="98XXXXXXXX" /></Field><Field label="Email address" required hint="OTP इसी email पर आएगा"><div className="flex gap-2"><Input type="email" autoComplete="email" value={form.email} disabled={otpVerified} onChange={(e) => update("email", e.target.value.trim())} placeholder="name@example.com" />{!otpVerified ? <Button type="button" variant="secondary" className="shrink-0" disabled={busy} onClick={requestOtp}>{busy ? <Loader2 className="animate-spin" size={17} /> : null}{otpStarted ? "Retry OTP" : "Verify Email"}</Button> : <span className="grid min-w-12 place-items-center rounded-xl bg-brand-100 text-brand-700"><Check size={19} /></span>}</div>{otpStarted && !otpVerified ? <p className="mt-2 text-xs text-slate-500">Secure MSG91 window में email OTP enter करके verification complete करें.</p> : null}</Field><div className="hidden sm:block" /><Field label="State" required><Input autoComplete="address-level1" value={form.state} onChange={(e) => update("state", e.target.value)} placeholder="e.g. Haryana" /></Field><Field label="City" required><Input autoComplete="address-level2" value={form.city} onChange={(e) => update("city", e.target.value)} placeholder="e.g. Gurugram" /></Field><Field label="Required loan amount" required hint="₹50,000 to ₹15,00,000"><Input className="number-field" type="number" inputMode="numeric" min={50000} max={1500000} step={10000} value={form.loanAmount} onChange={(e) => update("loanAmount", e.target.value)} placeholder="500000" /></Field><Field label="Loan purpose" required><Input value={form.loanPurpose} onChange={(e) => update("loanPurpose", e.target.value)} placeholder="e.g. business expansion" /></Field><Field label="Loan type" required><Select value={form.loanType} onChange={(e) => update("loanType", e.target.value)}><option value="">Select category</option><option value="PERSONAL">Personal Loan</option><option value="BUSINESS">Business Loan</option><option value="MSME">MSME Loan</option><option value="MUDRA_GUIDANCE">Mudra Loan Guidance</option><option value="GOLD">Gold Loan</option><option value="PROPERTY">Loan Against Property</option><option value="CREDIT_HEALTH">Credit Health Support</option></Select></Field></div><SafetyNote /></div>;
 }
 
 function IncomeStep({ form, update }: StepProps) {
