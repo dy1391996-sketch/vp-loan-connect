@@ -9,17 +9,15 @@ import { generateReferralCode, normalizeIndianMobile } from "@/lib/utils";
 const schema = z.object({
   fullName: z.string().trim().min(2).max(100),
   mobile: z.string().regex(/^[6-9]\d{9}$/),
+  email: z.string().trim().email().max(254),
   source: z.string().max(120).optional(),
   accessToken: z.string().min(10).max(8192),
 });
 
-function containsVerifiedIdentifier(value: unknown, expectedMobile: string): boolean {
-  if (typeof value === "string") {
-    const digits = value.replace(/\D/g, "");
-    return digits === expectedMobile || digits === expectedMobile.slice(2);
-  }
-  if (Array.isArray(value)) return value.some((item) => containsVerifiedIdentifier(item, expectedMobile));
-  if (value && typeof value === "object") return Object.values(value as Record<string, unknown>).some((item) => containsVerifiedIdentifier(item, expectedMobile));
+function containsVerifiedIdentifier(value: unknown, expectedEmail: string): boolean {
+  if (typeof value === "string") return value.trim().toLowerCase() === expectedEmail;
+  if (Array.isArray(value)) return value.some((item) => containsVerifiedIdentifier(item, expectedEmail));
+  if (value && typeof value === "object") return Object.values(value as Record<string, unknown>).some((item) => containsVerifiedIdentifier(item, expectedEmail));
   return false;
 }
 
@@ -58,9 +56,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "OTP verification failed or expired. Please try again." }, { status: 400 });
     }
 
-    if (!containsVerifiedIdentifier(providerData, mobile)) {
+    if (!containsVerifiedIdentifier(providerData, parsed.data.email.toLowerCase())) {
       console.error("msg91_widget_identifier_mismatch", { status: providerResponse.status });
-      return NextResponse.json({ error: "Verified mobile number did not match. Please try again." }, { status: 400 });
+      return NextResponse.json({ error: "Verified email address did not match. Please try again." }, { status: 400 });
     }
 
     let lead = await prisma.lead.findUnique({ where: { mobile } });
@@ -91,7 +89,7 @@ export async function POST(request: NextRequest) {
 
     const verifiedAt = new Date();
     await prisma.lead.update({ where: { id: lead.id }, data: { mobileVerifiedAt: verifiedAt, stage: "OTP_VERIFIED" } });
-    const verificationToken = await signAccessToken("otp_verified", mobile, { leadId: lead.id, provider: "msg91_widget" }, "20m");
+    const verificationToken = await signAccessToken("otp_verified", mobile, { leadId: lead.id, provider: "msg91_email_widget", email: parsed.data.email.toLowerCase() }, "20m");
     return NextResponse.json({ verified: true, verificationToken });
   } catch (error) {
     console.error("otp_widget_verify_failed", error instanceof Error ? error.message : "unknown");
