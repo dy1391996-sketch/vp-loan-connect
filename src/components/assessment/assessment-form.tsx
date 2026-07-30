@@ -26,17 +26,31 @@ const initialState: FormState = {
 };
 
 const steps = ["Basic profile", "Income profile", "Obligations", "Documents", "Consent"];
+const MSG91_WIDGET_ID = "36674474665a323737323137";
+const MSG91_WIDGET_TOKEN = "555142TvR76oBwmFeV6a6bb64dP1";
+
+function getMsg91AccessToken(value: unknown): string {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (!value || typeof value !== "object") return "";
+  const record = value as Record<string, unknown>;
+  for (const key of ["accessToken", "access-token", "token"]) {
+    if (typeof record[key] === "string" && record[key].trim()) return record[key].trim();
+  }
+  for (const child of Object.values(record)) {
+    const token = getMsg91AccessToken(child);
+    if (token) return token;
+  }
+  return "";
+}
 
 export function AssessmentForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>(initialState);
-  const [otpRequestId, setOtpRequestId] = useState("");
-  const [otpCode, setOtpCode] = useState("");
+  const [otpStarted, setOtpStarted] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpToken, setOtpToken] = useState("");
-  const [developmentCode, setDevelopmentCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -48,29 +62,89 @@ export function AssessmentForm() {
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
     setError("");
-    if (key === "mobile") { setOtpVerified(false); setOtpToken(""); setOtpRequestId(""); }
+    if (key === "mobile") { setOtpVerified(false); setOtpToken(""); setOtpStarted(false); }
   }
 
   async function requestOtp() {
-    if (form.fullName.trim().length < 2 || !/^[6-9]\d{9}$/.test(form.mobile)) { setError("पहले valid full name और 10-digit mobile number enter करें."); return; }
-    setBusy(true); setError("");
-    try {
-      const response = await fetch("/api/otp/request", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ fullName: form.fullName, mobile: form.mobile, source }) });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Unable to send OTP.");
-      setOtpRequestId(data.requestId); setDevelopmentCode(data.developmentCode || "");
-    } catch (err) { setError(err instanceof Error ? err.message : "Unable to send OTP."); } finally { setBusy(false); }
-  }
+    if (form.fullName.trim().length < 2 || !/^[6-9]\\d{9}$/.test(form.mobile)) {
+      setError("पहले valid full name और 10-digit mobile number enter करें.");
+      return;
+    }
 
-  async function verifyOtp() {
-    if (!/^\d{6}$/.test(otpCode)) { setError("6-digit OTP enter करें."); return; }
-    setBusy(true); setError("");
+    setBusy(true);
+    setError("");
+    setOtpStarted(true);
+
+    const completeVerification = async (widgetResponse: unknown) => {
+      try {
+        const accessToken = getMsg91AccessToken(widgetResponse);
+        if (!accessToken) throw new Error("MSG91 verification token नहीं मिला. दोबारा कोशिश करें.");
+        const response = await fetch("/api/otp/verify", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ fullName: form.fullName, mobile: form.mobile, source, accessToken }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Unable to verify mobile.");
+        setOtpVerified(true);
+        setOtpToken(data.verificationToken);
+        trackEvent("mobile_verified");
+      } catch (err) {
+        setOtpStarted(false);
+        setError(err instanceof Error ? err.message : "Unable to verify mobile.");
+      } finally {
+        setBusy(false);
+      }
+    };
+
+    const failVerification = (reason: unknown) => {
+      console.error("msg91_widget_failed", reason);
+      setOtpStarted(false);
+      setBusy(false);
+      setError("OTP verification पूरी नहीं हुई. कृपया दोबारा कोशिश करें.");
+    };
+
+    const configuration = {
+      widgetId: MSG91_WIDGET_ID,
+      tokenAuth: MSG91_WIDGET_TOKEN,
+      identifier: `91${form.mobile}`,
+      exposeMethods: false,
+      success: completeVerification,
+      failure: failVerification,
+    };
+
+    const widgetWindow = window as Window & { initSendOTP?: (config: typeof configuration) => void };
+    const launch = () => {
+      if (typeof widgetWindow.initSendOTP !== "function") throw new Error("MSG91 OTP service load नहीं हुई.");
+      widgetWindow.initSendOTP(configuration);
+    };
+
     try {
-      const response = await fetch("/api/otp/verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ requestId: otpRequestId, mobile: form.mobile, code: otpCode }) });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Unable to verify OTP.");
-      setOtpVerified(true); setOtpToken(data.verificationToken); trackEvent("mobile_verified");
-    } catch (err) { setError(err instanceof Error ? err.message : "Unable to verify OTP."); } finally { setBusy(false); }
+      if (typeof widgetWindow.initSendOTP === "function") {
+        launch();
+        return;
+      }
+
+      const urls = ["https://verify.msg91.com/otp-provider.js", "https://verify.phone91.com/otp-provider.js"];
+      let index = 0;
+      const loadNext = () => {
+        const script = document.createElement("script");
+        script.src = urls[index];
+        script.async = true;
+        script.onload = () => {
+          try { launch(); } catch (err) { failVerification(err); }
+        };
+        script.onerror = () => {
+          index += 1;
+          if (index < urls.length) loadNext();
+          else failVerification(new Error("MSG91 OTP service unavailable"));
+        };
+        document.head.appendChild(script);
+      };
+      loadNext();
+    } catch (err) {
+      failVerification(err);
+    }
   }
 
   function validateCurrentStep() {
@@ -115,7 +189,7 @@ export function AssessmentForm() {
         <div className="mt-4 hidden grid-cols-5 gap-3 text-[10px] font-semibold text-slate-400 sm:grid">{steps.map((label, index) => <span key={label} className={cn(index + 1 <= step && "text-brand-500")} aria-current={index + 1 === step ? "step" : undefined}>{label}</span>)}</div>
       </div>
       <div className="p-5 sm:p-9 lg:p-11">
-        {step === 1 ? <BasicStep form={form} update={update} otpRequestId={otpRequestId} otpCode={otpCode} setOtpCode={setOtpCode} otpVerified={otpVerified} developmentCode={developmentCode} busy={busy} requestOtp={requestOtp} verifyOtp={verifyOtp} /> : null}
+        {step === 1 ? <BasicStep form={form} update={update} otpStarted={otpStarted} otpVerified={otpVerified} busy={busy} requestOtp={requestOtp} /> : null}
         {step === 2 ? <IncomeStep form={form} update={update} /> : null}
         {step === 3 ? <ObligationStep form={form} update={update} /> : null}
         {step === 4 ? <DocumentStep form={form} update={update} /> : null}
@@ -132,8 +206,8 @@ export function AssessmentForm() {
 
 type StepProps = { form: FormState; update: <K extends keyof FormState>(key: K, value: FormState[K]) => void };
 
-function BasicStep({ form, update, otpRequestId, otpCode, setOtpCode, otpVerified, developmentCode, busy, requestOtp, verifyOtp }: StepProps & { otpRequestId: string; otpCode: string; setOtpCode: (value: string) => void; otpVerified: boolean; developmentCode: string; busy: boolean; requestOtp: () => void; verifyOtp: () => void }) {
-  return <div><StepTitle title="Basic profile और mobile verification" description="Result link इसी verified WhatsApp number से जुड़ा होगा." /><div className="mt-7 grid gap-5 sm:grid-cols-2"><Field label="Full name" required><Input autoComplete="name" value={form.fullName} onChange={(e) => update("fullName", e.target.value)} placeholder="Your full name" /></Field><Field label="WhatsApp mobile number" required hint="Indian 10-digit mobile number"><div className="flex gap-2"><Input className="number-field" inputMode="numeric" autoComplete="tel" maxLength={10} value={form.mobile} disabled={otpVerified} onChange={(e) => update("mobile", e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="98XXXXXXXX" />{!otpVerified ? <Button type="button" variant="secondary" className="shrink-0" disabled={busy} onClick={requestOtp}>{otpRequestId ? "Resend" : "Send OTP"}</Button> : <span className="grid min-w-12 place-items-center rounded-xl bg-brand-100 text-brand-700"><Check size={19} /></span>}</div></Field>{otpRequestId && !otpVerified ? <div className="sm:col-span-2 rounded-2xl bg-surface p-4"><div className="flex flex-col gap-3 sm:flex-row"><Input className="number-field" inputMode="numeric" maxLength={6} value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="Enter 6-digit OTP" /><Button type="button" disabled={busy} onClick={verifyOtp}>{busy ? <Loader2 className="animate-spin" size={17} /> : null}Verify mobile</Button></div>{developmentCode ? <p className="mt-2 text-xs text-slate-500">Development mock OTP: <strong>{developmentCode}</strong>. It is never returned in production.</p> : null}</div> : null}<Field label="State" required><Input autoComplete="address-level1" value={form.state} onChange={(e) => update("state", e.target.value)} placeholder="e.g. Haryana" /></Field><Field label="City" required><Input autoComplete="address-level2" value={form.city} onChange={(e) => update("city", e.target.value)} placeholder="e.g. Gurugram" /></Field><Field label="Required loan amount" required hint="₹50,000 to ₹15,00,000"><Input className="number-field" type="number" inputMode="numeric" min={50000} max={1500000} step={10000} value={form.loanAmount} onChange={(e) => update("loanAmount", e.target.value)} placeholder="500000" /></Field><Field label="Loan purpose" required><Input value={form.loanPurpose} onChange={(e) => update("loanPurpose", e.target.value)} placeholder="e.g. business expansion" /></Field><Field label="Loan type" required><Select value={form.loanType} onChange={(e) => update("loanType", e.target.value)}><option value="">Select category</option><option value="PERSONAL">Personal Loan</option><option value="BUSINESS">Business Loan</option><option value="MSME">MSME Loan</option><option value="MUDRA_GUIDANCE">Mudra Loan Guidance</option><option value="GOLD">Gold Loan</option><option value="PROPERTY">Loan Against Property</option><option value="CREDIT_HEALTH">Credit Health Support</option></Select></Field></div><SafetyNote /></div>;
+function BasicStep({ form, update, otpStarted, otpVerified, busy, requestOtp }: StepProps & { otpStarted: boolean; otpVerified: boolean; busy: boolean; requestOtp: () => void }) {
+  return <div><StepTitle title="Basic profile और mobile verification" description="Result link इसी verified WhatsApp number से जुड़ा होगा." /><div className="mt-7 grid gap-5 sm:grid-cols-2"><Field label="Full name" required><Input autoComplete="name" value={form.fullName} onChange={(e) => update("fullName", e.target.value)} placeholder="Your full name" /></Field><Field label="WhatsApp mobile number" required hint="Indian 10-digit mobile number"><div className="flex gap-2"><Input className="number-field" inputMode="numeric" autoComplete="tel" maxLength={10} value={form.mobile} disabled={otpVerified} onChange={(e) => update("mobile", e.target.value.replace(/\\D/g, "").slice(0, 10))} placeholder="98XXXXXXXX" />{!otpVerified ? <Button type="button" variant="secondary" className="shrink-0" disabled={busy} onClick={requestOtp}>{busy ? <Loader2 className="animate-spin" size={17} /> : null}{otpStarted ? "Retry OTP" : "Verify by SMS"}</Button> : <span className="grid min-w-12 place-items-center rounded-xl bg-brand-100 text-brand-700"><Check size={19} /></span>}</div>{otpStarted && !otpVerified ? <p className="mt-2 text-xs text-slate-500">Secure MSG91 window में SMS OTP enter करके verification complete करें.</p> : null}</Field><Field label="State" required><Input autoComplete="address-level1" value={form.state} onChange={(e) => update("state", e.target.value)} placeholder="e.g. Haryana" /></Field><Field label="City" required><Input autoComplete="address-level2" value={form.city} onChange={(e) => update("city", e.target.value)} placeholder="e.g. Gurugram" /></Field><Field label="Required loan amount" required hint="₹50,000 to ₹15,00,000"><Input className="number-field" type="number" inputMode="numeric" min={50000} max={1500000} step={10000} value={form.loanAmount} onChange={(e) => update("loanAmount", e.target.value)} placeholder="500000" /></Field><Field label="Loan purpose" required><Input value={form.loanPurpose} onChange={(e) => update("loanPurpose", e.target.value)} placeholder="e.g. business expansion" /></Field><Field label="Loan type" required><Select value={form.loanType} onChange={(e) => update("loanType", e.target.value)}><option value="">Select category</option><option value="PERSONAL">Personal Loan</option><option value="BUSINESS">Business Loan</option><option value="MSME">MSME Loan</option><option value="MUDRA_GUIDANCE">Mudra Loan Guidance</option><option value="GOLD">Gold Loan</option><option value="PROPERTY">Loan Against Property</option><option value="CREDIT_HEALTH">Credit Health Support</option></Select></Field></div><SafetyNote /></div>;
 }
 
 function IncomeStep({ form, update }: StepProps) {
