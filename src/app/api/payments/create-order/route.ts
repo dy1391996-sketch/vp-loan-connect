@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     if (!rateLimit(`checkout:${token.leadId}`, 10, 60 * 60 * 1000).allowed) return NextResponse.json({ error: "Too many checkout attempts." }, { status: 429 });
     const [assessment, product] = await Promise.all([prisma.assessment.findUnique({ where: { id: parsed.data.assessmentId } }), prisma.product.findUnique({ where: { slug: parsed.data.productSlug } })]);
     if (!assessment || assessment.leadId !== token.leadId || assessment.status !== "COMPLETED" || !product?.active) return NextResponse.json({ error: "Assessment or product is unavailable." }, { status: 404 });
-    const subtotal = Number(product.salePrice); const gstAmount = Math.round(subtotal * Number(product.gstRate)) / 100; const totalAmount = Math.round((subtotal + gstAmount) * 100) / 100;
+    const subtotal = product.slug === "credit-health-action-plan" ? 199 : Number(product.salePrice); const gstAmount = Math.round(subtotal * Number(product.gstRate)) / 100; const totalAmount = Math.round((subtotal + gstAmount) * 100) / 100;
     const order = await prisma.order.create({ data: { orderReference: datedReference("VPLC-ORD"), leadId: assessment.leadId, assessmentId: assessment.id, productId: product.id, subtotal, gstAmount, totalAmount, status: "CREATED", referralCode: parsed.data.referralCode || assessment.referralCode, source: assessment.source } });
     try {
       const provider = await createProviderOrder({ amountPaise: Math.round(totalAmount * 100), receipt: order.orderReference, notes: { internal_order_id: order.id, product: product.slug, referral: order.referralCode ?? "" } });
