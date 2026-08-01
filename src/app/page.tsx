@@ -154,7 +154,7 @@ export default function HomePage() {
                 </div>
                 <div className="mt-4 flex items-start gap-3 rounded-2xl bg-amber-50 p-4 text-xs leading-5 text-amber-950">
                   <CircleAlert className="mt-0.5 shrink-0" size={16} />
-                  <span><strong>Sample result — Illustration only.</strong> आपका result आपके जवाबों से बनेगा; यह loan approval नहीं है।</span>
+                  <span><strong>Sample result — Illustration only.</strong> Your result is based on your answers; it is not a loan approval.</span>
                 </div>
               </div>
             </div>
@@ -189,8 +189,8 @@ export default function HomePage() {
       <section id="loan-options" className="section-space surface-grid bg-surface">
         <div className="page-shell">
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
-            <SectionHeading eyebrow="संभावित Categories" title="Explore categories aligned with your profile" description="These are profile-based suggestions—not lender offers, approvals or guaranteed eligibility." />
-            <ButtonLink href="/assessment" variant="secondary">अपनी Profile देखें <ArrowRight size={17} /></ButtonLink>
+            <SectionHeading eyebrow="Potential categories" title="Explore categories aligned with your profile" description="These are profile-based suggestions—not lender offers, approvals or guaranteed eligibility." />
+            <ButtonLink href="/assessment" variant="secondary">Check My Profile <ArrowRight size={17} /></ButtonLink>
           </div>
           <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {categories.map(([title, description, Icon]) => (
@@ -201,8 +201,8 @@ export default function HomePage() {
               </article>
             ))}
             <article className="flex min-h-64 flex-col justify-between rounded-3xl bg-navy-950 p-7 text-white shadow-card sm:col-span-2 lg:col-span-1">
-              <div><Landmark className="text-brand-500" size={28} /><h3 className="mt-6 text-xl font-extrabold">Not sure where to begin?</h3><p className="mt-3 text-sm leading-7 text-slate-300">Assessment आपकी profile को सामान्य eligibility factors से compare करेगा।</p></div>
-              <ButtonLink href="/assessment" className="mt-6 w-full">संभावित Options देखें</ButtonLink>
+              <div><Landmark className="text-brand-500" size={28} /><h3 className="mt-6 text-xl font-extrabold">Not sure where to begin?</h3><p className="mt-3 text-sm leading-7 text-slate-300">The assessment compares your profile with common eligibility factors.</p></div>
+              <ButtonLink href="/assessment" className="mt-6 w-full">View Potential Options</ButtonLink>
             </article>
           </div>
         </div>
@@ -222,8 +222,8 @@ export default function HomePage() {
             </div>
           </div>
           <div className="rounded-[2rem] bg-navy-950 p-7 text-white shadow-soft sm:p-10">
-            <span className="inline-flex items-center gap-2 rounded-full bg-brand-500/12 px-4 py-2 text-xs font-bold text-brand-100"><BadgeCheck size={16} />पहले Profile, फिर Application</span>
-            <h2 className="mt-7 text-balance text-3xl font-extrabold tracking-[-0.04em] sm:text-4xl">बिना सोचे कई जगह apply न करें</h2>
+            <span className="inline-flex items-center gap-2 rounded-full bg-brand-500/12 px-4 py-2 text-xs font-bold text-brand-100"><BadgeCheck size={16} />Profile first. Application second.</span>
+            <h2 className="mt-7 text-balance text-3xl font-extrabold tracking-[-0.04em] sm:text-4xl">Do not apply everywhere at once</h2>
             <div className="mt-8 grid gap-6">
               <Benefit title="Estimate a sensible EMI" description="Understand a comfortable EMI before choosing a tenure." />
               <Benefit title="Prepare documents first" description="Identify missing proofs without uploading them." />
@@ -240,7 +240,7 @@ export default function HomePage() {
             <SectionHeading eyebrow="Repayment planning" title="Estimate your monthly EMI" description="Adjust amount, annual rate and tenure to estimate EMI. This is not a lender quote." />
             <div className="mt-7 flex items-start gap-3 rounded-2xl border border-line bg-white p-5 text-sm leading-7 text-slate-600">
               <Calculator className="mt-1 shrink-0 text-brand-700" size={20} />
-              Actual rate, fees, insurance, taxes और eligibility हर lender में अलग हो सकती है।
+              Actual rates, fees, insurance, taxes and eligibility vary by lender.
             </div>
           </div>
           <EmiCalculator />
@@ -266,8 +266,8 @@ export default function HomePage() {
         <div className="page-shell grid items-center gap-10 lg:grid-cols-[1fr_auto]">
           <div className="max-w-3xl">
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-brand-500">VP Refer & Earn</p>
-            <h2 className="mt-4 text-balance text-3xl font-extrabold tracking-[-0.04em] sm:text-4xl">सही profile check दूसरों के साथ साझा करें</h2>
-            <p className="mt-5 max-w-2xl leading-8 text-slate-300">Reward केवल valid और non-refunded report purchase पर लागू होगा; clicks, registration या loan approval पर नहीं।</p>
+            <h2 className="mt-4 text-balance text-3xl font-extrabold tracking-[-0.04em] sm:text-4xl">Share a smarter profile check</h2>
+            <p className="mt-5 max-w-2xl leading-8 text-slate-300">Rewards apply only to valid, non-refunded plan purchases—not clicks, registrations or loan approvals.</p>
           </div>
           <ButtonLink href="/refer" variant="secondary" size="lg"><HeartHandshake size={19} />Explore Official Loan Options Program</ButtonLink>
         </div>
@@ -277,7 +277,7 @@ export default function HomePage() {
         <div className="page-shell grid gap-12 lg:grid-cols-[0.68fr_1.32fr]">
           <div>
             <SectionHeading eyebrow="Frequently asked questions" title="Clear answers for better decisions" description="No false approval claims and no fake urgency. Payment is not required to view the initial result." />
-            <ButtonLink href="/contact" variant="secondary" className="mt-7"><MessageCircle size={18} />Support से संपर्क करें</ButtonLink>
+            <ButtonLink href="/contact" variant="secondary" className="mt-7"><MessageCircle size={18} />Contact support</ButtonLink>
           </div>
           <div className="grid gap-3">
             {faqs.map(([question, answer]) => (
@@ -298,7 +298,7 @@ export default function HomePage() {
           <div className="flex items-start gap-4 rounded-3xl border border-line bg-white p-6 sm:p-8">
             <LockKeyhole className="mt-1 shrink-0 text-brand-700" size={23} />
             <div>
-              <h2 className="font-extrabold text-navy-950">जरूरी जानकारी</h2>
+              <h2 className="font-extrabold text-navy-950">Important information</h2>
               <p className="mt-2 text-sm leading-7 text-slate-600">{RESULT_DISCLAIMER} {PLATFORM_DISCLAIMER}</p>
             </div>
           </div>
@@ -311,9 +311,9 @@ export default function HomePage() {
             <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand-500/15 blur-3xl" />
             <div className="relative grid items-center gap-8 lg:grid-cols-[1fr_auto]">
               <div>
-                <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-brand-700">सही जानकारी से शुरू करें</p>
-                <h2 className="mt-4 text-balance text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">अपनी loan profile समझने के लिए तैयार हैं?</h2>
-                <p className="mt-4 max-w-2xl leading-8 text-slate-600">पहले free check पूरा करें। कोई sensitive document upload नहीं और approval का कोई झूठा promise नहीं।</p>
+                <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-brand-700">Start with accurate information</p>
+                <h2 className="mt-4 text-balance text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">Ready to understand your loan profile?</h2>
+                <p className="mt-4 max-w-2xl leading-8 text-slate-600">Complete the free check first. No sensitive document upload and no false approval promise.</p>
               </div>
               <ButtonLink href="/assessment" size="lg">Check My Loan Matches <ArrowRight size={18} /></ButtonLink>
             </div>
