@@ -148,7 +148,21 @@ export function AssessmentForm() {
   }
 
   function validateCurrentStep() {
-    if (step === 1 && (!form.fullName || !form.state || !form.city || !form.residentialAddress || !/^\\d{6}$/.test(form.pinCode) || !form.loanAmount || !form.loanPurpose || !form.loanType || !otpVerified)) return "Complete all profile details and verify your email.";
+    if (step === 1) {
+      const missing: string[] = [];
+      if (!form.loanAmount) missing.push("loan amount");
+      if (!form.loanPurpose) missing.push("loan purpose");
+      if (!form.loanType) missing.push("loan option");
+      if (!form.fullName) missing.push("full name");
+      if (!form.mobile) missing.push("mobile number");
+      if (!form.email) missing.push("email address");
+      if (!otpToken) missing.push("email verification");
+      if (!form.state) missing.push("state");
+      if (!form.city) missing.push("city");
+      if (!form.residentialAddress) missing.push("residential address");
+      if (!/^\d{6}$/.test(form.pinCode)) missing.push("6-digit PIN code");
+      if (missing.length) return `Please complete: ${missing.join(", ")}.`;
+    }
     if (step === 2 && (!form.employmentType || !form.employerOrBusinessName || !form.officeAddress || !form.monthlyIncomeRange || form.annualIncome === "" || form.durationMonths === "" || [form.salaryBankCredit, form.itrAvailable, form.gstAvailable, form.udyamAvailable, form.sixMonthBankStatement].some((v) => v === null))) return "Answer all income and employment questions.";
     if (step === 3 && (form.existingEmi === "" || form.activeLoans === "" || form.cardOutstanding === "" || form.currentOverdue === null || form.settledOrWrittenOff === null || !form.creditRange)) return "Answer all credit and obligation questions.";
     if (step === 4 && [form.panAvailable, form.aadhaarAvailable, form.addressProofAvailable, form.incomeProofAvailable, form.bankStatementAvailable, form.businessRegistrationAvailable, form.securedAssetAvailable].some((v) => v === null)) return "Answer all document-readiness questions.";
