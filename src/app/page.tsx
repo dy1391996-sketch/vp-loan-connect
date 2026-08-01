@@ -102,27 +102,27 @@ export default function HomePage() {
           <div className="animate-rise relative z-10">
             <div className="inline-flex items-center gap-2 rounded-full border border-brand-500/25 bg-brand-500/10 px-4 py-2 text-xs font-bold text-brand-100 backdrop-blur">
               <Sparkles size={15} aria-hidden="true" />
-              Free profile-based loan discovery
+              Personal loan options from ₹5,000
             </div>
             <h1 className="mt-7 max-w-3xl text-balance text-4xl font-extrabold leading-[1.08] tracking-[-0.055em] sm:text-5xl lg:text-[4rem]">
-              Discover your best-fit loan path <span className="text-brand-500">in about 2 minutes</span>
+              Need money? Find loan options <span className="text-brand-500">that fit your profile</span>
             </h1>
             <p className="mt-5 max-w-2xl text-balance text-xl font-semibold leading-8 text-white sm:text-2xl">
-              Get indicative matches based on income, obligations, documents and your self-reported CIBIL range
+              Choose the amount you need, share your income and CIBIL range, and see your indicative eligibility before paying anything.
             </p>
             <p className="mt-5 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
-              See your indicative result free. Unlock your ₹199 action plan and matched digital loan platforms only if you choose.
+              From ₹5,000 quick cash to ₹5 lakh personal loans—one simple profile check helps you find the right direction.
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <ButtonLink href="/assessment" size="lg">
-                Check My Loan Matches <ArrowRight size={18} aria-hidden="true" />
+                Check My Loan Options <ArrowRight size={18} aria-hidden="true" />
               </ButtonLink>
               <ButtonLink href="/#emi-calculator" variant="secondary" size="lg">
                 <Calculator size={18} aria-hidden="true" /> Calculate EMI
               </ButtonLink>
             </div>
             <div className="mt-9 flex flex-wrap gap-x-6 gap-y-3 text-sm text-slate-300">
-              <span className="flex items-center gap-2"><Clock3 className="text-brand-500" size={17} />About 2 minutes</span>
+              <span className="flex items-center gap-2"><Clock3 className="text-brand-500" size={17} />Free eligibility result</span>
               <span className="flex items-center gap-2"><FileCheck2 className="text-brand-500" size={17} />No document upload</span>
               <span className="flex items-center gap-2"><LockKeyhole className="text-brand-500" size={17} />No PIN or bank password</span>
             </div>
@@ -133,28 +133,28 @@ export default function HomePage() {
             <div className="animate-float relative rounded-[2rem] border border-white/12 bg-white/8 p-3 shadow-2xl backdrop-blur-xl sm:p-4">
               <div className="rounded-[1.5rem] bg-white p-5 text-navy-950 sm:p-7">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <span className="rounded-full bg-brand-100 px-3.5 py-2 text-xs font-extrabold text-brand-700">Sample result</span>
-                  <span className="text-xs font-bold text-slate-500">Illustration only</span>
+                  <span className="rounded-full bg-brand-100 px-3.5 py-2 text-xs font-extrabold text-brand-700">Choose your loan need</span>
+                  <span className="text-xs font-bold text-slate-500">Simple & secure</span>
                 </div>
                 <div className="mt-6 flex items-end justify-between gap-5 rounded-2xl bg-navy-950 p-5 text-white">
                   <div>
-                    <p className="text-xs font-semibold text-slate-300">Loan Readiness Score</p>
-                    <p className="mt-2 text-sm font-bold text-brand-500">Profile status</p>
-                    <p className="mt-1 text-xl font-extrabold">Moderate readiness</p>
+                    <p className="text-xs font-semibold text-slate-300">Loan amount range</p>
+                    <p className="mt-2 text-sm font-bold text-brand-500">Available options from</p>
+                    <p className="mt-1 text-xl font-extrabold">₹5,000 to ₹5,00,000</p>
                   </div>
                   <div className="grid h-20 w-20 shrink-0 place-items-center rounded-full border-[7px] border-brand-500 bg-white/5">
                     <span className="text-2xl font-black">74<span className="text-xs text-slate-300">/100</span></span>
                   </div>
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <SampleStat label="Indicative EMI range" value="₹12k – ₹18k/month" />
-                  <SampleStat label="Document status" value="Partially ready" />
-                  <SampleStat label="Credit Profile" value="Review suggested" />
-                  <SampleStat label="Potential categories" value="Personal · Gold" />
+                  <SampleStat label="Quick cash" value="₹5,000 – ₹25,000" />
+                  <SampleStat label="Everyday needs" value="₹25,000 – ₹1 lakh" />
+                  <SampleStat label="Bigger personal need" value="₹1 lakh – ₹5 lakh" />
+                  <SampleStat label="Profile matching" value="Income + CIBIL + EMIs" />
                 </div>
                 <div className="mt-4 flex items-start gap-3 rounded-2xl bg-amber-50 p-4 text-xs leading-5 text-amber-950">
                   <CircleAlert className="mt-0.5 shrink-0" size={16} />
-                  <span><strong>Sample result — Illustration only.</strong> Your result is based on your answers; it is not a loan approval.</span>
+                  <span><strong>Choose your loan need — Simple & secure.</strong> Your result is based on your answers; it is not a loan approval.</span>
                 </div>
               </div>
             </div>
@@ -189,7 +189,7 @@ export default function HomePage() {
       <section id="loan-options" className="section-space surface-grid bg-surface">
         <div className="page-shell">
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
-            <SectionHeading eyebrow="Potential categories" title="Explore categories aligned with your profile" description="These are profile-based suggestions—not lender offers, approvals or guaranteed eligibility." />
+            <SectionHeading eyebrow="Profile matching" title="Explore categories aligned with your profile" description="These are profile-based suggestions—not lender offers, approvals or guaranteed eligibility." />
             <ButtonLink href="/assessment" variant="secondary">Check My Profile <ArrowRight size={17} /></ButtonLink>
           </div>
           <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -315,7 +315,7 @@ export default function HomePage() {
                 <h2 className="mt-4 text-balance text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">Ready to understand your loan profile?</h2>
                 <p className="mt-4 max-w-2xl leading-8 text-slate-600">Complete the free check first. No sensitive document upload and no false approval promise.</p>
               </div>
-              <ButtonLink href="/assessment" size="lg">Check My Loan Matches <ArrowRight size={18} /></ButtonLink>
+              <ButtonLink href="/assessment" size="lg">Check My Loan Options <ArrowRight size={18} /></ButtonLink>
             </div>
           </div>
         </div>
@@ -329,7 +329,7 @@ function SampleStat({ label, value }: { label: string; value: string }) {
     <div className="rounded-2xl border border-line bg-white p-4">
       <p className="text-[11px] font-bold text-slate-500">{label}</p>
       <p className="mt-1.5 text-sm font-extrabold text-navy-950">{value}</p>
-      <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-brand-700">Sample result</p>
+      <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-brand-700">Choose your loan need</p>
     </div>
   );
 }
