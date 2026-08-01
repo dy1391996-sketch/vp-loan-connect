@@ -12,12 +12,12 @@ export default function AssessmentPage() {
         <div className="mx-auto max-w-5xl">
           <div className="mb-9 text-center">
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-brand-700">Free profile check</p>
-            <h1 className="mt-4 text-balance text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-5xl">Build your borrower profile in five focused steps</h1>
-            <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-slate-600">Share your loan need, income, work details, self-reported CIBIL range and document readiness. No sensitive document upload is required.</p>
+            <h1 className="mt-4 text-balance text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-5xl">Find suitable loan directions in five simple steps</h1>
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-slate-600">Start with the amount you need. Then share simple income and CIBIL details to view your indicative result.</p>
             <div className="mx-auto mt-7 flex max-w-3xl flex-wrap justify-center gap-3 text-xs font-bold text-slate-600">
-              <span className="flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2.5"><Clock3 className="text-brand-700" size={16} />About 2 minutes</span>
+              <span className="flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2.5"><Clock3 className="text-brand-700" size={16} />Simple questions</span>
               <span className="flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2.5"><FileCheck2 className="text-brand-700" size={16} />No document upload</span>
-              <span className="flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2.5"><LockKeyhole className="text-brand-700" size={16} />Consent protected</span>
+              <span className="flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2.5"><LockKeyhole className="text-brand-700" size={16} />Secure OTP verification</span>
             </div>
           </div>
           <Suspense fallback={<AssessmentLoading />}>
