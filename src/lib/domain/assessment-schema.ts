@@ -12,7 +12,7 @@ export const assessmentSchema = z.object({
   city: z.string().trim().min(2).max(80),
   residentialAddress: z.string().trim().min(8).max(240),
   pinCode: z.string().regex(/^\d{6}$/, "Enter a valid 6-digit PIN code."),
-  loanAmount: z.coerce.number().min(50000).max(1500000),
+  loanAmount: z.coerce.number().min(5000).max(500000),
   loanPurpose: z.string().trim().min(2).max(120),
   loanType: z.enum(["PERSONAL", "BUSINESS", "MSME", "MUDRA_GUIDANCE", "GOLD", "PROPERTY", "CREDIT_HEALTH"]),
   employmentType: z.enum(["SALARIED", "SELF_EMPLOYED", "BUSINESS_OWNER", "FREELANCER", "OTHER"]),
