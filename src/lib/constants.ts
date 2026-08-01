@@ -1,29 +1,29 @@
 export const APP_NAME = "VP Loan Connect";
-export const TAGLINE = "Loan Application से पहले Smart Profile Check";
+export const TAGLINE = "Smarter Loan Matches Start With Your Profile";
 export const DOMAIN = "vploanconnect.in";
 
 export const CONSENT_VERSION = "2026-07-v1";
 
 export const SERVICE_CONSENT_TEXT =
-  "मैं सहमत हूँ कि VP Loan Connect मेरी दी गई जानकारी का उपयोग मेरा requested profile assessment तैयार करने और इसी request के संबंध में मुझसे संपर्क करने के लिए कर सकता है।";
+  "I authorize VP Loan Connect to use the information I provide to prepare my requested profile assessment and contact me about this service request.";
 
 export const MARKETING_CONSENT_TEXT =
-  "मैं WhatsApp, SMS या call पर loan-readiness updates, document reminders, जानकारी और verified financial offers पाना चाहता/चाहती हूँ। मैं STOP भेजकर इसे कभी भी बंद कर सकता/सकती हूँ।";
+  "I would like to receive loan-readiness updates, document reminders and verified financial offers by WhatsApp, SMS or call. I can opt out at any time.";
 
 export const LENDER_REFERRAL_CONSENT_TEXT =
-  "मैं VP Loan Connect से अपनी profile को verified regulated lender या authorized partner के optional referral के लिए review करने का अनुरोध करता/करती हूँ। मैं समझता/समझती हूँ कि eligibility, approval, rate या disbursement की guarantee नहीं है और verified partner व उद्देश्य बताए बिना मेरी जानकारी साझा नहीं होगी।";
+  "I request an optional review of my profile for referral to a verified regulated lender or authorized partner. I understand that eligibility, approval, rate and disbursement are not guaranteed, and my data will not be shared without identifying the partner and purpose.";
 
 export const RESULT_DISCLAIMER =
-  "यह शुरुआती profile assessment है, loan approval नहीं। अंतिम eligibility, amount, interest rate, charges और disbursement verification के बाद केवल संबंधित lender तय करता है।";
+  "This is an indicative profile assessment, not a loan approval. Final eligibility, amount, APR, charges, tenure and disbursement are decided only by the relevant lender after verification.";
 
 export const PLATFORM_DISCLAIMER =
-  "VP Loan Connect financial information, profile assessment और loan-readiness platform है। हम bank, NBFC, lender या credit bureau नहीं हैं। हम loan sanction नहीं करते और approval, interest rate, credit-score improvement या disbursement की guarantee नहीं देते। अंतिम निर्णय regulated lender अपनी policy के अनुसार करता है।";
+  "VP Loan Connect is a financial-information, profile-assessment and loan-discovery platform. We are not a bank, NBFC, lender or credit bureau. We do not sanction loans or guarantee approval, rates, credit-score improvement or disbursement.";
 
 export const PAYMENT_DESCRIPTION =
-  "यह payment profile assessment, personalized report और guidance के लिए है। यह lender processing fee, approval fee या loan sanction की guarantee नहीं है।";
+  "This payment is for a digital profile assessment, credit-improvement action plan and access to matched loan platforms. It is not a lender processing fee or a guarantee of loan approval.";
 
 export const CREDIT_REPORT_DISCLAIMER =
-  "हम TransUnion CIBIL, Experian, Equifax या CRIF High Mark नहीं हैं। हम credit-bureau record को सीधे बदल या delete नहीं कर सकते और score बढ़ने की guarantee नहीं देते। सही correction संबंधित lender या credit institution की पुष्टि पर निर्भर करता है।";
+  "We are not TransUnion CIBIL, Experian, Equifax or CRIF High Mark. We cannot directly change or delete a bureau record and do not guarantee any score increase. Corrections depend on confirmation by the reporting credit institution.";
 
 export const LOAN_CATEGORIES = [
   "Personal Loan",
