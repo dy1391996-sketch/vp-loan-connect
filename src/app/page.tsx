@@ -32,54 +32,54 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { PLATFORM_DISCLAIMER, RESULT_DISCLAIMER } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "मुफ़्त Loan Profile Check और EMI Calculator",
-  description: "सिर्फ दो मिनट में आय, EMI, documents और credit profile के आधार पर अपनी शुरुआती loan readiness जाँचें।",
+  title: "Free Loan Profile Check & EMI Calculator",
+  description: "Check your indicative loan readiness in two minutes using income, EMIs, documents and your self-reported credit profile.",
 };
 
 const trustItems = [
-  ["सुरक्षित Assessment", ShieldCheck],
-  ["शुरुआत में Documents नहीं", FileCheck2],
-  ["Personal और Business Loan", BriefcaseBusiness],
-  ["आपकी जानकारी सुरक्षित", LockKeyhole],
-  ["साफ़ और पारदर्शी Result", SearchCheck],
-  ["सही जानकारी और मार्गदर्शन", GraduationCap],
+  ["Secure assessment", ShieldCheck],
+  ["No documents upfront", FileCheck2],
+  ["Personal & business loans", BriefcaseBusiness],
+  ["Privacy-first", LockKeyhole],
+  ["Transparent results", SearchCheck],
+  ["Practical guidance", GraduationCap],
 ] as const;
 
 const categories = [
-  ["Personal Loan", "आय और मौजूदा EMI के अनुसार personal loan की तैयारी समझें।", Banknote],
-  ["Business Loan", "Business की अवधि, cash-flow और documents की तैयारी समझें।", BriefcaseBusiness],
-  ["MSME Loan", "छोटे और बढ़ते business के लिए जरूरी profile factors देखें।", Building2],
-  ["Gold Loan", "Gold उपलब्ध होने पर secured loan category समझें।", Gem],
-  ["Loan Against Property", "Property के आधार पर loan के लिए profile और documents समझें।", Home],
-  ["Education Loan", "Income, co-applicant और education documents तैयार करें।", GraduationCap],
-  ["Working Capital", "Business working capital के लिए profile readiness देखें।", WalletCards],
+  ["Personal Loan", "Understand personal-loan readiness based on income and existing EMIs.", Banknote],
+  ["Business Loan", "Review business vintage, cash flow and document readiness.", BriefcaseBusiness],
+  ["MSME Loan", "Check the profile factors that matter for small and growing businesses.", Building2],
+  ["Gold Loan", "Explore secured-loan readiness when gold is available.", Gem],
+  ["Loan Against Property", "Understand profile and document readiness for a loan against property.", Home],
+  ["Education Loan", "Prepare income, co-applicant and education documentation.", GraduationCap],
+  ["Working Capital", "Review your readiness for business working-capital options.", WalletCards],
 ] as const;
 
 const rejectionReasons = [
-  ["अधिक EMI का दबाव", "मौजूदा EMI के कारण नई repayment की क्षमता कम हो सकती है।"],
-  ["Repayment की समस्या", "Current overdue या पुराने settled account की जाँच जरूरी हो सकती है।"],
-  ["अधूरे Documents", "Income, banking या business proof की कमी verification रोक सकती है।"],
-  ["आय से अधिक Loan Amount", "माँगी गई राशि आपकी बताई आय के अनुसार अधिक हो सकती है।"],
-  ["कम नौकरी या Business अवधि", "कम employment या business history profile कमजोर कर सकती है।"],
-  ["बहुत अधिक Applications", "कम समय में कई enquiries CIBIL profile पर असर डाल सकती हैं।"],
+  ["High EMI burden", "Existing EMIs may reduce capacity for a new repayment."],
+  ["Repayment issues", "Current overdue or older settled accounts may require review."],
+  ["Incomplete documents", "Missing income, banking or business proof can delay verification."],
+  ["Loan amount too high", "The requested amount may be high relative to stated income."],
+  ["Short work history", "A short employment or business history may weaken the profile."],
+  ["Too many applications", "Several enquiries in a short period can affect the credit profile."],
 ] as const;
 
 const faqs = [
-  ["क्या VP Loan Connect खुद loan देता है?", "नहीं। VP Loan Connect bank, NBFC, lender या credit bureau नहीं है। हम profile assessment, report guidance और आपकी इच्छा पर official lender options देते हैं।"],
-  ["क्या free result loan approval है?", "नहीं। यह आपके दिए जवाबों पर आधारित शुरुआती profile view है। Eligibility, rate, amount और approval केवल संबंधित lender तय करता है।"],
-  ["क्या documents upload करने होंगे?", "शुरुआती assessment में नहीं। हम केवल documents की उपलब्धता पूछते हैं। UPI PIN, CVV, bank password या Aadhaar OTP कभी साझा न करें।"],
-  ["क्या profile check करने से CIBIL score प्रभावित होगा?", "यह assessment आपके बताए CIBIL range का उपयोग करता है। यह bureau report नहीं निकालता और कोई lender enquiry नहीं करता।"],
-  ["क्या ₹99 report जरूरी है?", "नहीं। शुरुआती result free है। ₹99 plan optional है और personalized analysis व official application options खोलता है।"],
-  ["मेरी जानकारी का उपयोग कैसे होगा?", "Service consent केवल assessment के लिए है। Marketing consent अलग और optional है; STOP भेजकर इसे बंद किया जा सकता है।"],
+  ["Does VP Loan Connect lend money?", "No. VP Loan Connect is not a bank, NBFC, lender or credit bureau. We provide profile assessment, action-plan guidance and optional links to verified lending platforms."],
+  ["Is the free result a loan approval?", "No. It is an indicative view based on your answers. Eligibility, APR, amount and approval are decided only by the relevant lender."],
+  ["Do I need to upload documents?", "Not during the initial assessment. We only ask whether documents are available. Never share a UPI PIN, CVV, bank password or Aadhaar OTP."],
+  ["Will this profile check affect my CIBIL score?", "No. This assessment uses your self-reported CIBIL range; it does not pull a bureau report or create a lender enquiry."],
+  ["Is the ₹199 plan mandatory?", "No. Your indicative result is free. The optional ₹199 plan unlocks personalized guidance and matched application options."],
+  ["How will my information be used?", "Service consent covers the requested assessment. Marketing consent is separate and optional, and can be withdrawn."],
 ] as const;
 
 const journey = [
-  ["01", "जानकारी देखें", "Service और उसकी सीमाएँ समझें।"],
-  ["02", "मुफ़्त Assessment", "Analysis के लिए जरूरी profile details दें।"],
-  ["03", "शुरुआती Result", "Readiness, EMI क्षमता और documents की स्थिति देखें।"],
-  ["04", "₹99 Profile Plan", "चाहें तो personalized analysis खोलें।"],
-  ["05", "Official Loan Options", "Payment के बाद profile के अनुसार official links देखें।"],
-  ["06", "अपनी इच्छा से Apply करें", "बिना automatic data sharing के official lender site पर जाएँ।"],
+  ["01", "Understand the service", "Know what the platform does and does not do."],
+  ["02", "Free assessment", "Share the profile details required for analysis."],
+  ["03", "Indicative result", "See readiness, EMI capacity and document status."],
+  ["04", "₹199 Match Plan", "Optionally unlock personalized analysis."],
+  ["05", "Official Loan Options", "View matched official-platform links after payment."],
+  ["06", "Apply voluntarily", "Continue without automatic data sharing."],
 ] as const;
 
 export default function HomePage() {
@@ -102,29 +102,29 @@ export default function HomePage() {
           <div className="animate-rise relative z-10">
             <div className="inline-flex items-center gap-2 rounded-full border border-brand-500/25 bg-brand-500/10 px-4 py-2 text-xs font-bold text-brand-100 backdrop-blur">
               <Sparkles size={15} aria-hidden="true" />
-              मुफ़्त शुरुआती profile assessment
+              Free profile-based loan discovery
             </div>
             <h1 className="mt-7 max-w-3xl text-balance text-4xl font-extrabold leading-[1.08] tracking-[-0.055em] sm:text-5xl lg:text-[4rem]">
-              अपनी Loan Readiness जानें <span className="text-brand-500">सिर्फ 2 मिनट में</span>
+              Discover your best-fit loan path <span className="text-brand-500">in about 2 minutes</span>
             </h1>
             <p className="mt-5 max-w-2xl text-balance text-xl font-semibold leading-8 text-white sm:text-2xl">
-              Income, EMI, CIBIL range और documents के आधार पर अपनी profile समझें
+              Get indicative matches based on income, obligations, documents and your self-reported CIBIL range
             </p>
             <p className="mt-5 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
-              पहले free result देखें। फिर जरूरत हो तो ₹99 में personalized analysis और official lender options खोलें।
+              See your indicative result free. Unlock your ₹199 action plan and matched digital loan platforms only if you choose.
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <ButtonLink href="/assessment" size="lg">
-                मेरी Profile जाँचें <ArrowRight size={18} aria-hidden="true" />
+                Check My Loan Matches <ArrowRight size={18} aria-hidden="true" />
               </ButtonLink>
               <ButtonLink href="/#emi-calculator" variant="secondary" size="lg">
-                <Calculator size={18} aria-hidden="true" /> मेरी EMI निकालें
+                <Calculator size={18} aria-hidden="true" /> Calculate EMI
               </ButtonLink>
             </div>
             <div className="mt-9 flex flex-wrap gap-x-6 gap-y-3 text-sm text-slate-300">
-              <span className="flex items-center gap-2"><Clock3 className="text-brand-500" size={17} />लगभग 2 मिनट</span>
-              <span className="flex items-center gap-2"><FileCheck2 className="text-brand-500" size={17} />Document upload नहीं</span>
-              <span className="flex items-center gap-2"><LockKeyhole className="text-brand-500" size={17} />PIN या bank password नहीं</span>
+              <span className="flex items-center gap-2"><Clock3 className="text-brand-500" size={17} />About 2 minutes</span>
+              <span className="flex items-center gap-2"><FileCheck2 className="text-brand-500" size={17} />No document upload</span>
+              <span className="flex items-center gap-2"><LockKeyhole className="text-brand-500" size={17} />No PIN or bank password</span>
             </div>
           </div>
 
@@ -133,28 +133,28 @@ export default function HomePage() {
             <div className="animate-float relative rounded-[2rem] border border-white/12 bg-white/8 p-3 shadow-2xl backdrop-blur-xl sm:p-4">
               <div className="rounded-[1.5rem] bg-white p-5 text-navy-950 sm:p-7">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <span className="rounded-full bg-brand-100 px-3.5 py-2 text-xs font-extrabold text-brand-700">नमूना Result</span>
-                  <span className="text-xs font-bold text-slate-500">केवल उदाहरण</span>
+                  <span className="rounded-full bg-brand-100 px-3.5 py-2 text-xs font-extrabold text-brand-700">Sample result</span>
+                  <span className="text-xs font-bold text-slate-500">Illustration only</span>
                 </div>
                 <div className="mt-6 flex items-end justify-between gap-5 rounded-2xl bg-navy-950 p-5 text-white">
                   <div>
                     <p className="text-xs font-semibold text-slate-300">Loan Readiness Score</p>
-                    <p className="mt-2 text-sm font-bold text-brand-500">Profile की स्थिति</p>
-                    <p className="mt-1 text-xl font-extrabold">मध्यम readiness</p>
+                    <p className="mt-2 text-sm font-bold text-brand-500">Profile status</p>
+                    <p className="mt-1 text-xl font-extrabold">Moderate readiness</p>
                   </div>
                   <div className="grid h-20 w-20 shrink-0 place-items-center rounded-full border-[7px] border-brand-500 bg-white/5">
                     <span className="text-2xl font-black">74<span className="text-xs text-slate-300">/100</span></span>
                   </div>
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <SampleStat label="अनुमानित EMI Range" value="₹12k – ₹18k/month" />
-                  <SampleStat label="Documents की स्थिति" value="कुछ बाकी" />
-                  <SampleStat label="Credit Profile" value="Review जरूरी" />
-                  <SampleStat label="संभावित Loan Categories" value="Personal · Gold" />
+                  <SampleStat label="Indicative EMI range" value="₹12k – ₹18k/month" />
+                  <SampleStat label="Document status" value="Partially ready" />
+                  <SampleStat label="Credit Profile" value="Review suggested" />
+                  <SampleStat label="Potential categories" value="Personal · Gold" />
                 </div>
                 <div className="mt-4 flex items-start gap-3 rounded-2xl bg-amber-50 p-4 text-xs leading-5 text-amber-950">
                   <CircleAlert className="mt-0.5 shrink-0" size={16} />
-                  <span><strong>नमूना Result — केवल उदाहरण.</strong> आपका result आपके जवाबों से बनेगा; यह loan approval नहीं है।</span>
+                  <span><strong>Sample result — Illustration only.</strong> आपका result आपके जवाबों से बनेगा; यह loan approval नहीं है।</span>
                 </div>
               </div>
             </div>
@@ -177,11 +177,11 @@ export default function HomePage() {
 
       <section id="how-it-works" className="section-space bg-white">
         <div className="page-shell">
-          <SectionHeading eyebrow="आसान प्रक्रिया" title="Apply करने से पहले सही profile check" description="पहले अपनी profile समझें। शुरुआती result free है और आगे बढ़ना पूरी तरह आपकी इच्छा है।" align="center" />
+          <SectionHeading eyebrow="Simple, focused process" title="Know your profile before you apply" description="Understand your profile first. The indicative result is free and every next step is your choice." align="center" />
           <div className="mt-14 grid gap-5 md:grid-cols-3">
-            <ProcessCard number="01" icon={UserRoundCheck} title="अपनी profile की जानकारी दें" description="Income, मौजूदा EMI, अनुमानित CIBIL range और documents के आसान सवालों के जवाब दें।" />
-            <ProcessCard number="02" icon={ChartNoAxesCombined} title="Free शुरुआती result देखें" description="Readiness, EMI क्षमता, documents, मजबूत बातें और सुधार की जरूरत देखें।" />
-            <ProcessCard number="03" icon={HandCoins} title="अपना अगला कदम चुनें" description="Free result के बाद चाहें तो ₹99 personalized plan और official loan options खोलें।" />
+            <ProcessCard number="01" icon={UserRoundCheck} title="Complete your profile" description="Answer focused questions about income, current EMIs, estimated CIBIL range and documents." />
+            <ProcessCard number="02" icon={ChartNoAxesCombined} title="View your free indicative result" description="See readiness, EMI capacity, document strength and action points." />
+            <ProcessCard number="03" icon={HandCoins} title="Choose your next step" description="After the free result, optionally unlock the ₹199 plan and matched digital loan options." />
           </div>
         </div>
       </section>
@@ -189,7 +189,7 @@ export default function HomePage() {
       <section id="loan-options" className="section-space surface-grid bg-surface">
         <div className="page-shell">
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
-            <SectionHeading eyebrow="संभावित Categories" title="अपनी profile के अनुसार loan categories समझें" description="ये profile-आधारित सुझाव हैं; lender offer, approval या guaranteed eligibility नहीं।" />
+            <SectionHeading eyebrow="संभावित Categories" title="Explore categories aligned with your profile" description="These are profile-based suggestions—not lender offers, approvals or guaranteed eligibility." />
             <ButtonLink href="/assessment" variant="secondary">अपनी Profile देखें <ArrowRight size={17} /></ButtonLink>
           </div>
           <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -201,7 +201,7 @@ export default function HomePage() {
               </article>
             ))}
             <article className="flex min-h-64 flex-col justify-between rounded-3xl bg-navy-950 p-7 text-white shadow-card sm:col-span-2 lg:col-span-1">
-              <div><Landmark className="text-brand-500" size={28} /><h3 className="mt-6 text-xl font-extrabold">समझ नहीं आ रहा कहाँ से शुरू करें?</h3><p className="mt-3 text-sm leading-7 text-slate-300">Assessment आपकी profile को सामान्य eligibility factors से compare करेगा।</p></div>
+              <div><Landmark className="text-brand-500" size={28} /><h3 className="mt-6 text-xl font-extrabold">Not sure where to begin?</h3><p className="mt-3 text-sm leading-7 text-slate-300">Assessment आपकी profile को सामान्य eligibility factors से compare करेगा।</p></div>
               <ButtonLink href="/assessment" className="mt-6 w-full">संभावित Options देखें</ButtonLink>
             </article>
           </div>
@@ -211,7 +211,7 @@ export default function HomePage() {
       <section id="benefits" className="section-space bg-white">
         <div className="page-shell grid items-start gap-14 lg:grid-cols-2">
           <div>
-            <SectionHeading eyebrow="Application की सामान्य कमियाँ" title="Loan application reject क्यों हो सकती है" description="हर lender की policy अलग है। ये सामान्य कमियाँ application को कमजोर कर सकती हैं।" />
+            <SectionHeading eyebrow="Common application gaps" title="Why a loan application may be declined" description="Every lender has a different policy. These common gaps can weaken an application." />
             <div className="mt-9 grid gap-3 sm:grid-cols-2">
               {rejectionReasons.map(([title, description]) => (
                 <div key={title} className="rounded-2xl bg-surface p-5">
@@ -225,10 +225,10 @@ export default function HomePage() {
             <span className="inline-flex items-center gap-2 rounded-full bg-brand-500/12 px-4 py-2 text-xs font-bold text-brand-100"><BadgeCheck size={16} />पहले Profile, फिर Application</span>
             <h2 className="mt-7 text-balance text-3xl font-extrabold tracking-[-0.04em] sm:text-4xl">बिना सोचे कई जगह apply न करें</h2>
             <div className="mt-8 grid gap-6">
-              <Benefit title="सही EMI का अंदाजा" description="Tenure चुनने से पहले आरामदायक EMI range समझें।" />
-              <Benefit title="Documents पहले तैयार करें" description="Free check में upload किए बिना missing proofs समझें।" />
-              <Benefit title="सही loan category चुनें" description="समझें कि unsecured या secured option में क्या बेहतर हो सकता है।" />
-              <Benefit title="अनावश्यक applications कम करें" description="हर जगह apply करने से पहले profile की कमियाँ सुधारें।" />
+              <Benefit title="Estimate a sensible EMI" description="Understand a comfortable EMI before choosing a tenure." />
+              <Benefit title="Prepare documents first" description="Identify missing proofs without uploading them." />
+              <Benefit title="Choose the right category" description="Understand whether an unsecured or secured route may fit better." />
+              <Benefit title="Reduce unnecessary applications" description="Address profile gaps before applying everywhere." />
             </div>
           </div>
         </div>
@@ -237,7 +237,7 @@ export default function HomePage() {
       <section id="emi-calculator" className="section-space surface-grid bg-surface">
         <div className="page-shell grid items-start gap-12 lg:grid-cols-[0.72fr_1.28fr]">
           <div className="lg:sticky lg:top-28">
-            <SectionHeading eyebrow="Repayment की योजना" title="अपनी EMI का अनुमान लगाएँ" description="Amount, annual rate और tenure बदलकर अनुमानित monthly EMI देखें। यह lender quote नहीं है।" />
+            <SectionHeading eyebrow="Repayment planning" title="Estimate your monthly EMI" description="Adjust amount, annual rate and tenure to estimate EMI. This is not a lender quote." />
             <div className="mt-7 flex items-start gap-3 rounded-2xl border border-line bg-white p-5 text-sm leading-7 text-slate-600">
               <Calculator className="mt-1 shrink-0 text-brand-700" size={20} />
               Actual rate, fees, insurance, taxes और eligibility हर lender में अलग हो सकती है।
@@ -249,7 +249,7 @@ export default function HomePage() {
 
       <section className="section-space bg-white">
         <div className="page-shell">
-          <SectionHeading eyebrow="पूरी प्रक्रिया" title="कोई जबरदस्ती नहीं—हर कदम आपकी इच्छा से" description="Free assessment से शुरू करें और जरूरत होने पर ही आगे बढ़ें।" align="center" />
+          <SectionHeading eyebrow="The complete journey" title="No pressure—every step remains your choice" description="Start with the free assessment and continue only when it helps." align="center" />
           <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {journey.map(([number, title, description]) => (
               <div key={number} className="relative rounded-3xl border border-line bg-white p-6 shadow-sm">
@@ -276,7 +276,7 @@ export default function HomePage() {
       <section id="faq" className="section-space bg-white">
         <div className="page-shell grid gap-12 lg:grid-cols-[0.68fr_1.32fr]">
           <div>
-            <SectionHeading eyebrow="सामान्य सवाल" title="साफ़ जवाब, बेहतर फैसला" description="न approval का झूठा दावा, न fake urgency। शुरुआती result देखने के लिए payment जरूरी नहीं।" />
+            <SectionHeading eyebrow="Frequently asked questions" title="Clear answers for better decisions" description="No false approval claims and no fake urgency. Payment is not required to view the initial result." />
             <ButtonLink href="/contact" variant="secondary" className="mt-7"><MessageCircle size={18} />Support से संपर्क करें</ButtonLink>
           </div>
           <div className="grid gap-3">
@@ -315,7 +315,7 @@ export default function HomePage() {
                 <h2 className="mt-4 text-balance text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">अपनी loan profile समझने के लिए तैयार हैं?</h2>
                 <p className="mt-4 max-w-2xl leading-8 text-slate-600">पहले free check पूरा करें। कोई sensitive document upload नहीं और approval का कोई झूठा promise नहीं।</p>
               </div>
-              <ButtonLink href="/assessment" size="lg">मेरी Profile जाँचें <ArrowRight size={18} /></ButtonLink>
+              <ButtonLink href="/assessment" size="lg">Check My Loan Matches <ArrowRight size={18} /></ButtonLink>
             </div>
           </div>
         </div>
@@ -329,7 +329,7 @@ function SampleStat({ label, value }: { label: string; value: string }) {
     <div className="rounded-2xl border border-line bg-white p-4">
       <p className="text-[11px] font-bold text-slate-500">{label}</p>
       <p className="mt-1.5 text-sm font-extrabold text-navy-950">{value}</p>
-      <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-brand-700">नमूना Result</p>
+      <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-brand-700">Sample result</p>
     </div>
   );
 }
