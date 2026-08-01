@@ -24,14 +24,14 @@ export function Header() {
         <nav className="hidden items-center gap-6 lg:flex" aria-label="Primary navigation">
           {links.map(([label, href]) => <Link key={href} href={href} className="text-sm font-semibold text-slate-600 transition hover:text-brand-700">{label}</Link>)}
         </nav>
-        <div className="hidden sm:block"><ButtonLink href="/assessment" size="sm">Check My Eligibility <ArrowRight size={16} /></ButtonLink></div>
+        <div className="hidden sm:block"><ButtonLink href="/assessment" size="sm">Check Loan Options <ArrowRight size={16} /></ButtonLink></div>
         <button type="button" className="grid h-11 w-11 place-items-center rounded-2xl border border-line bg-white text-navy-950 lg:hidden" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-label={open ? "Close menu" : "Open menu"}>{open ? <X size={20} /> : <Menu size={20} />}</button>
       </div>
       {open ? (
         <div className="border-t border-line bg-white lg:hidden">
           <nav className="page-shell grid gap-1 py-4" aria-label="Mobile navigation">
             {links.map(([label, href]) => <Link key={href} href={href} onClick={() => setOpen(false)} className="rounded-xl px-3 py-3.5 text-sm font-semibold text-navy-900 hover:bg-surface">{label}</Link>)}
-            <ButtonLink href="/assessment" className="mt-2 w-full">Check My Eligibility <ArrowRight size={16} /></ButtonLink>
+            <ButtonLink href="/assessment" className="mt-2 w-full">Check Loan Options <ArrowRight size={16} /></ButtonLink>
           </nav>
         </div>
       ) : null}
