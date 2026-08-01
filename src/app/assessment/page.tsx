@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { Clock3, FileCheck2, LockKeyhole } from "lucide-react";
 import { AssessmentForm } from "@/components/assessment/assessment-form";
 
-export const metadata: Metadata = { title: "मुफ़्त Loan Profile Assessment", description: "लगभग दो मिनट में सुरक्षित और OTP-verified loan profile assessment पूरा करें।" };
+export const metadata: Metadata = { title: "Free Loan Profile Assessment", description: "Complete a secure, OTP-verified borrower profile assessment." };
 
 export default function AssessmentPage() {
   return (
@@ -11,19 +11,19 @@ export default function AssessmentPage() {
       <div className="page-shell">
         <div className="mx-auto max-w-5xl">
           <div className="mb-9 text-center">
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-brand-700">मुफ़्त शुरुआती profile check</p>
-            <h1 className="mt-4 text-balance text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-5xl">अपनी loan profile को आसान चरणों में समझें</h1>
-            <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-slate-600">कुछ आसान सवालों के जवाब दें और अपनी शुरुआती loan readiness देखें। किसी संवेदनशील document को upload करने की जरूरत नहीं है।</p>
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-brand-700">Free profile check</p>
+            <h1 className="mt-4 text-balance text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-5xl">Build your borrower profile in five focused steps</h1>
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-slate-600">Share your loan need, income, work details, self-reported CIBIL range and document readiness. No sensitive document upload is required.</p>
             <div className="mx-auto mt-7 flex max-w-3xl flex-wrap justify-center gap-3 text-xs font-bold text-slate-600">
-              <span className="flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2.5"><Clock3 className="text-brand-700" size={16} />लगभग 2 मिनट</span>
-              <span className="flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2.5"><FileCheck2 className="text-brand-700" size={16} />Document upload नहीं</span>
-              <span className="flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2.5"><LockKeyhole className="text-brand-700" size={16} />सहमति सुरक्षित</span>
+              <span className="flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2.5"><Clock3 className="text-brand-700" size={16} />About 2 minutes</span>
+              <span className="flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2.5"><FileCheck2 className="text-brand-700" size={16} />No document upload</span>
+              <span className="flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2.5"><LockKeyhole className="text-brand-700" size={16} />Consent protected</span>
             </div>
           </div>
           <Suspense fallback={<AssessmentLoading />}>
             <AssessmentForm />
           </Suspense>
-          <p className="mx-auto mt-6 max-w-3xl text-center text-xs leading-6 text-slate-500">यह एक शुरुआती profile assessment है। इससे कोई bureau enquiry नहीं होती और यह lender का अंतिम निर्णय नहीं है।</p>
+          <p className="mx-auto mt-6 max-w-3xl text-center text-xs leading-6 text-slate-500">This is an indicative profile assessment. It does not create a bureau enquiry and is not a lender decision.</p>
         </div>
       </div>
     </section>
@@ -32,7 +32,7 @@ export default function AssessmentPage() {
 
 function AssessmentLoading() {
   return (
-    <div className="min-h-[760px] overflow-hidden rounded-[2rem] border border-line/80 bg-white shadow-soft" aria-label="Assessment खुल रहा है" aria-busy="true">
+    <div className="min-h-[760px] overflow-hidden rounded-[2rem] border border-line/80 bg-white shadow-soft" aria-label="Loading assessment" aria-busy="true">
       <div className="bg-navy-950 p-7 sm:p-9">
         <div className="skeleton skeleton-dark h-3 w-36 rounded-full" />
         <div className="skeleton skeleton-dark mt-5 h-2.5 w-full rounded-full" />
