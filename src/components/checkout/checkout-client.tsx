@@ -52,7 +52,7 @@ export function CheckoutClient(props: Props) {
         }),
       });
       const order = await orderResponse.json();
-      if (!orderResponse.ok) throw new Error(order.error || "Payment order नहीं बन सका।");
+      if (!orderResponse.ok) throw new Error(order.error || "Payment order could not be created.");
 
       if (order.provider === "mock") {
         const response = await fetch("/api/payments/mock-complete", {
@@ -61,14 +61,14 @@ export function CheckoutClient(props: Props) {
           body: JSON.stringify({ internalOrderId: order.internalOrderId, resultToken: props.resultToken }),
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Test payment पूरा नहीं हुआ।");
+        if (!response.ok) throw new Error(data.error || "Test payment could not be completed.");
         trackEvent("payment_completed", { product: props.productSlug, provider: "mock" });
         router.push(`/payment/success?order=${encodeURIComponent(data.orderReference)}&report=${data.reportId}&token=${encodeURIComponent(data.reportToken)}`);
         return;
       }
 
       await loadRazorpay();
-      if (!window.Razorpay) throw new Error("सुरक्षित payment window नहीं खुल सकी।");
+      if (!window.Razorpay) throw new Error("The secure payment window could not be opened.");
 
       const checkout = new window.Razorpay({
         key: order.keyId,
@@ -88,7 +88,7 @@ export function CheckoutClient(props: Props) {
           });
           const verified = await verifyResponse.json();
           if (!verifyResponse.ok) {
-            setError(verified.error || "Payment verify नहीं हो सका।");
+            setError(verified.error || "Payment could not be verified.");
             setBusy(false);
             return;
           }
@@ -98,11 +98,11 @@ export function CheckoutClient(props: Props) {
       });
 
       checkout.on("payment.failed", (response) => {
-        router.push(`/payment/failed?assessment=${props.assessmentId}&product=${props.productSlug}&token=${encodeURIComponent(props.resultToken)}&reason=${encodeURIComponent(response.error?.description || "Payment पूरा नहीं हो सका")}`);
+        router.push(`/payment/failed?assessment=${props.assessmentId}&product=${props.productSlug}&token=${encodeURIComponent(props.resultToken)}&reason=${encodeURIComponent(response.error?.description || "Payment could not be completed")}`);
       });
       checkout.open();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Payment शुरू नहीं हो सका।");
+      setError(caught instanceof Error ? caught.message : "Payment could not be started.");
       setBusy(false);
     }
   }
@@ -112,16 +112,16 @@ export function CheckoutClient(props: Props) {
       <div className="rounded-[2rem] border border-line/80 bg-white p-6 shadow-soft sm:p-8">
         <div className="flex items-start justify-between gap-5 border-b border-line pb-6">
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-700">चुना गया ₹99 Plan</p>
+            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-700">Selected ₹199 plan</p>
             <h2 className="mt-3 text-2xl font-extrabold tracking-[-0.035em] text-navy-950">{props.productName}</h2>
           </div>
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-brand-100 text-brand-700"><ReceiptText size={21} /></span>
         </div>
 
         <div className="mt-6 grid gap-3 rounded-3xl bg-surface p-5 text-sm sm:p-6">
-          <Price label="Plan का शुल्क" value={props.subtotal} />
+          <Price label="Plan fee" value={props.subtotal} />
           <Price label="GST (18%)" value={props.gst} />
-          <div className="border-t border-line pt-4"><Price label="कुल भुगतान" value={props.total} strong /></div>
+          <div className="border-t border-line pt-4"><Price label="Total payable" value={props.total} strong /></div>
         </div>
 
         <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-7 text-amber-950">
@@ -131,17 +131,17 @@ export function CheckoutClient(props: Props) {
 
         <Button size="lg" className="mt-6 w-full" onClick={pay} disabled={busy} aria-busy={busy}>
           {busy ? <Loader2 className="animate-spin" size={18} /> : <LockKeyhole size={18} />}
-          {busy ? "सुरक्षित payment window खुल रही है…" : `सुरक्षित भुगतान करें: ${props.total}`}
+          {busy ? "Opening secure payment…" : `Pay securely: ${props.total}`}
         </Button>
         <p className="mt-4 flex items-center justify-center gap-2 text-center text-xs leading-5 text-slate-500">
-          <ShieldCheck className="shrink-0 text-brand-700" size={15} /> Payment order और verification सुरक्षित server पर पूरे होते हैं।
+          <ShieldCheck className="shrink-0 text-brand-700" size={15} /> Payment order creation and verification are completed securely on the server.
         </p>
       </div>
 
       <aside className="rounded-[2rem] bg-navy-950 p-6 text-white shadow-card sm:p-8">
-        <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-500">Payment के बाद क्या मिलेगा</p>
+        <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-500">What you unlock after payment</p>
         <div className="mt-7 grid gap-5">
-          {["आपकी profile के अनुसार personalized analysis", "Download करने योग्य detailed report", "समय-सीमा वाला सुरक्षित report link", "Duplicate payment या system failure पर refund protection"].map((item) => (
+          {["Personalized analysis based on your profile", "Downloadable credit and loan match plan", "Time-limited secure report access", "Refund protection for duplicate payments or system failures"].map((item) => (
             <p key={item} className="flex gap-3 text-sm leading-6 text-slate-300"><span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-500/15 text-brand-500"><Check size={14} strokeWidth={3} /></span>{item}</p>
           ))}
         </div>
@@ -167,7 +167,7 @@ async function loadRazorpay() {
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.async = true;
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Razorpay checkout load नहीं हो सका।"));
+    script.onerror = () => reject(new Error("Razorpay checkout could not be loaded."));
     document.head.appendChild(script);
   });
 }
