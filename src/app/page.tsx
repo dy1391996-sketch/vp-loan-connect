@@ -143,7 +143,7 @@ export default function HomePage() {
                     <p className="mt-1 text-xl font-extrabold">₹5,000 to ₹5,00,000</p>
                   </div>
                   <div className="grid h-20 w-20 shrink-0 place-items-center rounded-full border-[7px] border-brand-500 bg-white/5">
-                    <span className="text-2xl font-black">74<span className="text-xs text-slate-300">/100</span></span>
+                    <span className="text-center text-sm font-black leading-4 text-brand-500">FREE<br />CHECK</span>
                   </div>
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
