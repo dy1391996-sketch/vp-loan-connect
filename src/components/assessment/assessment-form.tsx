@@ -62,7 +62,7 @@ export function AssessmentForm() {
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
     setError("");
-    if (key === "mobile" || key === "email") { setOtpVerified(false); setOtpToken(""); setOtpStarted(false); }
+    if ((key === "mobile" || key === "email") && value !== form[key]) { setOtpVerified(false); setOtpToken(""); setOtpStarted(false); }
   }
 
   async function requestOtp() {
@@ -189,7 +189,7 @@ export function AssessmentForm() {
         <div className="mt-4 hidden grid-cols-5 gap-3 text-[10px] font-semibold text-slate-400 sm:grid">{steps.map((label, index) => <span key={label} className={cn(index + 1 <= step && "text-brand-500")} aria-current={index + 1 === step ? "step" : undefined}>{label}</span>)}</div>
       </div>
       <div className="p-5 sm:p-9 lg:p-11">
-        {step === 1 ? <BasicStep form={form} update={update} otpStarted={otpStarted} otpVerified={otpVerified} busy={busy} requestOtp={requestOtp} /> : null}
+        {step === 1 ? <BasicStep form={form} update={update} otpStarted={otpStarted} otpVerified={otpVerified || Boolean(otpToken)} busy={busy} requestOtp={requestOtp} /> : null}
         {step === 2 ? <IncomeStep form={form} update={update} /> : null}
         {step === 3 ? <ObligationStep form={form} update={update} /> : null}
         {step === 4 ? <DocumentStep form={form} update={update} /> : null}
