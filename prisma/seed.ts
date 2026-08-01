@@ -38,13 +38,26 @@ const messageTemplates = {
 async function main() {
   await prisma.product.upsert({
     where: { slug: "credit-health-action-plan" },
-    update: {},
+    update: {
+      name: "VP Credit & Loan Match Plan",
+      regularPrice: 399,
+      salePrice: 199,
+      gstRate: 18,
+      deliverables: [
+        "Personalized borrower-profile analysis",
+        "Credit-improvement action checklist",
+        "Indicative amount and affordability view",
+        "Profile-matched verified lender or LSP links",
+        "Downloadable action plan",
+        "Secure report access"
+      ],
+    },
     create: {
       slug: "credit-health-action-plan",
-      name: "VP Credit Health Action Plan",
+      name: "VP Credit & Loan Match Plan",
       type: ProductType.CREDIT_HEALTH_ACTION_PLAN,
-      regularPrice: 199,
-      salePrice: 99,
+      regularPrice: 399,
+      salePrice: 199,
       gstRate: 18,
       deliverables: [
         "Personalized credit-health summary",
@@ -81,7 +94,7 @@ async function main() {
   const settings = [
     { key: "assessment_questions", value: assessmentQuestions, description: "Versioned assessment question catalogue" },
     { key: "score_bands", value: scoreBands, description: "Educational internal readiness score labels", public: true },
-    { key: "referral_reward_credit_health", value: { amount: 20, currency: "INR" }, description: "Reward for a validated ₹99 product order" },
+    { key: "referral_reward_credit_health", value: { amount: 20, currency: "INR" }, description: "Reward for a validated ₹199 product order" },
     { key: "referral_validation_days", value: 14, description: "Days a reward remains pending before approval" },
     { key: "referral_minimum_payout", value: { amount: 250, currency: "INR" }, description: "Minimum approved balance for payout", public: true },
     { key: "referral_milestone_bonuses", value: { "5": 0, "10": 0, "25": 0 }, description: "Owner-configurable milestone bonuses; zero until approved" },
