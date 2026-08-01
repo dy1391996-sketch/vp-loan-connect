@@ -22,10 +22,10 @@ export const metadata: Metadata = {
   authors: [{ name: APP_NAME }],
   openGraph: {
     type: "website",
-    locale: "hi_IN",
+    locale: "en_IN",
     siteName: APP_NAME,
     title: `${APP_NAME} — Check Your Loan Readiness`,
-    description: "सिर्फ 2 मिनट में अपनी income, EMI, documents और credit profile के आधार पर loan readiness समझें.",
+    description: "Discover indicative loan matches using income, EMIs, documents and your self-reported credit profile.",
     url: "/",
     images: [{ url: "/og.jpg", width: 1200, height: 627, alt: "VP Loan Connect — Check Your Loan Readiness in Just 2 Minutes" }],
   },
