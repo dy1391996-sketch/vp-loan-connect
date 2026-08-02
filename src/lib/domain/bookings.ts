@@ -218,7 +218,11 @@ export async function confirmBookingFromPayment(input: {
     if (booking.leadId) {
       await tx.lead.update({
         where: { id: booking.leadId },
-        data: { stage: "CONFIRMED", bookingProbability: 100 },
+        data: { stage: "CONFIRMED", bookingProbability: 100, temperature: "HOT" },
+      });
+      await tx.followUp.updateMany({
+        where: { leadId: booking.leadId, status: "SCHEDULED" },
+        data: { status: "CANCELLED", cancelReason: "booking_confirmed" },
       });
     }
 

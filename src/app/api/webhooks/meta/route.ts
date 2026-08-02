@@ -5,15 +5,22 @@ import { getServerEnv } from "@/lib/env";
 import { verifyMetaSignature } from "@/lib/security/signatures";
 import { routeError } from "@/lib/api/route-helpers";
 import { sha256 } from "@/lib/utils";
+import { parseWhatsAppWebhookPayload, processWhatsAppInboundMessage } from "@/lib/whatsapp/inbound";
 
-const metaWebhookSchema = z.object({
-  object: z.string().optional(),
-  entry: z.array(z.unknown()).optional(),
-}).passthrough();
+const metaWebhookSchema = z
+  .object({
+    object: z.string().optional(),
+    entry: z.array(z.unknown()).optional(),
+  })
+  .passthrough();
 
 function metaIdempotencyKey(payload: z.infer<typeof metaWebhookSchema>, rawBody: string) {
-  const firstEntry = Array.isArray(payload.entry) ? (payload.entry[0] as { id?: string; changes?: unknown[] } | undefined) : undefined;
-  const firstChange = Array.isArray(firstEntry?.changes) ? (firstEntry?.changes[0] as { value?: { messages?: { id?: string }[]; statuses?: { id?: string }[] } }) : undefined;
+  const firstEntry = Array.isArray(payload.entry)
+    ? (payload.entry[0] as { id?: string; changes?: unknown[] } | undefined)
+    : undefined;
+  const firstChange = Array.isArray(firstEntry?.changes)
+    ? (firstEntry?.changes[0] as { value?: { messages?: { id?: string }[]; statuses?: { id?: string }[] } })
+    : undefined;
   const messageId = firstChange?.value?.messages?.[0]?.id ?? firstChange?.value?.statuses?.[0]?.id;
   return `meta:${payload.object ?? "event"}:${firstEntry?.id ?? "entry"}:${messageId ?? sha256(rawBody)}`;
 }
@@ -56,12 +63,30 @@ export async function POST(request: NextRequest) {
         eventType: payload.object ?? "meta.event",
         idempotencyKey,
         payload: payload as object,
-        status: "PROCESSED",
-        processedAt: new Date(),
+        status: "RECEIVED",
       },
     });
 
-    return NextResponse.json({ ok: true, id: event.id });
+    const results = [];
+    // WhatsApp Cloud API payloads
+    if (payload.object === "whatsapp_business_account" || !payload.object) {
+      const messages = parseWhatsAppWebhookPayload(payload);
+      for (const msg of messages) {
+        results.push(await processWhatsAppInboundMessage(msg));
+      }
+    }
+
+    // Instagram messaging stubs (Phase 3 deepens this) — still persist inbound if present
+    if (payload.object === "instagram" || payload.object === "page") {
+      results.push({ note: "instagram_event_recorded", phase: 3 });
+    }
+
+    await prisma.webhookEvent.update({
+      where: { id: event.id },
+      data: { status: "PROCESSED", processedAt: new Date() },
+    });
+
+    return NextResponse.json({ ok: true, id: event.id, results });
   } catch (error) {
     return routeError(error);
   }
