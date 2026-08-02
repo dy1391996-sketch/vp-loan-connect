@@ -4,6 +4,7 @@ import {
   getPublicAppUrl,
   normalizePublicAppUrl,
   resetServerEnvCacheForTests,
+  resolvePublicAppUrl,
   validateBuildEnvironment,
   validateCriticalProductionEnvironment,
   validateProductionEnvironment,
@@ -141,4 +142,10 @@ test("normalizePublicAppUrl prefers www canonical origin", () => {
   assert.equal(getPublicAppUrl(), "https://www.vploanconnect.in");
   process.env.NEXT_PUBLIC_APP_URL = previous;
   resetServerEnvCacheForTests();
+});
+
+test("resolvePublicAppUrl rejects localhost in production", () => {
+  assert.equal(resolvePublicAppUrl("http://localhost:3000", "production"), "https://www.vploanconnect.in");
+  assert.equal(resolvePublicAppUrl("https://vploanconnect.in", "production"), "https://www.vploanconnect.in");
+  assert.equal(resolvePublicAppUrl("http://localhost:3000", "development"), "http://localhost:3000");
 });

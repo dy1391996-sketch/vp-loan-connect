@@ -76,7 +76,7 @@ Production builds validate official provider modes, HTTPS, secret lengths, GSTIN
 8. Run `pnpm build`.
 9. Run `pnpm db:seed` once to create products, settings and the initial administrator.
 10. Rotate or remove `ADMIN_INITIAL_PASSWORD` after the first successful login.
-11. Configure `vploanconnect.in`, HTTPS and DNS.
+11. Configure `www.vploanconnect.in` as primary, apex → www redirect, HTTPS and DNS.
 12. Configure Razorpay and Meta webhook URLs, secrets and approved WhatsApp templates.
 13. Complete sandbox payment, OTP, WhatsApp, PDF, referral, CSV and role tests before accepting customers.
 

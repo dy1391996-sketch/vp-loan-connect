@@ -251,6 +251,26 @@ export function normalizePublicAppUrl(raw: string): string {
 }
 
 export function getPublicAppUrl() {
-  const fallback = process.env.NODE_ENV === "production" ? CANONICAL_PUBLIC_ORIGIN : "http://localhost:3000";
-  return normalizePublicAppUrl(process.env.NEXT_PUBLIC_APP_URL ?? fallback);
+  return resolvePublicAppUrl(process.env.NEXT_PUBLIC_APP_URL, process.env.NODE_ENV);
+}
+
+/** Pure helper for URL resolution — used by getPublicAppUrl and unit tests. */
+export function resolvePublicAppUrl(raw: string | undefined, nodeEnv: string | undefined = process.env.NODE_ENV) {
+  const fallback = nodeEnv === "production" ? CANONICAL_PUBLIC_ORIGIN : "http://localhost:3000";
+  const normalized = normalizePublicAppUrl(raw ?? fallback);
+
+  // Never emit localhost/http origins from production server code (misconfigured env must not fork SEO/payment links).
+  if (nodeEnv === "production") {
+    try {
+      const url = new URL(normalized);
+      const host = url.hostname.toLowerCase();
+      if (url.protocol !== "https:" || host === "localhost" || host === "127.0.0.1") {
+        return CANONICAL_PUBLIC_ORIGIN;
+      }
+    } catch {
+      return CANONICAL_PUBLIC_ORIGIN;
+    }
+  }
+
+  return normalized;
 }

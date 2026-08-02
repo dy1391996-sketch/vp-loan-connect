@@ -74,7 +74,7 @@ export function Footer() {
       <div className="border-t border-white/10">
         <div className="page-shell flex flex-col gap-2 py-6 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} VP Loan Connect</p>
-          <p>₹99 Credit Profile Booster • vploanconnect.in</p>
+          <p>₹99 Credit Profile Booster • www.vploanconnect.in</p>
         </div>
       </div>
     </footer>
