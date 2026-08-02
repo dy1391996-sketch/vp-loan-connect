@@ -32,6 +32,11 @@ export const assessmentSchema = z.object({
   currentOverdue: yesNo,
   settledOrWrittenOff: yesNo,
   creditRange: z.enum(["BELOW_550", "550_599", "600_649", "650_699", "700_749", "750_PLUS", "UNKNOWN"]),
+  panNumber: z
+    .string()
+    .trim()
+    .transform((value) => value.toUpperCase())
+    .refine((value) => /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(value), "Enter a valid 10-character PAN (e.g. ABCDE1234F)."),
   panAvailable: yesNo,
   aadhaarAvailable: yesNo,
   addressProofAvailable: yesNo,

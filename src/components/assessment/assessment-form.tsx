@@ -11,15 +11,17 @@ import { captureAttributionFromSearch, getAttributionPayload } from "@/lib/attri
 import { cn } from "@/lib/utils";
 
 type FormState = {
-  fullName: string; mobile: string; email: string; state: string; city: string; residentialAddress: string; pinCode: string; loanAmount: string; loanPurpose: string; loanType: string;
+  fullName: string; mobile: string; email: string; panNumber: string; state: string; city: string; residentialAddress: string; pinCode: string; loanAmount: string; loanPurpose: string; loanType: string;
   employmentType: string; employerOrBusinessName: string; officeAddress: string; monthlyIncomeRange: string; annualIncome: string; durationMonths: string; salaryBankCredit: boolean | null; itrAvailable: boolean | null; gstAvailable: boolean | null; udyamAvailable: boolean | null; sixMonthBankStatement: boolean | null;
   existingEmi: string; activeLoans: string; cardOutstanding: string; currentOverdue: boolean | null; settledOrWrittenOff: boolean | null; creditRange: string;
   panAvailable: boolean | null; aadhaarAvailable: boolean | null; addressProofAvailable: boolean | null; incomeProofAvailable: boolean | null; bankStatementAvailable: boolean | null; businessRegistrationAvailable: boolean | null; securedAssetAvailable: boolean | null;
   serviceConsent: boolean; marketingConsent: boolean;
 };
 
+const PAN_PATTERN = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+
 const initialState: FormState = {
-  fullName: "", mobile: "", email: "", state: "", city: "", residentialAddress: "", pinCode: "", loanAmount: "", loanPurpose: "", loanType: "",
+  fullName: "", mobile: "", email: "", panNumber: "", state: "", city: "", residentialAddress: "", pinCode: "", loanAmount: "", loanPurpose: "", loanType: "",
   employmentType: "", employerOrBusinessName: "", officeAddress: "", monthlyIncomeRange: "", annualIncome: "", durationMonths: "", salaryBankCredit: null, itrAvailable: null, gstAvailable: null, udyamAvailable: null, sixMonthBankStatement: null,
   existingEmi: "0", activeLoans: "0", cardOutstanding: "0", currentOverdue: null, settledOrWrittenOff: null, creditRange: "",
   panAvailable: null, aadhaarAvailable: null, addressProofAvailable: null, incomeProofAvailable: null, bankStatementAvailable: null, businessRegistrationAvailable: null, securedAssetAvailable: null,
@@ -99,7 +101,14 @@ export function AssessmentForm() {
   const referralCode = useMemo(() => searchParams.get("ref") || attribution.ref || (typeof document !== "undefined" ? document.cookie.match(/(?:^|; )vplc_ref=([^;]+)/)?.[1] : "") || "", [searchParams, attribution.ref]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setForm((current) => ({ ...current, [key]: value }));
+    setForm((current) => {
+      const next = { ...current, [key]: value };
+      if (key === "panNumber" && typeof value === "string") {
+        next.panNumber = value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
+        next.panAvailable = PAN_PATTERN.test(next.panNumber) ? true : current.panAvailable;
+      }
+      return next;
+    });
     setError("");
     if ((key === "mobile" || key === "email") && value !== form[key]) { setOtpVerified(false); setOtpToken(""); setOtpStarted(false); }
   }
@@ -200,6 +209,7 @@ export function AssessmentForm() {
       if (!form.mobile) missing.push("mobile number");
       if (!form.email) missing.push("email address");
       if (!otpToken) missing.push("email verification");
+      if (!PAN_PATTERN.test(form.panNumber)) missing.push("valid PAN number");
       if (!form.state) missing.push("state");
       if (!form.city) missing.push("city");
       if (!form.residentialAddress) missing.push("residential address");
@@ -208,7 +218,7 @@ export function AssessmentForm() {
     }
     if (step === 2 && (!form.employmentType || !form.employerOrBusinessName || !form.officeAddress || !form.monthlyIncomeRange || form.annualIncome === "" || form.durationMonths === "" || [form.salaryBankCredit, form.itrAvailable, form.gstAvailable, form.udyamAvailable, form.sixMonthBankStatement].some((v) => v === null))) return "Answer all income and employment questions.";
     if (step === 3 && (form.existingEmi === "" || form.activeLoans === "" || form.cardOutstanding === "" || form.currentOverdue === null || form.settledOrWrittenOff === null || !form.creditRange)) return "Answer all credit and obligation questions.";
-    if (step === 4 && [form.panAvailable, form.aadhaarAvailable, form.addressProofAvailable, form.incomeProofAvailable, form.bankStatementAvailable, form.businessRegistrationAvailable, form.securedAssetAvailable].some((v) => v === null)) return "Answer all document-readiness questions.";
+    if (step === 4 && [form.aadhaarAvailable, form.addressProofAvailable, form.incomeProofAvailable, form.bankStatementAvailable, form.businessRegistrationAvailable, form.securedAssetAvailable].some((v) => v === null)) return "Answer all document-readiness questions.";
     if (step === 5 && !form.serviceConsent) return "Service consent is required to generate your result.";
     return "";
   }
@@ -225,6 +235,8 @@ export function AssessmentForm() {
     setBusy(true); setError("");
     const payload = {
       ...form,
+      panNumber: form.panNumber.toUpperCase(),
+      panAvailable: true,
       loanAmount: Number(form.loanAmount), annualIncome: Number(form.annualIncome), durationMonths: Number(form.durationMonths), existingEmi: Number(form.existingEmi), activeLoans: Number(form.activeLoans), cardOutstanding: Number(form.cardOutstanding),
       otpVerificationToken: otpToken, source, referralCode,
       utm: getAttributionPayload(searchParams),
@@ -234,7 +246,7 @@ export function AssessmentForm() {
       const data = await response.json();
       if (!response.ok) {
         const invalidFields = data.fields && typeof data.fields === "object" ? Object.keys(data.fields) : [];
-        const stepOne = ["fullName", "mobile", "email", "state", "city", "residentialAddress", "pinCode", "loanAmount", "loanPurpose", "loanType", "otpVerificationToken"];
+        const stepOne = ["fullName", "mobile", "email", "panNumber", "state", "city", "residentialAddress", "pinCode", "loanAmount", "loanPurpose", "loanType", "otpVerificationToken"];
         const stepTwo = ["employmentType", "employerOrBusinessName", "officeAddress", "monthlyIncomeRange", "annualIncome", "durationMonths", "salaryBankCredit", "itrAvailable", "gstAvailable", "udyamAvailable", "sixMonthBankStatement"];
         const stepThree = ["existingEmi", "activeLoans", "cardOutstanding", "currentOverdue", "settledOrWrittenOff", "creditRange"];
         if (invalidFields.some((field) => stepOne.includes(field))) setStep(1);
@@ -277,7 +289,7 @@ function BasicStep({ form, update, otpStarted, otpVerified, busy, requestOtp }: 
   const quickAmounts = ["10000", "25000", "50000", "100000", "200000", "500000"];
   return (
     <div>
-      <StepTitle title="How much money do you need?" description="Choose your amount first. Your free indicative result comes before any payment." />
+      <StepTitle title="How much money do you need?" description="Amount choose karo, phir name + PAN + contact details — free indicative result pehle, payment baad mein." />
       <div className="mt-7 grid gap-5 sm:grid-cols-2">
         <Field label="Select a loan amount" required hint="Choose a quick amount or enter your own from ₹5,000 to ₹5,00,000">
           <div className="mb-3 grid grid-cols-3 gap-2">
@@ -296,13 +308,24 @@ function BasicStep({ form, update, otpStarted, otpVerified, busy, requestOtp }: 
       </div>
 
       <div className="my-8 border-t border-line" />
-      <h3 className="text-lg font-extrabold text-navy-950">Your contact details</h3>
-      <p className="mt-2 text-sm text-slate-600">VP Loan Connect email OTP se aapka result secure kiya jata hai. OTP website brand “VP Loan Connect” se aata hai.</p>
+      <h3 className="font-display text-lg font-extrabold text-navy-950">Your basic details</h3>
+      <p className="mt-2 text-sm text-slate-600">Name, mobile, email aur PAN card number — OTP brand “VP Loan Connect” se aata hai.</p>
       <div className="mt-6 grid gap-5 sm:grid-cols-2">
-        <Field label="Full name" required><Input autoComplete="name" value={form.fullName} onChange={(e) => update("fullName", e.target.value)} placeholder="Your full name" /></Field>
+        <Field label="Full name" required><Input autoComplete="name" value={form.fullName} onChange={(e) => update("fullName", e.target.value)} placeholder="Name as on PAN" /></Field>
+        <Field label="PAN card number" required hint="10-character PAN, e.g. ABCDE1234F">
+          <Input
+            className="uppercase tracking-[0.18em]"
+            autoComplete="off"
+            inputMode="text"
+            maxLength={10}
+            value={form.panNumber}
+            onChange={(e) => update("panNumber", e.target.value)}
+            placeholder="ABCDE1234F"
+            aria-invalid={form.panNumber.length > 0 && !PAN_PATTERN.test(form.panNumber) ? true : undefined}
+          />
+        </Field>
         <Field label="WhatsApp mobile number" required hint="10-digit Indian mobile number"><Input className="number-field" inputMode="numeric" autoComplete="tel" maxLength={10} value={form.mobile} disabled={otpVerified} onChange={(e) => update("mobile", e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="98XXXXXXXX" /></Field>
         <Field label="Email address" required hint="OTP issi email pe VP Loan Connect se jayega"><div className="flex gap-2"><Input type="email" autoComplete="email" value={form.email} disabled={otpVerified} onChange={(e) => update("email", e.target.value.trim())} placeholder="name@example.com" />{!otpVerified ? <Button type="button" variant="secondary" className="shrink-0" disabled={busy} onClick={requestOtp}>{busy ? <Loader2 className="animate-spin" size={17} /> : null}{otpStarted ? "Resend OTP" : "Verify email"}</Button> : <span className="grid min-w-12 place-items-center rounded-xl bg-brand-100 text-brand-700"><Check size={19} /></span>}</div>{otpStarted && !otpVerified ? <p className="mt-2 text-xs text-slate-500">Secure OTP window mein code enter karein. Sender brand: VP Loan Connect.</p> : null}</Field>
-        <div className="hidden sm:block" />
         <Field label="State" required><Input autoComplete="address-level1" value={form.state} onChange={(e) => update("state", e.target.value)} placeholder="e.g. Uttar Pradesh" /></Field>
         <Field label="City" required><Input autoComplete="address-level2" value={form.city} onChange={(e) => update("city", e.target.value)} placeholder="e.g. Greater Noida" /></Field>
         <Field label="Residential address" required><Input autoComplete="street-address" value={form.residentialAddress} onChange={(e) => update("residentialAddress", e.target.value)} placeholder="House / building, area and landmark" /></Field>
@@ -322,7 +345,25 @@ function ObligationStep({ form, update }: StepProps) {
 }
 
 function DocumentStep({ form, update }: StepProps) {
-  return <div><StepTitle title="Document readiness" description="Only confirm availability. Do not upload any document yet." /><div className="mt-7 grid gap-5 sm:grid-cols-2"><YesNo label="Do you have a PAN card?" field="panAvailable" value={form.panAvailable} update={update} /><YesNo label="Do you have Aadhaar?" field="aadhaarAvailable" value={form.aadhaarAvailable} update={update} /><YesNo label="Do you have address proof?" field="addressProofAvailable" value={form.addressProofAvailable} update={update} /><YesNo label="Do you have income proof?" field="incomeProofAvailable" value={form.incomeProofAvailable} update={update} /><YesNo label="Do you have a bank statement?" field="bankStatementAvailable" value={form.bankStatementAvailable} update={update} /><YesNo label="Do you have business-registration documents?" field="businessRegistrationAvailable" value={form.businessRegistrationAvailable} update={update} /><YesNo label="Do you have property or gold for a secured loan?" field="securedAssetAvailable" value={form.securedAssetAvailable} update={update} /></div><SafetyNote /></div>;
+  return (
+    <div>
+      <StepTitle title="Document readiness" description="Only confirm availability. Do not upload any document yet." />
+      <div className="mt-7 rounded-2xl border border-brand-100 bg-brand-100/40 p-5">
+        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-brand-700">PAN already captured</p>
+        <p className="font-display mt-2 text-xl font-extrabold tracking-[0.12em] text-navy-950">{form.panNumber || "—"}</p>
+        <p className="mt-2 text-sm text-slate-600">Step 1 mein enter kiya gaya PAN. Upload ki zarurat nahi.</p>
+      </div>
+      <div className="mt-7 grid gap-5 sm:grid-cols-2">
+        <YesNo label="Do you have Aadhaar?" field="aadhaarAvailable" value={form.aadhaarAvailable} update={update} />
+        <YesNo label="Do you have address proof?" field="addressProofAvailable" value={form.addressProofAvailable} update={update} />
+        <YesNo label="Do you have income proof?" field="incomeProofAvailable" value={form.incomeProofAvailable} update={update} />
+        <YesNo label="Do you have a bank statement?" field="bankStatementAvailable" value={form.bankStatementAvailable} update={update} />
+        <YesNo label="Do you have business-registration documents?" field="businessRegistrationAvailable" value={form.businessRegistrationAvailable} update={update} />
+        <YesNo label="Do you have property or gold for a secured loan?" field="securedAssetAvailable" value={form.securedAssetAvailable} update={update} />
+      </div>
+      <SafetyNote />
+    </div>
+  );
 }
 
 function ConsentStep({ form, update }: StepProps) {
