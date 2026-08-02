@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { QuickApplyClient } from "@/components/apply/quick-apply-client";
-import { PLATFORM_DISCLAIMER } from "@/lib/constants";
+import { PLATFORM_DISCLAIMER, USP_PRICE_LABEL } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "Quick Apply — Free Check + ₹99 Loan Links",
+  title: "Quick Apply — Amount, verify, unlock matches",
   description:
-    "Choose your amount, complete a free profile check, then unlock official loan-connect links with the optional ₹99 Credit Profile Booster.",
+    `Choose amount and purpose, verify with OTP, complete eligibility and address, then unlock official partner links with the ${USP_PRICE_LABEL} Credit Profile Booster.`,
   alternates: { canonical: "/apply/quick" },
   openGraph: {
     title: "Quick Apply | VP Loan Connect",
-    description: "Meta-ad friendly quick apply. Free check first. Optional ₹99 unlocks official partner links.",
+    description: "Meta-ad friendly quick apply. Smooth 4-step profile. Honest ₹99 unlocks official partner links.",
     url: "/apply/quick",
   },
 };
@@ -23,10 +23,10 @@ export default function QuickApplyPage() {
           <div className="mx-auto max-w-2xl text-center">
             <p className="font-display text-sm font-extrabold tracking-[0.28em] text-brand-500">VP LOAN CONNECT</p>
             <h1 className="font-display mt-4 text-balance text-3xl font-extrabold tracking-[-0.05em] sm:text-4xl">
-              Get instant clarity on your loan options
+              How much do you need?
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
-              Amount pehle choose karo. High platform fee nahi — free check pehle, phir optional ₹99 pe official loan-connect links.
+              Pick amount → verify OTP → eligibility & address → unlock official partner links for honest {USP_PRICE_LABEL} + GST. No ~10% platform fee.
             </p>
           </div>
         </div>
