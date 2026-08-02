@@ -5,11 +5,24 @@ import { sha256 } from "@/lib/utils";
 type Bucket = { count: number; resetsAt: number };
 const buckets = new Map<string, Bucket>();
 
+function canonicalOrigin(value: string) {
+  try {
+    const url = new URL(value);
+    return `${url.protocol}//${url.hostname.replace(/^www\./i, "").toLowerCase()}`;
+  } catch {
+    return value;
+  }
+}
+
 export function assertSameOrigin(request: NextRequest) {
   const origin = request.headers.get("origin");
   if (!origin) return;
   const expected = new URL(getPublicAppUrl()).origin;
-  if (origin !== expected && request.nextUrl.origin !== origin) throw new Error("INVALID_ORIGIN");
+  const requestOrigin = request.nextUrl.origin;
+  if (origin === expected || origin === requestOrigin) return;
+  // Accept www/apex variants of the public app host (common on Vercel).
+  if (canonicalOrigin(origin) === canonicalOrigin(expected) || canonicalOrigin(origin) === canonicalOrigin(requestOrigin)) return;
+  throw new Error("INVALID_ORIGIN");
 }
 
 export function requestIp(request: NextRequest) {

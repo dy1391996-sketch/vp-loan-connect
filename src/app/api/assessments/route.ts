@@ -54,7 +54,11 @@ export async function POST(request: NextRequest) {
     sendWhatsAppTemplate(token.leadId as string, "FREE_RESULT_READY", { link: resultUrl }).catch((error) => console.error("whatsapp_result_failed", error instanceof Error ? error.message : "unknown"));
     return NextResponse.json({ assessmentId: assessment.id, accessToken, resultUrl });
   } catch (error) {
-    console.error("assessment_submit_failed", error instanceof Error ? error.message : "unknown");
+    const message = error instanceof Error ? error.message : "unknown";
+    console.error("assessment_submit_failed", message);
+    if (message === "INVALID_ORIGIN") {
+      return NextResponse.json({ error: "Please reload this page on vploanconnect.in and try again." }, { status: 403 });
+    }
     return NextResponse.json({ error: "We could not save your assessment. Please try again." }, { status: 500 });
   }
 }

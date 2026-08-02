@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, CircleAlert, Loader2, LockKeyhole, ReceiptText, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,12 +28,14 @@ type Props = {
   customerName: string;
   customerMobile: string;
   referralCode?: string;
+  autoStart?: boolean;
 };
 
 export function CheckoutClient(props: Props) {
   const router = useRouter();
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(Boolean(props.autoStart));
   const [error, setError] = useState("");
+  const startedRef = useRef(false);
 
   async function pay() {
     setBusy(true);
@@ -68,7 +70,7 @@ export function CheckoutClient(props: Props) {
       }
 
       await loadRazorpay();
-      if (!window.Razorpay) throw new Error("The secure payment window could not be opened.");
+      if (!window.Razorpay) throw new Error("The secure payment window could not be opened. Disable blockers and try again.");
 
       const checkout = new window.Razorpay({
         key: order.keyId,
@@ -77,28 +79,41 @@ export function CheckoutClient(props: Props) {
         name: order.name,
         description: order.description,
         order_id: order.providerOrderId,
-        prefill: { name: props.customerName, contact: props.customerMobile.replace("+91", "") },
+        prefill: {
+          name: props.customerName,
+          contact: props.customerMobile.replace("+91", ""),
+        },
         theme: { color: "#0a9265" },
-        modal: { ondismiss: () => setBusy(false) },
+        modal: {
+          ondismiss: () => setBusy(false),
+          confirm_close: true,
+        },
         handler: async (payment: Record<string, string>) => {
-          const verifyResponse = await fetch("/api/payments/verify", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ internalOrderId: order.internalOrderId, ...payment }),
-          });
-          const verified = await verifyResponse.json();
-          if (!verifyResponse.ok) {
-            setError(verified.error || "Payment could not be verified.");
+          try {
+            const verifyResponse = await fetch("/api/payments/verify", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ internalOrderId: order.internalOrderId, ...payment }),
+            });
+            const verified = await verifyResponse.json();
+            if (!verifyResponse.ok) {
+              setError(verified.error || "Payment could not be verified.");
+              setBusy(false);
+              return;
+            }
+            trackEvent("payment_completed", { product: props.productSlug, provider: "razorpay" });
+            router.push(`/payment/success?order=${encodeURIComponent(verified.orderReference)}&report=${verified.reportId}&token=${encodeURIComponent(verified.reportToken)}`);
+          } catch {
+            setError("Payment was taken but verification failed. Contact support with your payment reference.");
             setBusy(false);
-            return;
           }
-          trackEvent("payment_completed", { product: props.productSlug, provider: "razorpay" });
-          router.push(`/payment/success?order=${encodeURIComponent(verified.orderReference)}&report=${verified.reportId}&token=${encodeURIComponent(verified.reportToken)}`);
         },
       });
 
       checkout.on("payment.failed", (response) => {
-        router.push(`/payment/failed?assessment=${props.assessmentId}&product=${props.productSlug}&token=${encodeURIComponent(props.resultToken)}&reason=${encodeURIComponent(response.error?.description || "Payment could not be completed")}`);
+        router.push(
+          `/payment/failed?assessment=${props.assessmentId}&product=${props.productSlug}&token=${encodeURIComponent(props.resultToken)}&reason=${encodeURIComponent(response.error?.description || "Payment could not be completed")}`,
+        );
       });
       checkout.open();
     } catch (caught) {
@@ -106,6 +121,14 @@ export function CheckoutClient(props: Props) {
       setBusy(false);
     }
   }
+
+  useEffect(() => {
+    if (!props.autoStart || startedRef.current) return;
+    startedRef.current = true;
+    void pay();
+    // Auto-open Razorpay once when arriving from assessment unlock.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.autoStart]);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_0.75fr]">
@@ -115,34 +138,50 @@ export function CheckoutClient(props: Props) {
             <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-700">Selected ₹99 Credit Profile Booster</p>
             <h2 className="mt-3 text-2xl font-extrabold tracking-[-0.035em] text-navy-950">{props.productName}</h2>
           </div>
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-brand-100 text-brand-700"><ReceiptText size={21} /></span>
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-brand-100 text-brand-700">
+            <ReceiptText size={21} />
+          </span>
         </div>
 
         <div className="mt-6 grid gap-3 rounded-3xl bg-surface p-5 text-sm sm:p-6">
           <Price label="Plan fee" value={props.subtotal} />
           <Price label="GST (18%)" value={props.gst} />
-          <div className="border-t border-line pt-4"><Price label="Total payable" value={props.total} strong /></div>
+          <div className="border-t border-line pt-4">
+            <Price label="Total payable" value={props.total} strong />
+          </div>
         </div>
 
         <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-7 text-amber-950">
-          <CircleAlert className="mt-1 shrink-0" size={19} aria-hidden="true" />{PAYMENT_DESCRIPTION}
+          <CircleAlert className="mt-1 shrink-0" size={19} aria-hidden="true" />
+          {PAYMENT_DESCRIPTION}
         </div>
         {error ? <StatusNotice tone="error" className="mt-5">{error}</StatusNotice> : null}
 
-        <Button size="lg" className="mt-6 w-full" onClick={pay} disabled={busy} aria-busy={busy}>
+        <Button size="lg" className="mt-6 w-full" onClick={() => void pay()} disabled={busy} aria-busy={busy}>
           {busy ? <Loader2 className="animate-spin" size={18} /> : <LockKeyhole size={18} />}
-          {busy ? "Opening secure payment…" : `Pay securely: ${props.total}`}
+          {busy ? "Opening Razorpay…" : `Pay securely: ${props.total}`}
         </Button>
         <p className="mt-4 flex items-center justify-center gap-2 text-center text-xs leading-5 text-slate-500">
-          <ShieldCheck className="shrink-0 text-brand-700" size={15} /> Payment order creation and verification are completed securely on the server.
+          <ShieldCheck className="shrink-0 text-brand-700" size={15} />
+          Razorpay opens automatically after unlock. Complete payment there to get official connect links.
         </p>
       </div>
 
       <aside className="rounded-[2rem] bg-navy-950 p-6 text-white shadow-card sm:p-8">
         <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-500">What you unlock after payment</p>
         <div className="mt-7 grid gap-5">
-          {["Personalized Credit Profile Booster analysis", "Downloadable action plan PDF", "Time-limited secure report access", "Refund protection for duplicate payments or system failures"].map((item) => (
-            <p key={item} className="flex gap-3 text-sm leading-6 text-slate-300"><span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-500/15 text-brand-500"><Check size={14} strokeWidth={3} /></span>{item}</p>
+          {[
+            "Personalized Credit Profile Booster analysis",
+            "Downloadable action plan PDF",
+            "Official partner apply links (matched first)",
+            "Refund protection for duplicate payments or system failures",
+          ].map((item) => (
+            <p key={item} className="flex gap-3 text-sm leading-6 text-slate-300">
+              <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-500/15 text-brand-500">
+                <Check size={14} strokeWidth={3} />
+              </span>
+              {item}
+            </p>
           ))}
         </div>
         <p className="mt-8 border-t border-white/10 pt-6 text-xs leading-6 text-slate-400">{PLATFORM_DISCLAIMER}</p>
@@ -163,6 +202,13 @@ function Price({ label, value, strong }: { label: string; value: string; strong?
 async function loadRazorpay() {
   if (window.Razorpay) return;
   await new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+    if (existing) {
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error("Razorpay checkout could not be loaded.")), { once: true });
+      if (window.Razorpay) resolve();
+      return;
+    }
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.async = true;

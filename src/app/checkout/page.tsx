@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { LockKeyhole } from "lucide-react";
 import { CheckoutClient } from "@/components/checkout/checkout-client";
 import { PublicStatePanel } from "@/components/ui/public-state-panel";
@@ -10,7 +11,11 @@ import { formatInr } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: `Secure ${USP_PRICE_LABEL} Checkout`, robots: { index: false, follow: false } };
 
-export default async function CheckoutPage({ searchParams }: { searchParams: Promise<{ product?: string; assessment?: string; token?: string }> }) {
+export default async function CheckoutPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ product?: string; assessment?: string; token?: string; autostart?: string }>;
+}) {
   const query = await searchParams;
   if (!query.product || !query.assessment || !query.token) return <InvalidCheckout />;
   let token;
@@ -28,16 +33,23 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
   const subtotal = product.slug === USP_PRODUCT_SLUG ? USP_SALE_PRICE : Number(product.salePrice);
   const gst = Math.round(subtotal * Number(product.gstRate)) / 100;
   const total = Math.round((subtotal + gst) * 100) / 100;
+  const autoStart = query.autostart === "1" || query.autostart === "true";
+
   return (
     <section className="surface-grid min-h-screen bg-surface py-10 sm:py-16">
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" />
       <div className="page-shell">
         <div className="mx-auto max-w-5xl">
           <div className="mb-8">
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-brand-700">Secure payment</p>
             <h1 className="mt-3 text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">
-              Review your {USP_PRICE_LABEL} {USP_PRODUCT_NAME}
+              {autoStart ? "Opening Razorpay…" : `Review your ${USP_PRICE_LABEL} ${USP_PRODUCT_NAME}`}
             </h1>
-            <p className="mt-3 text-sm leading-7 text-slate-600">Review the plan and total price before opening the payment window.</p>
+            <p className="mt-3 text-sm leading-7 text-slate-600">
+              {autoStart
+                ? "Your profile is saved. The secure payment window should open automatically — tap Pay if it does not."
+                : "Review the plan and total price, then open the secure Razorpay payment window."}
+            </p>
           </div>
           <CheckoutClient
             assessmentId={assessment.id}
@@ -50,6 +62,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
             customerName={assessment.lead.fullName}
             customerMobile={assessment.lead.mobile}
             referralCode={assessment.referralCode ?? undefined}
+            autoStart={autoStart}
           />
         </div>
       </div>
@@ -63,8 +76,8 @@ function InvalidCheckout() {
       icon={LockKeyhole}
       eyebrow="Secure checkout"
       title="Secure payment link required"
-      description="Open checkout from your result page so your profile and price can be verified securely."
-      action={{ href: "/assessment", label: "Start free assessment" }}
+      description="Complete the short profile and unlock step first so we can open Razorpay securely."
+      action={{ href: "/apply/quick", label: "Start quick apply" }}
     />
   );
 }

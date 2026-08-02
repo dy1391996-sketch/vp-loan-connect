@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -94,7 +94,6 @@ function getMsg91AccessToken(value: unknown): string {
 }
 
 export function AssessmentForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>(initialState);
@@ -388,7 +387,10 @@ export function AssessmentForm() {
       if (!response.ok) throw new Error(data.error || "Unable to save your profile.");
       trackEvent("assessment_completed");
       trackEvent("checkout_redirect_early");
-      router.push(`/checkout?product=credit-health-action-plan&assessment=${data.assessmentId}&token=${encodeURIComponent(data.accessToken)}`);
+      // Hard navigate so checkout remounts and autostarts Razorpay immediately.
+      window.location.assign(
+        `/checkout?product=credit-health-action-plan&assessment=${data.assessmentId}&token=${encodeURIComponent(data.accessToken)}&autostart=1`,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to open payment.");
       setBusy(false);
@@ -449,7 +451,7 @@ export function AssessmentForm() {
           ) : (
             <Button type="button" disabled={busy} onClick={payNow}>
               {busy ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
-              Pay {USP_PRICE_LABEL} & unlock
+              {busy ? "Opening payment…" : `Pay ${USP_PRICE_LABEL} & open Razorpay`}
             </Button>
           )}
         </div>
