@@ -1,225 +1,77 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-navy-950: #061521;
-  --color-navy-900: #0a2235;
-  --color-navy-800: #123852;
-  --color-brand-700: #087653;
-  --color-brand-600: #0a9265;
-  --color-brand-500: #19b77e;
-  --color-brand-100: #ddf8ed;
-  --color-surface: #f3f7f5;
-  --color-line: #d8e4df;
-  --font-sans: var(--font-dm-sans), "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-manrope), var(--font-dm-sans), "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif;
-  --shadow-soft: 0 28px 80px rgba(6, 21, 33, 0.12);
-  --shadow-card: 0 14px 42px rgba(6, 21, 33, 0.08);
-  --shadow-premium: 0 40px 100px rgba(6, 21, 33, 0.28);
+  --color-ink-950: #0c1219;
+  --color-ink-900: #141c27;
+  --color-ink-800: #1c2836;
+  --color-ink-700: #2a3a4d;
+  --color-sand-50: #f6f3ee;
+  --color-sand-100: #ece6dc;
+  --color-sand-200: #d9d0c2;
+  --color-copper-500: #c47a3a;
+  --color-copper-600: #a8632c;
+  --color-copper-100: #f3e4d4;
+  --color-teal-600: #1f6f6a;
+  --color-teal-500: #2a8a83;
+  --color-teal-100: #d7efed;
+  --color-rose-500: #b84a4a;
+  --color-line: #d5cdc0;
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, serif;
 }
 
 :root {
   color-scheme: light;
-  --background: #ffffff;
-  --foreground: #0a2138;
+  --background: #f6f3ee;
+  --foreground: #141c27;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
-html {
-  scroll-behavior: smooth;
-  scroll-padding-top: 6rem;
-}
+html { scroll-behavior: smooth; }
 
 body {
   margin: 0;
   min-width: 320px;
-  background: var(--background);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(196, 122, 58, 0.12), transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, rgba(31, 111, 106, 0.10), transparent 50%),
+    var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
-button,
-a {
-  -webkit-tap-highlight-color: transparent;
-}
+button, input, select, textarea { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
 
 :focus-visible {
-  outline: 3px solid rgba(22, 170, 121, 0.35);
-  outline-offset: 3px;
+  outline: 3px solid rgba(196, 122, 58, 0.4);
+  outline-offset: 2px;
 }
 
 ::selection {
-  background: #b7edd8;
-  color: #061728;
+  background: #f3e4d4;
+  color: #141c27;
 }
 
-.page-shell {
-  width: min(100% - 2rem, 80rem);
-  margin-inline: auto;
-}
+.font-display { font-family: var(--font-display); }
 
-.section-space {
-  padding-block: clamp(5rem, 9vw, 8rem);
-}
-
-.text-balance {
-  text-wrap: balance;
-}
-
-.font-display {
-  font-family: var(--font-display);
-}
-
-.hero-grid,
-.hero-premium {
-  background-color: #061521;
-  background-image:
-    radial-gradient(ellipse 80% 60% at 85% -10%, rgba(25, 183, 126, 0.28), transparent 55%),
-    radial-gradient(ellipse 50% 45% at 0% 100%, rgba(18, 90, 140, 0.22), transparent 50%),
-    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(25, 183, 126, 0.06), transparent 60%),
-    linear-gradient(165deg, #071a28 0%, #061521 45%, #0a1f30 100%),
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: auto, auto, auto, auto, 56px 56px, 56px 56px;
-  background-position: center;
-}
-
-.hero-premium::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(105deg, transparent 40%, rgba(25, 183, 126, 0.04) 50%, transparent 60%),
-    radial-gradient(ellipse 70% 40% at 50% 120%, rgba(0, 0, 0, 0.35), transparent);
-}
-
-.surface-grid {
-  background-image:
-    linear-gradient(rgba(6, 21, 33, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(6, 21, 33, 0.025) 1px, transparent 1px);
-  background-size: 48px 48px;
-}
-
-.premium-panel {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background:
-    linear-gradient(160deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04)),
-    rgba(255, 255, 255, 0.04);
-  box-shadow: var(--shadow-premium);
-  backdrop-filter: blur(20px);
-}
-
-.premium-ring {
-  background: conic-gradient(from 210deg, #19b77e, #0a9265, #123852, #19b77e);
-}
-
-.animate-rise {
-  animation: rise 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.animate-rise-delay {
-  animation: rise 800ms 140ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.animate-rise-late {
-  animation: rise 900ms 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-.animate-pulse-soft {
-  animation: pulse-soft 4.5s ease-in-out infinite;
-}
-
-.skeleton {
-  position: relative;
-  overflow: hidden;
-  background: #e9efed;
-}
-
-.skeleton-dark {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.skeleton::after {
-  position: absolute;
-  inset: 0;
-  content: "";
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
-  transform: translateX(-100%);
-  animation: shimmer 1.4s ease-in-out infinite;
-}
-
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(22px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes pulse-soft {
-  0%,
-  100% {
-    opacity: 0.45;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.75;
-    transform: scale(1.04);
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
 }
 
-@keyframes shimmer {
-  to {
-    transform: translateX(100%);
-  }
+.animate-fade-up {
+  animation: fade-up 0.45s ease-out both;
 }
 
-.number-field::-webkit-inner-spin-button,
-.number-field::-webkit-outer-spin-button {
-  appearance: none;
-  margin: 0;
-}
-
-.number-field {
-  font-variant-numeric: tabular-nums;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+.animate-pulse-soft {
+  animation: pulse-soft 2.2s ease-in-out infinite;
 }

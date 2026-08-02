@@ -29,9 +29,10 @@ export function randomToken(bytes = 32) {
   return randomBytes(bytes).toString("hex");
 }
 
-export function generateReferralCode(seed?: string) {
-  const suffix = sha256(seed ?? randomToken(8)).slice(0, 7).toUpperCase();
-  return `VPLC${suffix}`;
+export function generateBookingReference() {
+  const stamp = Date.now().toString(36).toUpperCase();
+  const suffix = randomBytes(2).toString("hex").toUpperCase();
+  return `VPN-${stamp}-${suffix}`;
 }
 
 export function safeJson<T>(value: T): T {
@@ -40,4 +41,28 @@ export function safeJson<T>(value: T): T {
 
 export function redactMobile(mobile: string) {
   return mobile.replace(/(\+91)(\d{2})\d{4}(\d{4})/, "$1$2****$3");
+}
+
+export function redactPii(text: string) {
+  return text
+    .replace(/\+91[6-9]\d{9}/g, "[phone]")
+    .replace(/\b[6-9]\d{9}\b/g, "[phone]")
+    .replace(/\b[A-Z]{5}\d{4}[A-Z]\b/gi, "[id]");
+}
+
+export function isWeekend(date: Date) {
+  const day = date.getUTCDay();
+  return day === 0 || day === 6;
+}
+
+export function addHours(date: Date, hours: number) {
+  return new Date(date.getTime() + hours * 60 * 60 * 1000);
+}
+
+export function addMinutes(date: Date, minutes: number) {
+  return new Date(date.getTime() + minutes * 60 * 1000);
+}
+
+export function rangesOverlap(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) {
+  return aStart < bEnd && bStart < aEnd;
 }

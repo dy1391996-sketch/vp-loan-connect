@@ -1,4 +1,9 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm run db:deploy && pnpm run db:seed && pnpm run build"
+  "crons": [
+    { "path": "/api/cron/holds-expire", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/follow-ups", "schedule": "*/10 * * * *" },
+    { "path": "/api/cron/daily-report", "schedule": "30 15 * * *" },
+    { "path": "/api/cron/weekly-report", "schedule": "0 16 * * 1" },
+    { "path": "/api/cron/content-publish", "schedule": "*/15 * * * *" }
+  ]
 }

@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { PrismaClient, ProductType } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { MATCH_CATALOG } from "../src/lib/matching/catalog";
+import { DEFAULT_HOURLY, DEFAULT_WEEKDAY_SLABS, DEFAULT_WEEKEND_SLABS } from "../src/lib/constants";
 
 function loadEnvFile(name: string) {
   const path = resolve(process.cwd(), name);
@@ -14,10 +14,7 @@ function loadEnvFile(name: string) {
     if (index <= 0) continue;
     const key = trimmed.slice(0, index).trim();
     let value = trimmed.slice(index + 1).trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
       value = value.slice(1, -1);
     }
     if (process.env[key] === undefined) process.env[key] = value;
@@ -29,191 +26,366 @@ loadEnvFile(".env.local");
 
 const prisma = new PrismaClient();
 
-const assessmentQuestions = [
-  { key: "fullName", step: 1, label: "Full name", required: true },
-  { key: "mobile", step: 1, label: "WhatsApp mobile number", required: true },
-  { key: "state", step: 1, label: "State", required: true },
-  { key: "city", step: 1, label: "City", required: true },
-  { key: "loanAmount", step: 1, label: "Required loan amount", required: true },
-  { key: "loanPurpose", step: 1, label: "Loan purpose", required: true },
-  { key: "loanType", step: 1, label: "Loan type", required: true },
-  { key: "employmentType", step: 2, label: "Employment type", required: true },
-  { key: "monthlyIncomeRange", step: 2, label: "Monthly net income range", required: true },
-  { key: "durationMonths", step: 2, label: "Employment or business duration", required: true },
-  { key: "existingEmi", step: 3, label: "Existing monthly EMIs", required: true },
-  { key: "creditRange", step: 3, label: "Approximate credit-score range", required: true },
-  { key: "documents", step: 4, label: "Document readiness", required: true },
+const STUDIOS = [
+  {
+    number: "101",
+    title: "Studio 101 · Cozy Standard",
+    floor: 1,
+    category: "STANDARD" as const,
+    hasBalcony: false,
+    hasJacuzzi: false,
+    viewType: "Courtyard",
+    amenities: ["Wi-Fi", "AC", "Kitchenette", "TV"],
+    publicDescription: "Comfortable standard studio ideal for short stays near Gaur City Center.",
+  },
+  {
+    number: "102",
+    title: "Studio 102 · Balcony Light",
+    floor: 1,
+    category: "BALCONY" as const,
+    hasBalcony: true,
+    hasJacuzzi: false,
+    isPremium: false,
+    viewType: "Street",
+    amenities: ["Wi-Fi", "AC", "Kitchenette", "Balcony", "TV"],
+    publicDescription: "Bright balcony studio with natural light — popular for couple stays.",
+  },
+  {
+    number: "201",
+    title: "Studio 201 · Premium View",
+    floor: 2,
+    category: "PREMIUM_VIEW" as const,
+    isPremium: true,
+    hasBalcony: true,
+    hasJacuzzi: false,
+    viewType: "City",
+    weekdayPriceInr: 2800,
+    weekendPriceInr: 3300,
+    amenities: ["Wi-Fi", "AC", "Kitchenette", "Balcony", "Work desk", "TV"],
+    publicDescription: "Premium-view studio with balcony and workspace for longer or special stays.",
+  },
+  {
+    number: "202",
+    title: "Studio 202 · Jacuzzi Retreat",
+    floor: 2,
+    category: "JACUZZI" as const,
+    isPremium: true,
+    hasBalcony: false,
+    hasJacuzzi: true,
+    viewType: "Internal",
+    weekdayPriceInr: 3200,
+    weekendPriceInr: 3800,
+    amenities: ["Wi-Fi", "AC", "Kitchenette", "Jacuzzi", "TV", "Premium toiletries"],
+    publicDescription: "Private jacuzzi studio for premium short stays. Couple-friendly and discreet.",
+  },
+  {
+    number: "301",
+    title: "Studio 301 · Work-from-Studio",
+    floor: 3,
+    category: "STANDARD" as const,
+    hasBalcony: false,
+    hasJacuzzi: false,
+    viewType: "Quiet side",
+    amenities: ["Wi-Fi", "AC", "Kitchenette", "Work desk", "TV"],
+    publicDescription: "Quiet studio with desk setup — good for weekday work-from-studio bookings.",
+  },
 ];
-
-const scoreBands = [
-  { min: 80, max: 100, label: "Strong readiness" },
-  { min: 65, max: 79, label: "Moderate readiness" },
-  { min: 45, max: 64, label: "Improvement required" },
-  { min: 0, max: 44, label: "High rejection risk" },
-];
-
-const messageTemplates = {
-  ASSESSMENT_STARTED: "Namaste [Name], आपका VP Loan Connect profile check शुरू हो गया है। इसे पूरा करने के लिए यहाँ जाएँ: [link]. यह lender approval नहीं है।",
-  INCOMPLETE_ASSESSMENT: "आपकी profile assessment अभी अधूरी है। Income, EMI और document readiness check पूरा करें: [link].",
-  FREE_RESULT_READY: "आपका preliminary profile result तैयार है। Result देखें: [link]. Final loan decision lender verification के बाद होता है।",
-  PAYMENT_SUCCESS: "आपका payment सफल रहा। Reference: [reference]. आपकी personalized report तैयार की जा रही है।",
-  REPORT_READY: "आपकी VP Loan Connect report तैयार है। Download करें: [secure link].",
-  OPT_OUT_CONFIRMATION: "आपकी marketing communication preference बंद कर दी गई है। आपकी मौजूदा service requests से जुड़ी जरूरी updates फिर भी भेजी जा सकती हैं।",
-};
 
 async function main() {
-  await prisma.product.upsert({
-    where: { slug: "credit-health-action-plan" },
+  const email = (process.env.ADMIN_EMAIL || "owner@vpnest.local").toLowerCase();
+  const password = process.env.ADMIN_INITIAL_PASSWORD || "ChangeMeNow!123";
+  if (password.length < 12) throw new Error("ADMIN_INITIAL_PASSWORD must be at least 12 characters.");
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  const owner = await prisma.user.upsert({
+    where: { email },
+    create: {
+      email,
+      name: "VP Nest Owner",
+      passwordHash,
+      role: "OWNER",
+      active: true,
+    },
     update: {
-      name: "Credit Profile Booster",
-      regularPrice: 299,
-      salePrice: 99,
-      gstRate: 18,
-      deliverables: [
-        "Credit profile explanation in simple language",
-        "Loan-readiness analysis for your profile",
-        "Profile-matched bank, NBFC and fintech options first",
-        "Higher-fit lenders prioritised by approval likelihood",
-        "Official application handoff links",
-        "Downloadable action plan PDF",
-        "Secure report access",
-      ],
-    },
-    create: {
-      slug: "credit-health-action-plan",
-      name: "Credit Profile Booster",
-      type: ProductType.CREDIT_HEALTH_ACTION_PLAN,
-      regularPrice: 299,
-      salePrice: 99,
-      gstRate: 18,
-      deliverables: [
-        "Credit profile explanation in simple language",
-        "Loan-readiness analysis for your profile",
-        "Profile-matched bank, NBFC and fintech options first",
-        "Higher-fit lenders prioritised by approval likelihood",
-        "Official application handoff links",
-        "Downloadable action plan PDF",
-        "Secure report access",
-      ],
+      passwordHash,
+      role: "OWNER",
+      active: true,
+      name: "VP Nest Owner",
     },
   });
 
-  await prisma.product.upsert({
-    where: { slug: "complete-loan-readiness-report" },
-    update: {},
-    create: {
-      slug: "complete-loan-readiness-report",
-      name: "Complete Loan Readiness Report",
-      type: ProductType.LOAN_READINESS_REPORT,
-      regularPrice: 599,
-      salePrice: 299,
-      gstRate: 18,
-      deliverables: [
-        "Financial-profile and monthly obligation analysis",
-        "Internal loan-readiness score",
-        "Strengths, risks and missing-document checklist",
-        "Indicative comfortable EMI range",
-        "30-day application-preparation plan",
-        "Branded PDF and consultation request",
-      ],
-    },
-  });
-
-  const settings = [
-    { key: "assessment_questions", value: assessmentQuestions, description: "Versioned assessment question catalogue" },
-    { key: "score_bands", value: scoreBands, description: "Educational internal readiness score labels", public: true },
-    { key: "referral_reward_credit_health", value: { amount: 20, currency: "INR" }, description: "Reward for a validated ₹99 Credit Profile Booster order" },
-    { key: "referral_validation_days", value: 14, description: "Days a reward remains pending before approval" },
-    { key: "referral_minimum_payout", value: { amount: 250, currency: "INR" }, description: "Minimum approved balance for payout", public: true },
-    { key: "referral_milestone_bonuses", value: { "5": 0, "10": 0, "25": 0 }, description: "Owner-configurable milestone bonuses; zero until approved" },
-    { key: "message_templates", value: messageTemplates, description: "WhatsApp Business Platform-ready service templates" },
-    { key: "legal_content_status", value: { status: "OWNER_REVIEW_REQUIRED", version: "2026-07-v1" }, description: "Policy content must be reviewed for business-specific facts" },
-    { key: "report_link_expiry_hours", value: 72, description: "Default signed report-link validity" },
+  // Demo staff (same password for local sandbox only)
+  const staffSeeds = [
+    { email: "booking@vpnest.local", name: "Booking Manager", role: "BOOKING_MANAGER" as const },
+    { email: "social@vpnest.local", name: "Social Media Manager", role: "SOCIAL_MEDIA_MANAGER" as const },
+    { email: "housekeeping@vpnest.local", name: "Housekeeping Manager", role: "HOUSEKEEPING_MANAGER" as const },
+    { email: "readonly@vpnest.local", name: "Read Only Staff", role: "READ_ONLY" as const },
   ];
-
-  for (const setting of settings) {
-    await prisma.appSetting.upsert({
-      where: { key: setting.key },
-      update: { value: setting.value, description: setting.description, public: setting.public ?? false },
-      create: { ...setting, public: setting.public ?? false },
+  for (const s of staffSeeds) {
+    await prisma.user.upsert({
+      where: { email: s.email },
+      create: { ...s, passwordHash, active: true },
+      update: { name: s.name, role: s.role, passwordHash, active: true },
     });
   }
 
-  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  const password = process.env.ADMIN_INITIAL_PASSWORD;
-  if (email && password && password.length >= 12) {
-    const passwordHash = await bcrypt.hash(password, 12);
-    await prisma.adminUser.upsert({
-      where: { email },
+  for (const [index, studio] of STUDIOS.entries()) {
+    await prisma.studio.upsert({
+      where: { number: studio.number },
+      create: {
+        number: studio.number,
+        property: "Gaur City Center",
+        building: "VP Nest",
+        floor: studio.floor,
+        title: studio.title,
+        category: studio.category,
+        isPremium: "isPremium" in studio ? Boolean(studio.isPremium) : studio.category !== "STANDARD",
+        hasBalcony: studio.hasBalcony,
+        hasJacuzzi: studio.hasJacuzzi,
+        viewType: studio.viewType,
+        maxGuests: 2,
+        amenities: studio.amenities,
+        weekdayPriceInr: "weekdayPriceInr" in studio ? studio.weekdayPriceInr : null,
+        weekendPriceInr: "weekendPriceInr" in studio ? studio.weekendPriceInr : null,
+        hourlyPriceInr: null,
+        publicDescription: studio.publicDescription,
+        availabilityStatus: "AVAILABLE",
+        cleaningStatus: "READY",
+        active: true,
+        sortOrder: index + 1,
+        createdById: owner.id,
+        media: {
+          create: {
+            url: `https://placehold.co/800x1000/1c2836/f6f3ee/png?text=Studio+${studio.number}`,
+            mediaType: "image",
+            isCover: true,
+            approved: true,
+            isCurrent: true,
+            tags: ["studio", studio.number, studio.category.toLowerCase()],
+            reelReady: true,
+            storyReady: true,
+            orientation: "vertical",
+            dayNight: "day",
+          },
+        },
+      },
+      update: {
+        title: studio.title,
+        publicDescription: studio.publicDescription,
+        amenities: studio.amenities,
+        active: true,
+      },
+    });
+  }
+
+  // Clear and reseed core pricing slabs for idempotent local setup
+  await prisma.pricingRule.deleteMany({
+    where: { type: { in: ["WEEKDAY_SLAB", "WEEKEND_SLAB", "HOURLY", "PREMIUM_SURCHARGE"] } },
+  });
+
+  for (const slab of DEFAULT_WEEKDAY_SLABS) {
+    await prisma.pricingRule.create({
+      data: {
+        name: slab.name,
+        type: "WEEKDAY_SLAB",
+        dayType: "WEEKDAY",
+        minHours: slab.minHours,
+        maxHours: slab.maxHours,
+        amountInr: slab.amountInr,
+        priority: 10,
+        active: true,
+        approved: true,
+        createdById: owner.id,
+      },
+    });
+  }
+  for (const slab of DEFAULT_WEEKEND_SLABS) {
+    await prisma.pricingRule.create({
+      data: {
+        name: slab.name,
+        type: "WEEKEND_SLAB",
+        dayType: "WEEKEND",
+        minHours: slab.minHours,
+        maxHours: slab.maxHours,
+        amountInr: slab.amountInr,
+        priority: 10,
+        active: true,
+        approved: true,
+        createdById: owner.id,
+      },
+    });
+  }
+  await prisma.pricingRule.createMany({
+    data: [
+      {
+        name: "Weekday hourly",
+        type: "HOURLY",
+        dayType: "WEEKDAY",
+        amountInr: DEFAULT_HOURLY.weekday,
+        priority: 50,
+        active: true,
+        approved: true,
+        createdById: owner.id,
+      },
+      {
+        name: "Weekend hourly",
+        type: "HOURLY",
+        dayType: "WEEKEND",
+        amountInr: DEFAULT_HOURLY.weekend,
+        priority: 50,
+        active: true,
+        approved: true,
+        createdById: owner.id,
+      },
+      {
+        name: "Premium feature surcharge",
+        type: "PREMIUM_SURCHARGE",
+        dayType: "ANY",
+        amountInr: 300,
+        isPercent: false,
+        priority: 80,
+        active: true,
+        approved: true,
+        createdById: owner.id,
+      },
+      {
+        name: "Demo WELCOME100",
+        type: "COUPON",
+        dayType: "ANY",
+        amountInr: 100,
+        couponCode: "WELCOME100",
+        priority: 20,
+        active: true,
+        approved: true,
+        requiresOwnerApproval: false,
+        createdById: owner.id,
+      },
+    ],
+  });
+
+  const settings: { key: string; value: object }[] = [
+    { key: "hold_minutes", value: { minutes: Number(process.env.HOLD_MINUTES || 15) } },
+    { key: "token_percent", value: { percent: Number(process.env.TOKEN_PERCENT || 30) } },
+    { key: "content_mode", value: { mode: "DRAFT" } },
+    { key: "business_location", value: { address: "Gaur City Center, Greater Noida West" } },
+    { key: "check_in_policy", value: { message: "Access details are shared after token payment and ID verification." } },
+    {
+      key: "ai_safety",
+      value: {
+        neverInventPrices: true,
+        neverSharePinBeforeAuth: true,
+        requireApprovalForSensitiveContent: true,
+      },
+    },
+  ];
+  for (const s of settings) {
+    await prisma.businessSetting.upsert({
+      where: { key: s.key },
+      create: { key: s.key, value: s.value, createdById: owner.id },
+      update: { value: s.value },
+    });
+  }
+
+  const integrations = [
+    "WHATSAPP",
+    "INSTAGRAM",
+    "RAZORPAY",
+    "OPENAI",
+    "CLOUDINARY",
+  ] as const;
+  for (const provider of integrations) {
+    await prisma.integration.upsert({
+      where: { provider },
+      create: {
+        provider,
+        enabled: false,
+        sandboxMode: true,
+        metadata: { note: "Configure credentials in environment variables. Sandbox adapters are active locally." },
+        createdById: owner.id,
+      },
       update: {},
-      create: { email, passwordHash, fullName: "Platform Administrator", role: "SUPER_ADMIN" },
     });
-    console.info(`Seeded administrator: ${email}`);
-  } else {
-    console.info("Skipped administrator seed. Set a unique ADMIN_EMAIL and ADMIN_INITIAL_PASSWORD (12+ characters).");
   }
 
-  for (const entry of MATCH_CATALOG) {
-    const existing = await prisma.lender.findFirst({ where: { displayName: entry.displayName } });
-    const lender =
-      existing ??
-      (await prisma.lender.create({
-        data: {
-          legalName: entry.legalName,
-          displayName: entry.displayName,
-          regulatedEntityType: entry.regulatedEntityType,
-          verified: true,
-          legalAgreementActive: false,
-          logoUsePermitted: false,
-          productDetailsApproved: true,
-          active: true,
-        },
-      }));
+  await prisma.messageTemplate.upsert({
+    where: { key: "welcome_en" },
+    create: {
+      key: "welcome_en",
+      channel: "WHATSAPP",
+      language: "EN",
+      name: "Welcome",
+      body: "Welcome to VP Nest – The Studio99Stay. Please share your required date and check-in time.",
+      approved: true,
+      active: true,
+      createdById: owner.id,
+    },
+    update: {},
+  });
+  await prisma.messageTemplate.upsert({
+    where: { key: "welcome_hi" },
+    create: {
+      key: "welcome_hi",
+      channel: "WHATSAPP",
+      language: "HI",
+      name: "Welcome Hindi",
+      body: "VP Nest – The Studio99Stay mein aapka swagat hai. Apni required date aur check-in time share kijiye.",
+      approved: true,
+      active: true,
+      createdById: owner.id,
+    },
+    update: {},
+  });
 
-    if (existing) {
-      await prisma.lender.update({
-        where: { id: existing.id },
-        data: {
-          legalName: entry.legalName,
-          regulatedEntityType: entry.regulatedEntityType,
-          verified: true,
-          productDetailsApproved: true,
-          active: true,
-        },
-      });
-    }
-
-    const product = await prisma.lenderProduct.findFirst({
-      where: { lenderId: lender.id, name: entry.productName },
+  // Sample customer + lead for demo inbox/CRM
+  const customer = await prisma.customer.upsert({
+    where: { phone: "+919876543210" },
+    create: {
+      name: "Demo Guest",
+      phone: "+919876543210",
+      preferredLanguage: "HINGLISH",
+      memorySummary: "Interested in balcony studio for weekend short stay.",
+    },
+    update: { name: "Demo Guest" },
+  });
+  await prisma.customerChannel.upsert({
+    where: { channel_externalId: { channel: "WHATSAPP", externalId: "919876543210" } },
+    create: {
+      customerId: customer.id,
+      channel: "WHATSAPP",
+      externalId: "919876543210",
+      displayName: "Demo Guest",
+    },
+    update: {},
+  });
+  const existingLead = await prisma.lead.findFirst({ where: { customerId: customer.id, stage: "NEW_ENQUIRY" } });
+  if (!existingLead) {
+    await prisma.lead.create({
+      data: {
+        customerId: customer.id,
+        source: "WHATSAPP",
+        name: "Demo Guest",
+        phone: "+919876543210",
+        stage: "NEW_ENQUIRY",
+        temperature: "WARM",
+        bookingProbability: 35,
+        guestCount: 2,
+        durationHours: 24,
+        conversationSummary: "Asked for weekend 24-hour price and balcony option.",
+        aiDetectedIntent: "price_enquiry",
+      },
     });
-    if (product) {
-      await prisma.lenderProduct.update({
-        where: { id: product.id },
-        data: {
-          category: entry.category,
-          eligibilityRules: entry.rules,
-          active: true,
-        },
-      });
-    } else {
-      await prisma.lenderProduct.create({
-        data: {
-          lenderId: lender.id,
-          name: entry.productName,
-          category: entry.category,
-          eligibilityRules: entry.rules,
-          active: true,
-        },
-      });
-    }
   }
 
-  console.info(`VP Loan Connect seed completed with ${MATCH_CATALOG.length} matched lender catalog entries.`);
+  console.log("Seed complete.");
+  console.log(`Owner login: ${email} / (ADMIN_INITIAL_PASSWORD)`);
+  console.log("Demo staff: booking@|social@|housekeeping@|readonly@vpnest.local with same password.");
 }
 
 main()
-  .catch((error) => {
-    console.error(error);
+  .catch((e) => {
+    console.error(e);
     process.exit(1);
   })
-  .finally(async () => prisma.$disconnect());
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

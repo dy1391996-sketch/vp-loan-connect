@@ -1,67 +1,83 @@
-export const APP_NAME = "VP Loan Connect";
-export const TAGLINE = "AI Credit Profile Analysis & Smart Loan Matching";
-export const DOMAIN = "vploanconnect.in";
-/** Public contact shown on website — never use a personal Gmail here */
-export const PUBLIC_SUPPORT_EMAIL = "support@vploanconnect.in";
-export const PUBLIC_GRIEVANCE_EMAIL = "support@vploanconnect.in";
+import type { StaffRole } from "@prisma/client";
 
-/** Primary paid USP — keep price/copy in sync across marketing + checkout */
-export const USP_PRODUCT_SLUG = "credit-health-action-plan";
-export const USP_PRODUCT_NAME = "Credit Profile Booster";
-export const USP_SALE_PRICE = 99;
-export const USP_REGULAR_PRICE = 299;
-export const USP_PRICE_LABEL = "₹99";
-export const USP_TOTAL_WITH_GST_LABEL = "₹116.82";
+export const BRAND = {
+  name: "VP Nest",
+  tagline: "The Studio99Stay",
+  fullName: "VP Nest – The Studio99Stay",
+  location: "Gaur City Center, Greater Noida West",
+} as const;
 
-export const CONSENT_VERSION = "2026-07-v1";
+export const COOKIE_NAME = "vpnest_admin";
 
-export const SERVICE_CONSENT_TEXT =
-  "I authorize VP Loan Connect to use the information I provide to prepare my requested profile assessment and contact me about this service request.";
+export const NAV_ITEMS: {
+  href: string;
+  label: string;
+  roles?: StaffRole[];
+  section?: string;
+}[] = [
+  { href: "/", label: "Command Center", section: "Overview" },
+  { href: "/inbox", label: "Unified Inbox", section: "Customer" },
+  { href: "/leads", label: "Leads", section: "Customer" },
+  { href: "/customers", label: "Customers", section: "Customer" },
+  { href: "/studios", label: "Studios", section: "Inventory" },
+  { href: "/availability", label: "Availability", section: "Inventory" },
+  { href: "/pricing", label: "Pricing", section: "Inventory" },
+  { href: "/bookings", label: "Bookings", section: "Bookings" },
+  { href: "/payments", label: "Payments", section: "Bookings" },
+  { href: "/follow-ups", label: "Follow-ups", section: "Bookings" },
+  { href: "/content", label: "Content Studio", section: "Marketing", roles: ["OWNER", "SOCIAL_MEDIA_MANAGER"] },
+  { href: "/calendar", label: "Content Calendar", section: "Marketing", roles: ["OWNER", "SOCIAL_MEDIA_MANAGER"] },
+  { href: "/media", label: "Media Library", section: "Marketing", roles: ["OWNER", "SOCIAL_MEDIA_MANAGER", "BOOKING_MANAGER"] },
+  { href: "/comments", label: "Comments", section: "Marketing", roles: ["OWNER", "SOCIAL_MEDIA_MANAGER"] },
+  { href: "/cleaning", label: "Cleaning", section: "Operations", roles: ["OWNER", "HOUSEKEEPING_MANAGER", "BOOKING_MANAGER"] },
+  { href: "/maintenance", label: "Maintenance", section: "Operations", roles: ["OWNER", "HOUSEKEEPING_MANAGER", "BOOKING_MANAGER"] },
+  { href: "/reviews", label: "Reviews", section: "Operations" },
+  { href: "/analytics", label: "Analytics", section: "Intelligence", roles: ["OWNER", "BOOKING_MANAGER", "SOCIAL_MEDIA_MANAGER"] },
+  { href: "/reports/daily", label: "Daily Reports", section: "Intelligence", roles: ["OWNER"] },
+  { href: "/reports/weekly", label: "Weekly Reports", section: "Intelligence", roles: ["OWNER"] },
+  { href: "/ai-rules", label: "AI Rules", section: "System", roles: ["OWNER"] },
+  { href: "/templates", label: "Message Templates", section: "System", roles: ["OWNER", "BOOKING_MANAGER"] },
+  { href: "/team", label: "Team", section: "System", roles: ["OWNER"] },
+  { href: "/integrations", label: "Integrations", section: "System", roles: ["OWNER"] },
+  { href: "/audit", label: "Audit Logs", section: "System", roles: ["OWNER"] },
+  { href: "/settings", label: "Business Settings", section: "System", roles: ["OWNER"] },
+];
 
-export const MARKETING_CONSENT_TEXT =
-  "I would like to receive loan-readiness updates, document reminders and verified financial offers by WhatsApp, SMS or call. I can opt out at any time.";
+export const AI_SYSTEM_PROMPT = `You are the official booking assistant for VP Nest – The Studio99Stay, a studio-apartment service in Gaur City Center, Greater Noida West.
 
-export const LENDER_REFERRAL_CONSENT_TEXT =
-  "I request an optional review of my profile for referral to a verified regulated lender or authorized partner. I understand that eligibility, approval, rate and disbursement are not guaranteed, and my data will not be shared without identifying the partner and purpose.";
+Your job is to help customers with pricing, availability, studio selection, booking, payment, check-in information and basic support.
 
-export const RESULT_DISCLAIMER =
-  "This is an indicative profile assessment, not a loan approval. Final eligibility, amount, APR, charges, tenure and disbursement are decided only by the relevant lender after verification.";
+Always check live inventory and pricing tools before confirming availability or quoting a final amount.
 
-export const PLATFORM_DISCLAIMER =
-  "VP Loan Connect is a financial-information, profile-assessment and loan-discovery platform. We are not a bank, NBFC, lender or credit bureau. We do not sanction loans or guarantee approval, rates, credit-score improvement or disbursement.";
+Reply in the customer's language. Keep messages brief, natural, respectful and sales-focused without being pushy.
 
-export const PAYMENT_DESCRIPTION =
-  "This payment is for the ₹99 Credit Profile Booster: credit-profile guidance, loan-readiness analysis and access to profile-matched lender options. It is not a lender processing fee or a guarantee of loan approval.";
+Collect the required date, check-in time, duration and number of guests before recommending a studio.
 
-export const CREDIT_REPORT_DISCLAIMER =
-  "We are not TransUnion CIBIL, Experian, Equifax or CRIF High Mark. We cannot directly change or delete a bureau record and do not guarantee any score increase. Corrections depend on confirmation by the reporting credit institution.";
+Never invent availability, pricing, discounts, facilities or policies.
 
-export const LOAN_CATEGORIES = [
-  "Personal Loan",
-  "Business Loan",
-  "MSME Loan",
-  "Mudra Loan Guidance",
-  "Gold Loan",
-  "Loan Against Property",
-  "Credit Health Support",
+Never confirm a booking until the payment-verification tool confirms payment.
+
+Never share access codes, lock PINs or sensitive instructions before the configured verification requirements are completed.
+
+Escalate refunds, payment disputes, serious complaints, legal issues, safety issues and uncertain cases to a human agent.
+
+Your main objective is to provide accurate help and convert legitimate enquiries into confirmed bookings.`;
+
+export const DEFAULT_WEEKDAY_SLABS = [
+  { name: "Weekday 4–6h", minHours: 4, maxHours: 6, amountInr: 1499 },
+  { name: "Weekday 8–10h", minHours: 8, maxHours: 10, amountInr: 1800 },
+  { name: "Weekday 12–15h", minHours: 12, maxHours: 15, amountInr: 2000 },
+  { name: "Weekday 24h", minHours: 24, maxHours: 24, amountInr: 2500 },
 ] as const;
 
-export const LEAD_STAGE_LABELS: Record<string, string> = {
-  NEW_LEAD: "New lead",
-  OTP_VERIFIED: "OTP verified",
-  ASSESSMENT_STARTED: "Assessment started",
-  ASSESSMENT_COMPLETED: "Assessment completed",
-  FREE_RESULT_VIEWED: "Free result viewed",
-  PAYMENT_PENDING: "Payment pending",
-  PAID: "Paid",
-  REPORT_PROCESSING: "Report processing",
-  REPORT_DELIVERED: "Report delivered",
-  CONSULTATION_REQUESTED: "Consultation requested",
-  LENDER_REFERRAL_REQUESTED: "Lender referral requested",
-  REFERRED: "Referred",
-  APPLICATION_SUBMITTED: "Application submitted",
-  APPROVED: "Approved",
-  REJECTED: "Rejected",
-  FOLLOW_UP_LATER: "Follow-up later",
-  OPTED_OUT: "Opted out",
-};
+export const DEFAULT_WEEKEND_SLABS = [
+  { name: "Weekend 4–6h", minHours: 4, maxHours: 6, amountInr: 1800 },
+  { name: "Weekend 8–10h", minHours: 8, maxHours: 10, amountInr: 2000 },
+  { name: "Weekend 12–15h", minHours: 12, maxHours: 15, amountInr: 2300 },
+  { name: "Weekend 24h", minHours: 24, maxHours: 24, amountInr: 3000 },
+] as const;
+
+export const DEFAULT_HOURLY = {
+  weekday: 799,
+  weekend: 999,
+} as const;

@@ -1,20 +1,29 @@
-import { jwtVerify, SignJWT } from "jose";
+import { SignJWT, jwtVerify } from "jose";
 import { getServerEnv } from "@/lib/env";
 
-type TokenPurpose = "otp_verified" | "result_access" | "report_access" | "lead_access" | "admin_session";
+type TokenPurpose = "admin_session" | "lead_handoff" | "cron";
 
-function secret(purpose: TokenPurpose) {
+function secretFor(purpose: TokenPurpose) {
   const env = getServerEnv();
-  const value = purpose === "report_access" ? env.REPORT_SIGNING_SECRET : env.NEXTAUTH_SECRET;
-  return new TextEncoder().encode(value);
+  return new TextEncoder().encode(purpose === "cron" ? env.CRON_SECRET : env.NEXTAUTH_SECRET);
 }
 
-export async function signAccessToken(purpose: TokenPurpose, subject: string, claims: Record<string, string>, expiresIn: string | number) {
-  return new SignJWT({ purpose, ...claims }).setProtectedHeader({ alg: "HS256" }).setSubject(subject).setIssuedAt().setExpirationTime(expiresIn).sign(secret(purpose));
+export async function signAccessToken(
+  purpose: TokenPurpose,
+  subject: string,
+  claims: Record<string, string | number | boolean> = {},
+  expiresIn: string | number = "8h",
+) {
+  return new SignJWT({ purpose, ...claims })
+    .setProtectedHeader({ alg: "HS256" })
+    .setSubject(subject)
+    .setIssuedAt()
+    .setExpirationTime(expiresIn)
+    .sign(secretFor(purpose));
 }
 
 export async function verifyAccessToken(token: string, purpose: TokenPurpose) {
-  const { payload } = await jwtVerify(token, secret(purpose), { algorithms: ["HS256"] });
+  const { payload } = await jwtVerify(token, secretFor(purpose), { algorithms: ["HS256"] });
   if (payload.purpose !== purpose || !payload.sub) throw new Error("INVALID_TOKEN_PURPOSE");
   return payload;
 }
