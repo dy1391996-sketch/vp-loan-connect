@@ -123,6 +123,11 @@ export function getServerEnv(): ServerEnv {
   return cached;
 }
 
+/** Test-only: clear cached env after mutating process.env in unit tests. */
+export function resetServerEnvCacheForTests() {
+  cached = undefined;
+}
+
 export function getPublicAppUrl() {
   return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 }

@@ -9,7 +9,7 @@ import { prisma } from "@/lib/db";
 import { getPublicAppUrl, getServerEnv } from "@/lib/env";
 import { sendWhatsAppTemplate } from "@/lib/providers/whatsapp";
 import { assertSameOrigin, rateLimit, requestIp, sanitizeText } from "@/lib/security/request";
-import { signAccessToken, verifyAccessToken } from "@/lib/security/tokens";
+import { signAccessToken, verifyAccessToken, isAccessTokenError } from "@/lib/security/tokens";
 import { normalizeIndianMobile } from "@/lib/utils";
 import { isValidReferral } from "@/lib/domain/referrals";
 import { getPanProvider } from "@/lib/providers/pan";
@@ -258,8 +258,20 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (isAccessTokenError(error)) {
+      console.warn("assessment_otp_token_rejected", { reason: error.reason });
+      return NextResponse.json(
+        {
+          error: "Complete email OTP verification again.",
+          code: "OTP_VERIFICATION_REQUIRED",
+        },
+        { status: 403 },
+      );
+    }
+
     const message = error instanceof Error ? error.message : "unknown";
-    console.error("assessment_submit_failed", message);
+    // Never log token material; message paths above exclude raw JWT/jose text by design.
+    console.error("assessment_submit_failed", message === "INVALID_ORIGIN" ? message : "server_error");
     if (message === "INVALID_ORIGIN") {
       return NextResponse.json({ error: "Please reload this page on vploanconnect.in and try again." }, { status: 403 });
     }
