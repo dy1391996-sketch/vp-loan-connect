@@ -621,7 +621,7 @@ export function AssessmentForm() {
       }
       trackEvent("assessment_completed");
       trackEvent("checkout_redirect_early");
-      // Hard navigate so checkout remounts and autostarts Razorpay immediately.
+      // Hard navigate so checkout remounts and autostarts payment immediately.
       window.location.assign(
         `/checkout?product=credit-health-action-plan&assessment=${data.assessmentId}&token=${encodeURIComponent(data.accessToken || "")}&autostart=1`,
       );
@@ -700,7 +700,7 @@ export function AssessmentForm() {
           ) : (
             <Button type="button" disabled={busy} onClick={payNow}>
               {busy ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
-              {busy ? "Opening payment…" : `Pay ${USP_PRICE_LABEL} & open Razorpay`}
+              {busy ? "Opening payment…" : `Pay ${USP_PRICE_LABEL} & continue`}
             </Button>
           )}
         </div>
