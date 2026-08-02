@@ -51,10 +51,17 @@ export async function createProviderOrder(input: {
     return { provider: "mock" as const, orderId: `mock_order_${crypto.randomUUID()}`, keyId: "mock" };
   }
 
-  const keyId = env.RAZORPAY_KEY_ID.trim();
-  const keySecret = env.RAZORPAY_KEY_SECRET.trim();
+  const keyId = env.RAZORPAY_KEY_ID.trim().replace(/^['"]|['"]$/g, "").trim();
+  const keySecret = env.RAZORPAY_KEY_SECRET.trim().replace(/^['"]|['"]$/g, "").trim();
   if (!keyId || !keySecret) throw new Error("Razorpay order credentials are not configured.");
-  if (!keyId.startsWith("rzp_")) throw new Error("Razorpay KEY_ID looks invalid (must start with rzp_test_ or rzp_live_).");
+  if (!keyId.startsWith("rzp_test_") && !keyId.startsWith("rzp_live_")) {
+    throw new Error("Razorpay KEY_ID looks invalid (must start with rzp_test_ or rzp_live_).");
+  }
+  // Secret and key mode must match (never mix test key id with live secret).
+  const keyMode = keyId.startsWith("rzp_live_") ? "live" : "test";
+  if (keySecret.length < 20) {
+    throw new Error("Razorpay KEY_SECRET looks too short — paste the full secret from the Razorpay dashboard.");
+  }
 
   // Razorpay receipt max length is 40.
   const receipt = input.receipt.slice(0, 40);
@@ -83,7 +90,9 @@ export async function createProviderOrder(input: {
     const detail = await readRazorpayError(response);
     console.error("razorpay_order_create_failed", { status: response.status, detail, receipt, amountPaise });
     if (response.status === 401 || response.status === 403) {
-      throw new Error(`Razorpay authentication failed (${response.status}). Check KEY_ID/KEY_SECRET match (both test or both live).`);
+      throw new Error(
+        `Razorpay authentication failed (${response.status}, ${keyMode} keys). Check KEY_ID/KEY_SECRET are a matching pair from the same Razorpay mode.`,
+      );
     }
     throw new Error(`Razorpay order creation failed (${response.status}): ${detail}`);
   }

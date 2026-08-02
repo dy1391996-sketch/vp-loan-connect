@@ -14,9 +14,21 @@ const serverEnvSchema = z.object({
     .toLowerCase()
     .pipe(z.enum(["mock", "razorpay"]))
     .default("mock"),
-  RAZORPAY_KEY_ID: z.string().trim().optional().default(""),
-  RAZORPAY_KEY_SECRET: z.string().trim().optional().default(""),
-  RAZORPAY_WEBHOOK_SECRET: z.string().trim().optional().default(""),
+  RAZORPAY_KEY_ID: z
+    .string()
+    .optional()
+    .default("")
+    .transform((value) => value.trim().replace(/^['"]|['"]$/g, "").trim()),
+  RAZORPAY_KEY_SECRET: z
+    .string()
+    .optional()
+    .default("")
+    .transform((value) => value.trim().replace(/^['"]|['"]$/g, "").trim()),
+  RAZORPAY_WEBHOOK_SECRET: z
+    .string()
+    .optional()
+    .default("")
+    .transform((value) => value.trim().replace(/^['"]|['"]$/g, "").trim()),
   WHATSAPP_PROVIDER: z.enum(["mock", "meta"]).default("mock"),
   WHATSAPP_API_URL: optionalUrl,
   WHATSAPP_ACCESS_TOKEN: z.string().optional().default(""),
