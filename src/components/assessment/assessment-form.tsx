@@ -189,7 +189,17 @@ export function AssessmentForm() {
     try {
       const response = await fetch("/api/assessments", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Unable to complete assessment.");
+      if (!response.ok) {
+        const invalidFields = data.fields && typeof data.fields === "object" ? Object.keys(data.fields) : [];
+        const stepOne = ["fullName", "mobile", "email", "state", "city", "residentialAddress", "pinCode", "loanAmount", "loanPurpose", "loanType", "otpVerificationToken"];
+        const stepTwo = ["employmentType", "employerOrBusinessName", "officeAddress", "monthlyIncomeRange", "annualIncome", "durationMonths", "salaryBankCredit", "itrAvailable", "gstAvailable", "udyamAvailable", "sixMonthBankStatement"];
+        const stepThree = ["existingEmi", "activeLoans", "cardOutstanding", "currentOverdue", "settledOrWrittenOff", "creditRange"];
+        if (invalidFields.some((field) => stepOne.includes(field))) setStep(1);
+        else if (invalidFields.some((field) => stepTwo.includes(field))) setStep(2);
+        else if (invalidFields.some((field) => stepThree.includes(field))) setStep(3);
+        else if (invalidFields.length) setStep(4);
+        throw new Error(data.error || (invalidFields.length ? `Please check: ${invalidFields.join(", ")}.` : "Unable to complete assessment."));
+      }
       trackEvent("assessment_completed");
       router.push(`/result/${data.assessmentId}?token=${encodeURIComponent(data.accessToken)}`);
     } catch (err) { setError(err instanceof Error ? err.message : "Unable to complete assessment."); setBusy(false); }
