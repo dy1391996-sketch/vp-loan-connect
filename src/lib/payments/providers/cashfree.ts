@@ -71,6 +71,10 @@ export const cashfreePaymentProvider: PaymentProvider = {
     if (!Number.isFinite(amountPaise) || amountPaise < 100) {
       throw new PaymentProviderError(`Invalid payment amount (${amountPaise} paise).`, 400);
     }
+    const customerPhone = (input.customer?.mobile || "").replace(/\D/g, "").slice(-10);
+    if (!/^[6-9]\d{9}$/.test(customerPhone)) {
+      throw new PaymentProviderError("A valid customer mobile number is required for Cashfree checkout.", 400);
+    }
     const orderAmount = (amountPaise / 100).toFixed(2);
     const orderId = input.notes.internal_order_id || input.receipt;
     const returnUrl = input.returnUrl || `${getPublicAppUrl()}/payment/success?provider=cashfree&order_id={order_id}`;
@@ -85,7 +89,7 @@ export const cashfreePaymentProvider: PaymentProvider = {
         order_note: input.receipt,
         customer_details: {
           customer_id: (input.notes.internal_order_id || orderId).slice(0, 50),
-          customer_phone: (input.customer?.mobile || "").replace(/\D/g, "").slice(-10) || "9999999999",
+          customer_phone: customerPhone,
           customer_name: input.customer?.name || "VP Loan Connect Customer",
           customer_email: input.customer?.email || "support@vploanconnect.in",
         },

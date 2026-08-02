@@ -35,13 +35,14 @@ export const metadata: Metadata = {
   title: "Free Loan Check + ₹99 Credit Profile Booster",
   description:
     "Free profile check, then ₹99 Credit Profile Booster — understand your credit profile, loan readiness, and see profile-matched loan options first.",
+  alternates: { canonical: "/" },
 };
 
 const trustItems = [
   ["Free profile check", ShieldCheck],
   ["₹99 Credit Profile Booster", Sparkles],
   ["Matched lenders first", SearchCheck],
-  ["No documents upfront", FileCheck2],
+  ["No docs in free check", FileCheck2],
   ["Privacy-first", LockKeyhole],
   ["Official apply links", Landmark],
 ] as const;
@@ -84,15 +85,26 @@ const journey = [
 ] as const;
 
 export default function HomePage() {
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "Service",
-    name: "VP Loan Connect",
-    url: "https://vploanconnect.in",
-    description: "Preliminary educational loan-readiness assessment based on self-reported profile information.",
-    areaServed: "IN",
-    provider: { "@type": "Organization", name: "VP Loan Connect" },
-  };
+  const structuredData = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Service",
+      name: "VP Loan Connect",
+      url: "https://www.vploanconnect.in",
+      description: "Preliminary educational loan-readiness assessment based on self-reported profile information.",
+      areaServed: "IN",
+      provider: { "@type": "Organization", name: "VP Loan Connect", url: "https://www.vploanconnect.in" },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: faqs.map(([question, answer]) => ({
+        "@type": "Question",
+        name: question,
+        acceptedAnswer: { "@type": "Answer", text: answer },
+      })),
+    },
+  ];
 
   return (
     <>
@@ -112,7 +124,7 @@ export default function HomePage() {
               <span className="mt-2 block text-brand-500">Unlock honest matches.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300 sm:text-xl">
-              Ad-ready funnel: OTP → PAN & income → address → ₹99 Credit Profile Booster. Official partner links after payment — no 10% platform fee games.
+              Verify with OTP, share PAN & income, add your address, then unlock the ₹99 Credit Profile Booster. Official partner links after payment — no percentage platform fee on your loan.
             </p>
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
               <ButtonLink href="/apply/quick" size="lg">
@@ -180,11 +192,11 @@ export default function HomePage() {
                     </div>
 
                     <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Best matches first</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Sample match view</p>
                       <div className="mt-3 space-y-2.5">
-                        <MatchRow name="Bank / NBFC A" score="94%" />
-                        <MatchRow name="Fintech B" score="88%" />
-                        <MatchRow name="NBFC C" score="81%" />
+                        <MatchRow name="Bank / NBFC A" score="Strong" />
+                        <MatchRow name="Fintech B" score="Good" />
+                        <MatchRow name="NBFC C" score="Fair" />
                       </div>
                     </div>
                   </div>
@@ -216,7 +228,7 @@ export default function HomePage() {
           <SectionHeading
             eyebrow="Simple, premium process"
             title="Smooth apply. Honest ₹99 unlock."
-            description="A Quikkred-smooth journey without high % fees: verify, eligibility, address, then Credit Profile Booster for matched official links."
+            description="A clear 3-step journey without percentage platform fees: verify, check eligibility & address, then unlock Credit Profile Booster for matched official links."
             align="center"
           />
           <div className="mt-16 grid gap-5 md:grid-cols-3">

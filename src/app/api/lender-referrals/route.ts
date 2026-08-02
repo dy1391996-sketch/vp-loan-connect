@@ -3,8 +3,84 @@ import { z } from "zod";
 import { CONSENT_VERSION, LENDER_REFERRAL_CONSENT_TEXT } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { getServerEnv } from "@/lib/env";
-import { assertSameOrigin, requestIp } from "@/lib/security/request";
+import { assertSameOrigin, rateLimit, requestIp, requestIpHash } from "@/lib/security/request";
 import { verifyAccessToken } from "@/lib/security/tokens";
 
-const schema=z.object({reportId:z.string().uuid(),reportToken:z.string().min(20),consent:z.literal(true)});
-export async function POST(request:NextRequest){try{assertSameOrigin(request);const parsed=schema.safeParse(await request.json());if(!parsed.success)return NextResponse.json({error:"Explicit lender-referral request is required."},{status:400});const token=await verifyAccessToken(parsed.data.reportToken,"report_access");if(token.sub!==parsed.data.reportId||typeof token.leadId!=="string")return NextResponse.json({error:"Secure paid-report access required."},{status:403});const report=await prisma.report.findUnique({where:{id:parsed.data.reportId},include:{order:true}});if(!report||report.leadId!==token.leadId||report.order.status!=="PAID")return NextResponse.json({error:"Paid report not found."},{status:404});const env=getServerEnv();const result=await prisma.$transaction(async(tx)=>{const existing=await tx.lenderReferralRequest.findFirst({where:{leadId:report.leadId,status:{in:["REQUESTED","REVIEWING","REFERRED","SUBMITTED"]}}});if(existing)return existing;const consent=await tx.consentLog.create({data:{leadId:report.leadId,consentType:"LENDER_REFERRAL",consentText:LENDER_REFERRAL_CONSENT_TEXT,consentVersion:CONSENT_VERSION,accepted:true,acceptedAt:new Date(),source:"paid_report",userAgent:request.headers.get("user-agent")?.slice(0,500),ipAddress:env.STORE_CONSENT_IP?requestIp(request):undefined}});const item=await tx.lenderReferralRequest.create({data:{leadId:report.leadId,consentLogId:consent.consentId,status:"REQUESTED"}});await tx.lead.update({where:{id:report.leadId},data:{stage:"LENDER_REFERRAL_REQUESTED"}});return item;});return NextResponse.json({requested:true,id:result.id});}catch(error){console.error("lender_referral_failed",error instanceof Error?error.message:"unknown");return NextResponse.json({error:"Unable to save lender-referral request."},{status:500});}}
+const schema = z.object({
+  reportId: z.string().uuid(),
+  reportToken: z.string().min(20),
+  consent: z.literal(true),
+});
+
+export async function POST(request: NextRequest) {
+  try {
+    assertSameOrigin(request);
+    const parsed = schema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Explicit lender-referral request is required." }, { status: 400 });
+    }
+
+    const ipHash = requestIpHash(request) ?? "unknown";
+    if (
+      !rateLimit(`lender-referral:${parsed.data.reportId}`, 8, 10 * 60 * 1000).allowed ||
+      !rateLimit(`lender-referral-ip:${ipHash}`, 20, 10 * 60 * 1000).allowed
+    ) {
+      return NextResponse.json({ error: "Too many referral requests. Please wait and try again." }, { status: 429 });
+    }
+
+    const token = await verifyAccessToken(parsed.data.reportToken, "report_access");
+    if (token.sub !== parsed.data.reportId || typeof token.leadId !== "string") {
+      return NextResponse.json({ error: "Secure paid-report access required." }, { status: 403 });
+    }
+
+    const report = await prisma.report.findUnique({
+      where: { id: parsed.data.reportId },
+      include: { order: true },
+    });
+    if (!report || report.leadId !== token.leadId || report.order.status !== "PAID") {
+      return NextResponse.json({ error: "Paid report not found." }, { status: 404 });
+    }
+
+    const env = getServerEnv();
+    const result = await prisma.$transaction(async (tx) => {
+      const existing = await tx.lenderReferralRequest.findFirst({
+        where: { leadId: report.leadId, status: { in: ["REQUESTED", "REVIEWING", "REFERRED", "SUBMITTED"] } },
+      });
+      if (existing) return existing;
+
+      const consent = await tx.consentLog.create({
+        data: {
+          leadId: report.leadId,
+          consentType: "LENDER_REFERRAL",
+          consentText: LENDER_REFERRAL_CONSENT_TEXT,
+          consentVersion: CONSENT_VERSION,
+          accepted: true,
+          acceptedAt: new Date(),
+          source: "paid_report",
+          userAgent: request.headers.get("user-agent")?.slice(0, 500),
+          ipAddress: env.STORE_CONSENT_IP ? requestIp(request) : undefined,
+        },
+      });
+
+      const item = await tx.lenderReferralRequest.create({
+        data: {
+          leadId: report.leadId,
+          consentLogId: consent.consentId,
+          status: "REQUESTED",
+        },
+      });
+
+      await tx.lead.update({
+        where: { id: report.leadId },
+        data: { stage: "LENDER_REFERRAL_REQUESTED" },
+      });
+
+      return item;
+    });
+
+    return NextResponse.json({ requested: true, id: result.id });
+  } catch (error) {
+    console.error("lender_referral_failed", error instanceof Error ? error.message : "unknown");
+    return NextResponse.json({ error: "Unable to save lender-referral request." }, { status: 500 });
+  }
+}

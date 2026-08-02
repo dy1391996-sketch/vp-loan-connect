@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Headphones, Mail, ShieldAlert } from "lucide-react";
 import { PUBLIC_GRIEVANCE_EMAIL, PUBLIC_SUPPORT_EMAIL } from "@/lib/constants";
 
-export const metadata: Metadata = { title: "Contact Us", description: "Contact the VP Loan Connect support team for assessment, payment, report or privacy assistance." };
+export const metadata: Metadata = { title: "Contact Us", description: "Contact the VP Loan Connect support team for assessment, payment, report or privacy assistance.", alternates: { canonical: "/contact" } };
 
 export default function ContactPage() {
   return (

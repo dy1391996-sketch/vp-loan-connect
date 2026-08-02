@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { validateBuildEnvironment, validateProductionEnvironment, validateRuntimeEnvironment } from "./env";
+import {
+  validateBuildEnvironment,
+  validateCriticalProductionEnvironment,
+  validateProductionEnvironment,
+  validateRuntimeEnvironment,
+} from "./env";
 
 const validEnvironment: NodeJS.ProcessEnv = {
   NODE_ENV: "production",
@@ -21,6 +26,8 @@ const validEnvironment: NodeJS.ProcessEnv = {
   OTP_PROVIDER: "custom",
   OTP_API_URL: "https://otp.example.test/send",
   OTP_API_KEY: "otp-secret",
+  NEXT_PUBLIC_MSG91_WIDGET_ID: "widget-id",
+  NEXT_PUBLIC_MSG91_WIDGET_TOKEN: "widget-token",
   BUSINESS_NAME: "VP Loan Connect",
   BUSINESS_GSTIN: "06ABCDE1234F1Z5",
   BUSINESS_ADDRESS: "Registered business address",
@@ -54,7 +61,7 @@ test("build environment does not require credentials for runtime-only integratio
   assert.equal(validateBuildEnvironment(buildEnvironment).NODE_ENV, "production");
 });
 
-test("production runtime does not require unrelated integration credentials", () => {
+test("production runtime without Vercel gate does not require payment credentials", () => {
   const runtimeEnvironment = {
     NODE_ENV: "production" as const,
     DATABASE_URL: validEnvironment.DATABASE_URL,
@@ -69,6 +76,30 @@ test("production runtime does not require unrelated integration credentials", ()
   };
 
   assert.equal(validateRuntimeEnvironment(runtimeEnvironment).NODE_ENV, "production");
+});
+
+test("critical production gate rejects mock OTP and incomplete MSG91 widget config", () => {
+  assert.throws(() => validateCriticalProductionEnvironment({ ...validEnvironment, OTP_PROVIDER: "mock" }), /OTP_PROVIDER must be custom/);
+  assert.throws(
+    () => validateCriticalProductionEnvironment({ ...validEnvironment, NEXT_PUBLIC_MSG91_WIDGET_ID: "" }),
+    /NEXT_PUBLIC_MSG91_WIDGET_ID/,
+  );
+});
+
+test("Vercel production runtime requires live payment and OTP configuration", () => {
+  assert.throws(
+    () =>
+      validateRuntimeEnvironment({
+        ...validEnvironment,
+        VERCEL_ENV: "production",
+        PAYMENT_PROVIDER: "mock",
+      }),
+    /PAYMENT_PROVIDER must be razorpay/,
+  );
+  assert.equal(
+    validateRuntimeEnvironment({ ...validEnvironment, VERCEL_ENV: "production" }).PAYMENT_PROVIDER,
+    "razorpay",
+  );
 });
 
 test("production environment rejects mock OTP provider", () => {

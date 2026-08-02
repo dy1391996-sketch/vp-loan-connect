@@ -5,7 +5,7 @@ import { getPublicAppUrl, getServerEnv } from "@/lib/env";
 import { getPaymentProvider } from "@/lib/payments";
 import { processSuccessfulPayment } from "@/lib/payments/order-service";
 import { sendWhatsAppTemplate } from "@/lib/providers/whatsapp";
-import { assertSameOrigin } from "@/lib/security/request";
+import { assertSameOrigin, rateLimit, requestIpHash } from "@/lib/security/request";
 import { signAccessToken } from "@/lib/security/tokens";
 
 const schema = z
@@ -25,6 +25,14 @@ export async function POST(request: NextRequest) {
     assertSameOrigin(request);
     const parsed = schema.safeParse(await request.json());
     if (!parsed.success) return NextResponse.json({ error: "Invalid payment response." }, { status: 400 });
+
+    const ipHash = requestIpHash(request) ?? "unknown";
+    if (
+      !rateLimit(`payment-verify:${parsed.data.internalOrderId}`, 12, 10 * 60 * 1000).allowed ||
+      !rateLimit(`payment-verify-ip:${ipHash}`, 40, 10 * 60 * 1000).allowed
+    ) {
+      return NextResponse.json({ error: "Too many verification attempts. Please wait and try again." }, { status: 429 });
+    }
 
     const env = getServerEnv();
     const provider = getPaymentProvider();

@@ -7,6 +7,7 @@ import { USP_PRICE_LABEL, USP_PRODUCT_NAME } from "@/lib/constants";
 export const metadata: Metadata = {
   title: "Apply — Verify, eligibility, address, unlock",
   description: `Complete a short profile (OTP, PAN, income, address) then unlock ${USP_PRODUCT_NAME} for ${USP_PRICE_LABEL} + GST with official partner links.`,
+  alternates: { canonical: "/assessment" },
 };
 
 export default function AssessmentPage() {
@@ -28,7 +29,7 @@ export default function AssessmentPage() {
               <span className="mt-2 block text-brand-500">Unlock matched options.</span>
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
-              Smooth ad-ready journey — OTP, PAN & income, address, then honest {USP_PRICE_LABEL} {USP_PRODUCT_NAME}. No bank KYC or Aadhaar OTP from us.
+              OTP verification, PAN & income, address, then honest {USP_PRICE_LABEL} {USP_PRODUCT_NAME}. We never ask for bank KYC or Aadhaar OTP.
             </p>
             <div className="mx-auto mt-7 flex max-w-3xl flex-wrap justify-center gap-3 text-xs font-bold text-slate-300">
               <span className="flex items-center gap-2 rounded-xl border border-white/12 bg-white/5 px-4 py-2.5 backdrop-blur">

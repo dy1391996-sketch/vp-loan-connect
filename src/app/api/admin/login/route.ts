@@ -6,7 +6,7 @@ import { assertSameOrigin, rateLimit, requestIpHash } from "@/lib/security/reque
 import { signAccessToken } from "@/lib/security/tokens";
 import { sha256 } from "@/lib/utils";
 
-const schema = z.object({ email: z.string().email().transform((v) => v.trim().toLowerCase()), password: z.string().min(8).max(200) });
+const schema = z.object({ email: z.string().email().transform((v) => v.trim().toLowerCase()), password: z.string().min(12).max(200) });
 
 export async function POST(request: NextRequest) {
   try {

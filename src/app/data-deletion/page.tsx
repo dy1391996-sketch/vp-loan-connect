@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { DataDeletionForm } from "@/components/data-deletion-form";
 import { PolicyPage } from "@/components/legal/policy-page";
 
-export const metadata: Metadata = { title: "Data Deletion Request" };
+export const metadata: Metadata = {
+  title: "Data Deletion Request",
+  description: "Request deletion or de-identification of your VP Loan Connect profile data after mobile SMS OTP verification.",
+  alternates: { canonical: "/data-deletion" },
+};
 
 export default function DataDeletionPage() {
   return (

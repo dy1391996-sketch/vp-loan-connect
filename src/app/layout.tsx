@@ -60,12 +60,18 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en-IN" className={`${manrope.variable} ${dmSans.variable}`}>
       <body className={dmSans.className}>
+        <a
+          href="#main-content"
+          className="absolute left-[-10000px] top-4 z-[100] rounded-xl bg-brand-500 px-4 py-3 font-bold text-navy-950 focus:left-4"
+        >
+          Skip to main content
+        </a>
         <AnalyticsProvider />
         <Suspense fallback={null}>
           <AttributionCapture />
         </Suspense>
         <Header />
-        <main>{children}</main>
+        <main id="main-content">{children}</main>
         <Footer />
       </body>
     </html>

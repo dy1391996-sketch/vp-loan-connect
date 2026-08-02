@@ -3,10 +3,19 @@ import { prisma } from "@/lib/db";
 import { sendWhatsAppTemplate } from "@/lib/providers/whatsapp";
 import { getPdfReportData } from "@/lib/reports/report-data";
 import { renderReportPdf } from "@/lib/reports/pdf";
+import { rateLimit, requestIpHash } from "@/lib/security/request";
 import { verifyAccessToken } from "@/lib/security/tokens";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const ipHash = requestIpHash(request) ?? "unknown";
+  if (
+    !rateLimit(`report-download:${id}`, 20, 10 * 60 * 1000).allowed ||
+    !rateLimit(`report-download-ip:${ipHash}`, 40, 10 * 60 * 1000).allowed
+  ) {
+    return NextResponse.json({ error: "Too many download attempts. Please wait and try again." }, { status: 429 });
+  }
+
   const token = request.nextUrl.searchParams.get("token");
   if (!token) return NextResponse.json({ error: "Secure report token required." }, { status: 401 });
 

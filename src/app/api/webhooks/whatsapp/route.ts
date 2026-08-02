@@ -19,8 +19,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const raw = await request.text();
   const env = getServerEnv();
-  if (env.WHATSAPP_PROVIDER === "meta" && !hasValidMetaSignature(raw, request.headers.get("x-hub-signature-256"), env.WHATSAPP_APP_SECRET)) {
-    return NextResponse.json({ error: "Invalid signature." }, { status: 401 });
+  // Always require a valid Meta signature whenever an app secret is configured.
+  // Never accept unauthenticated STOP webhooks in production.
+  if (env.WHATSAPP_APP_SECRET) {
+    if (!hasValidMetaSignature(raw, request.headers.get("x-hub-signature-256"), env.WHATSAPP_APP_SECRET)) {
+      return NextResponse.json({ error: "Invalid signature." }, { status: 401 });
+    }
+  } else if (env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "WhatsApp webhook is not configured." }, { status: 503 });
   }
 
   let body: WhatsAppPayload;

@@ -139,10 +139,12 @@ export function validateBuildEnvironment(environment: NodeJS.ProcessEnv): Server
   return config;
 }
 
-export function validateProductionEnvironment(environment: NodeJS.ProcessEnv): ServerEnv {
+/**
+ * Critical production gate for payments + OTP (always enforced at runtime/prebuild on Vercel production).
+ * Does NOT require WhatsApp Meta / GSTIN / grievance — those fail closed at provider call-sites when unconfigured.
+ */
+export function validateCriticalProductionEnvironment(environment: NodeJS.ProcessEnv): ServerEnv {
   const config = validateBuildEnvironment(environment);
-  const missing = requiredProductionBaseValues.filter((key) => String(config[key] ?? "").trim().length === 0);
-  if (missing.length) throw new Error(`Missing production environment variables: ${missing.join(", ")}`);
   if (config.PAYMENT_PROVIDER === "mock") {
     throw new Error("PAYMENT_PROVIDER must be razorpay, cashfree, phonepe, or payu in production.");
   }
@@ -151,6 +153,22 @@ export function validateProductionEnvironment(environment: NodeJS.ProcessEnv): S
     throw new Error(`Missing ${config.PAYMENT_PROVIDER} payment credentials: ${paymentMissing.join(", ")}`);
   }
   if (config.OTP_PROVIDER !== "custom") throw new Error("OTP_PROVIDER must be custom in production.");
+  if (!String(config.OTP_API_URL ?? "").trim() || !String(config.OTP_API_KEY ?? "").trim()) {
+    throw new Error("OTP_API_URL and OTP_API_KEY are required in production.");
+  }
+  const widgetId = String(environment.NEXT_PUBLIC_MSG91_WIDGET_ID ?? "").trim();
+  const widgetToken = String(environment.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ?? "").trim();
+  if (!widgetId || !widgetToken) {
+    throw new Error("NEXT_PUBLIC_MSG91_WIDGET_ID and NEXT_PUBLIC_MSG91_WIDGET_TOKEN are required in production for email OTP.");
+  }
+  return config;
+}
+
+/** Full production checklist (legal identity + WhatsApp Meta). Use when the business stack is fully configured. */
+export function validateProductionEnvironment(environment: NodeJS.ProcessEnv): ServerEnv {
+  const config = validateCriticalProductionEnvironment(environment);
+  const missing = requiredProductionBaseValues.filter((key) => String(config[key] ?? "").trim().length === 0);
+  if (missing.length) throw new Error(`Missing production environment variables: ${missing.join(", ")}`);
   if (config.WHATSAPP_PROVIDER !== "meta") throw new Error("WHATSAPP_PROVIDER must be meta in production.");
   if (!/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(config.BUSINESS_GSTIN)) throw new Error("BUSINESS_GSTIN must use the official 15-character format.");
   if (!/^\+?[1-9]\d{9,14}$/.test(config.SUPPORT_WHATSAPP)) throw new Error("SUPPORT_WHATSAPP must be in international format.");
@@ -164,7 +182,14 @@ export function validateRuntimeEnvironment(environment: NodeJS.ProcessEnv): Serv
     throw new Error(`Invalid server environment: ${issues}`);
   }
 
-  return parsed.data.NODE_ENV === "production" ? validateBuildEnvironment(environment) : parsed.data;
+  if (parsed.data.NODE_ENV !== "production") return parsed.data;
+
+  // Enforce live payment + OTP on Vercel Production (and when VALIDATE_PRODUCTION_ENV=true).
+  // Local `next build` stays on soft build checks so incomplete local env does not break CI tooling.
+  if (environment.VERCEL_ENV === "production" || environment.VALIDATE_PRODUCTION_ENV === "true") {
+    return validateCriticalProductionEnvironment(environment);
+  }
+  return validateBuildEnvironment(environment);
 }
 
 let cached: ServerEnv | undefined;

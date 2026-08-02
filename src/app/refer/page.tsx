@@ -6,6 +6,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 export const metadata: Metadata = {
   title: "VP Refer & Earn",
   description: "Share responsible profile checks and earn only on validated, non-refunded qualifying orders.",
+  alternates: { canonical: "/refer" },
 };
 
 const steps = [
@@ -29,8 +30,8 @@ export default function ReferPage() {
         <div className="page-shell grid items-center gap-12 lg:grid-cols-[1fr_0.72fr]">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-brand-500">VP Refer & Earn</p>
-            <h1 className="mt-5 text-balance text-4xl font-extrabold tracking-[-0.05em] sm:text-5xl">Share responsible loan-readiness checks</h1>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">Earn only when a referred user completes a validated, non-refunded qualifying report purchase—not for clicks, registrations or loan approval.</p>
+            <h1 className="mt-5 text-balance text-4xl font-extrabold tracking-[-0.05em] sm:text-5xl">Share responsible profile checks</h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">Earn only when a referred user completes a validated, non-refunded qualifying report purchase—not for clicks, registrations or loan approval. Rewards are never tied to lender decisions.</p>
             <ButtonLink href="/assessment" size="lg" className="mt-9">Complete Your Free Check <ArrowRight size={18} /></ButtonLink>
           </div>
           <div className="rounded-[2rem] border border-white/10 bg-white/8 p-4 shadow-2xl backdrop-blur">

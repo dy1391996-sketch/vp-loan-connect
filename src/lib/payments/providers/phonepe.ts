@@ -237,7 +237,7 @@ export const phonepePaymentProvider: PaymentProvider = {
   async createRefund(input: RefundInput, env) {
     this.assertConfigured(env);
     // PhonePe refund requires original merchantTransactionId; store paymentId as gateway txn id.
-    // This is a readiness placeholder that reports clearly when payload is incomplete for live refund calls.
+    // Returns 501 until merchant refund API access and payload mapping are confirmed live.
     if (!input.paymentId) throw new PaymentProviderError("PhonePe refund requires the original provider payment/transaction id.", 400);
     throw new PaymentProviderError(
       "PhonePe refund API is prepared but needs merchant refund payload mapping from your PhonePe merchant dashboard settings. Collect PHONEPE credentials and confirm refund API access before enabling admin refunds for PhonePe.",

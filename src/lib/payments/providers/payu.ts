@@ -281,7 +281,7 @@ export const payuPaymentProvider: PaymentProvider = {
     this.assertConfigured(env);
     if (!input.paymentId) throw new PaymentProviderError("PayU refund requires mihpayid (provider payment id).", 400);
     throw new PaymentProviderError(
-      "PayU refund API is prepared as a placeholder. Enable merchant refund API access in PayU and map cancel_refund credentials before using admin refunds for PayU.",
+      "PayU refund API is prepared but not yet merchant-enabled. Enable cancel_refund API access in PayU and confirm credentials before using admin refunds for PayU.",
       501,
     );
   },

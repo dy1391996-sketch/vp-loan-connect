@@ -18,6 +18,9 @@ export async function sendWhatsAppTemplate(leadId: string, templateKey: WhatsApp
   const env = getServerEnv();
   let providerRef: string;
   if (env.WHATSAPP_PROVIDER === "mock") {
+    if (env.NODE_ENV === "production") {
+      throw new Error("WhatsApp mock provider is disabled in production. Set WHATSAPP_PROVIDER=meta with live credentials.");
+    }
     providerRef = `mock-wa-${Date.now()}`;
   } else {
     if (!env.WHATSAPP_API_URL || !env.WHATSAPP_ACCESS_TOKEN || !env.WHATSAPP_PHONE_NUMBER_ID) throw new Error("WhatsApp provider is not configured.");

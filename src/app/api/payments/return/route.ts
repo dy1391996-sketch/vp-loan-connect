@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getPublicAppUrl, getServerEnv } from "@/lib/env";
 import { getPaymentProvider } from "@/lib/payments";
 import { processSuccessfulPayment } from "@/lib/payments/order-service";
+import { rateLimit, requestIpHash } from "@/lib/security/request";
 import { signAccessToken } from "@/lib/security/tokens";
 
 export const runtime = "nodejs";
@@ -43,7 +44,15 @@ async function finalizeFromProviderOrder(providerOrderId: string, raw: Record<st
   );
 }
 
+function tooManyAttempts(request: NextRequest) {
+  const ipHash = requestIpHash(request) ?? "unknown";
+  return !rateLimit(`payment-return-ip:${ipHash}`, 40, 10 * 60 * 1000).allowed;
+}
+
 export async function GET(request: NextRequest) {
+  if (tooManyAttempts(request)) {
+    return NextResponse.redirect(`${getPublicAppUrl()}/payment/failed?reason=${encodeURIComponent("Too many payment return attempts")}`);
+  }
   const providerOrderId = request.nextUrl.searchParams.get("order_id") || request.nextUrl.searchParams.get("txn") || "";
   if (!providerOrderId) {
     return NextResponse.redirect(`${getPublicAppUrl()}/payment/failed?reason=${encodeURIComponent("Missing payment reference")}`);
@@ -57,6 +66,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (tooManyAttempts(request)) {
+    return NextResponse.redirect(`${getPublicAppUrl()}/payment/failed?reason=${encodeURIComponent("Too many payment return attempts")}`);
+  }
   try {
     const contentType = request.headers.get("content-type") || "";
     let raw: Record<string, unknown> = {};

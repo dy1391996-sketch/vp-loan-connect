@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PolicyPage } from "@/components/legal/policy-page";
 
-export const metadata: Metadata = { title: "Terms and Conditions" };
+export const metadata: Metadata = { title: "Terms and Conditions", alternates: { canonical: "/terms" } };
 
 export default function TermsPage() {
   return <PolicyPage title="Terms and Conditions" summary="These terms govern use of VP Loan Connect's educational profile-assessment, report, referral and support services." sections={[
