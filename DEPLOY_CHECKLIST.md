@@ -53,7 +53,7 @@ npm run build
 - [ ] Add all production environment variables.
 - [ ] Run `npx prisma migrate deploy` from one protected release job.
 - [ ] Run the seed once and rotate the bootstrap admin password.
-- [ ] Configure `vploanconnect.in`, HTTPS and DNS.
+- [ ] Configure `www.vploanconnect.in` as primary host, apex → www redirect, HTTPS and DNS.
 
 ## Provider activation
 

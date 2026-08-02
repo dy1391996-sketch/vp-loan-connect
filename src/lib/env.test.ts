@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  getPublicAppUrl,
+  normalizePublicAppUrl,
+  resetServerEnvCacheForTests,
   validateBuildEnvironment,
   validateCriticalProductionEnvironment,
   validateProductionEnvironment,
@@ -10,7 +13,7 @@ import {
 const validEnvironment: NodeJS.ProcessEnv = {
   NODE_ENV: "production",
   DATABASE_URL: "postgresql://vp:secret@db.example.test:5432/vp?sslmode=require",
-  NEXT_PUBLIC_APP_URL: "https://vploanconnect.in",
+  NEXT_PUBLIC_APP_URL: "https://www.vploanconnect.in",
   NEXTAUTH_SECRET: "n".repeat(48),
   REPORT_SIGNING_SECRET: "r".repeat(48),
   PAYMENT_PROVIDER: "razorpay",
@@ -126,4 +129,16 @@ test("production environment requires credentials for the selected payment provi
 
 test("production environment rejects incomplete legal identity", () => {
   assert.throws(() => validateProductionEnvironment({ ...validEnvironment, BUSINESS_ADDRESS: "" }), /BUSINESS_ADDRESS/);
+});
+
+test("normalizePublicAppUrl prefers www canonical origin", () => {
+  assert.equal(normalizePublicAppUrl("https://vploanconnect.in"), "https://www.vploanconnect.in");
+  assert.equal(normalizePublicAppUrl("https://vploanconnect.in/"), "https://www.vploanconnect.in");
+  assert.equal(normalizePublicAppUrl("https://www.vploanconnect.in/path"), "https://www.vploanconnect.in");
+  const previous = process.env.NEXT_PUBLIC_APP_URL;
+  process.env.NEXT_PUBLIC_APP_URL = "https://vploanconnect.in";
+  resetServerEnvCacheForTests();
+  assert.equal(getPublicAppUrl(), "https://www.vploanconnect.in");
+  process.env.NEXT_PUBLIC_APP_URL = previous;
+  resetServerEnvCacheForTests();
 });

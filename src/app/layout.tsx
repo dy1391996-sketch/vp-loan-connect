@@ -11,6 +11,7 @@ import { Footer } from "@/components/layout/footer";
 import { AnalyticsProvider } from "@/components/analytics-provider";
 import { AttributionCapture } from "@/components/attribution-capture";
 import { APP_NAME, TAGLINE } from "@/lib/constants";
+import { getPublicAppUrl } from "@/lib/env";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -30,7 +31,7 @@ export const metadata: Metadata = {
   verification: {
     google: "4F1i1VfD52pj7yuswc0nHv-FPUd1gqBV7IaHNjIZzfY",
   },
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://vploanconnect.in"),
+  metadataBase: new URL(getPublicAppUrl()),
   title: { default: `${APP_NAME} | ${TAGLINE}`, template: `%s | ${APP_NAME}` },
   description: "Free loan profile check and ₹99 Credit Profile Booster — understand credit readiness and see profile-matched loan options in India.",
   applicationName: APP_NAME,

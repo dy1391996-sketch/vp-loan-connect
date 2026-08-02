@@ -3,6 +3,16 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   serverExternalPackages: ["@react-pdf/renderer"],
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "vploanconnect.in" }],
+        destination: "https://www.vploanconnect.in/:path*",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

@@ -77,7 +77,7 @@ Copy `.env.example` and configure:
 | Variable | Required | Purpose |
 |---|---:|---|
 | `DATABASE_URL` | Yes | PostgreSQL connection string with SSL where the provider requires it |
-| `NEXT_PUBLIC_APP_URL` | Yes | Canonical origin, e.g. `https://vploanconnect.in` |
+| `NEXT_PUBLIC_APP_URL` | Yes | Canonical origin: `https://www.vploanconnect.in` (apex is redirected to www) |
 | `NEXTAUTH_SECRET` | Yes | 32+ random chars for OTP/result/admin tokens |
 | `REPORT_SIGNING_SECRET` | Yes | Separate 32+ random chars for report links |
 | `PAYMENT_PROVIDER` | Yes | `mock` locally; `razorpay` in production |
@@ -122,7 +122,7 @@ The adapter sends the app-generated six-digit OTP to MSG91 with the mobile numbe
 The browser never receives the secret. Orders are created on the server; checkout success is verified with HMAC; raw webhook payloads are verified before parsing. Configure the Razorpay webhook URL:
 
 ```text
-https://vploanconnect.in/api/webhooks/razorpay
+https://www.vploanconnect.in/api/webhooks/razorpay
 ```
 
 Subscribe at minimum to `payment.captured` and `payment.failed`. The unique provider event and payment identifiers make retries safe.
@@ -132,7 +132,7 @@ Subscribe at minimum to `payment.captured` and `payment.failed`. The unique prov
 Configure inbound webhook:
 
 ```text
-https://vploanconnect.in/api/webhooks/whatsapp
+https://www.vploanconnect.in/api/webhooks/whatsapp
 ```
 
 Create and approve service templates matching the seeded keys: `assessment_started`, `incomplete_assessment`, `free_result_ready`, `payment_success`, `report_ready`, and `opt_out_confirmation`. Promotional sending is blocked unless active marketing consent exists. Inbound `STOP` records withdrawal and sends one confirmation.
@@ -186,7 +186,7 @@ The included GitHub Actions workflow runs Prisma generation, schema validation, 
 5. Set the Build Command to `pnpm db:generate && pnpm build`.
 6. Run `pnpm db:deploy` once from a protected deployment job before switching traffic.
 7. Seed production once with temporary bootstrap admin credentials, then rotate/remove `ADMIN_INITIAL_PASSWORD`.
-8. Configure `vploanconnect.in`, HTTPS, Razorpay webhook and Meta webhook.
+8. Configure `www.vploanconnect.in` as primary, redirect apex → www, HTTPS, Razorpay webhook and Meta webhook.
 9. Perform real provider sandbox/test payments before enabling live mode.
 
 Do not run database migrations concurrently from multiple Vercel builds. Use one protected migration job or release workflow.

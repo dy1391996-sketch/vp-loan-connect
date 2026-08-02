@@ -141,6 +141,16 @@ export function validateBuildEnvironment(environment: NodeJS.ProcessEnv): Server
   const missing = requiredBuildValues.filter((key) => String(config[key] ?? "").trim().length === 0);
   if (missing.length) throw new Error(`Missing build environment variables: ${missing.join(", ")}`);
   if (!config.NEXT_PUBLIC_APP_URL.startsWith("https://")) throw new Error("NEXT_PUBLIC_APP_URL must use HTTPS in production.");
+  try {
+    const host = new URL(config.NEXT_PUBLIC_APP_URL).hostname.toLowerCase();
+    if (host === "vploanconnect.in") {
+      console.warn(
+        "[env] NEXT_PUBLIC_APP_URL uses apex host. Canonical links are normalized to https://www.vploanconnect.in — set NEXT_PUBLIC_APP_URL=https://www.vploanconnect.in in Vercel.",
+      );
+    }
+  } catch {
+    /* schema already validates URL shape */
+  }
   return config;
 }
 
@@ -220,6 +230,27 @@ export function resetServerEnvCacheForTests() {
   cached = undefined;
 }
 
+/** Production canonical origin for VP Loan Connect (www). */
+export const CANONICAL_PUBLIC_ORIGIN = "https://www.vploanconnect.in";
+
+/**
+ * Normalize public app URLs so apex and trailing slashes cannot fork SEO/payment links.
+ * `vploanconnect.in` → `www.vploanconnect.in`; paths are discarded (origin only).
+ */
+export function normalizePublicAppUrl(raw: string): string {
+  const trimmed = raw.trim().replace(/\/+$/, "");
+  try {
+    const url = new URL(trimmed);
+    if (url.hostname.toLowerCase() === "vploanconnect.in") {
+      url.hostname = "www.vploanconnect.in";
+    }
+    return url.origin;
+  } catch {
+    return trimmed || CANONICAL_PUBLIC_ORIGIN;
+  }
+}
+
 export function getPublicAppUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const fallback = process.env.NODE_ENV === "production" ? CANONICAL_PUBLIC_ORIGIN : "http://localhost:3000";
+  return normalizePublicAppUrl(process.env.NEXT_PUBLIC_APP_URL ?? fallback);
 }

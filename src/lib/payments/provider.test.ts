@@ -10,7 +10,7 @@ function baseEnv(overrides: Partial<ServerEnv> = {}): ServerEnv {
   return {
     NODE_ENV: "test",
     DATABASE_URL: "postgresql://vp:secret@localhost:5432/vp",
-    NEXT_PUBLIC_APP_URL: "https://vploanconnect.in",
+    NEXT_PUBLIC_APP_URL: "https://www.vploanconnect.in",
     NEXTAUTH_SECRET: "n".repeat(48),
     REPORT_SIGNING_SECRET: "r".repeat(48),
     PAYMENT_PROVIDER: "razorpay",

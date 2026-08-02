@@ -1,6 +1,9 @@
 export const APP_NAME = "VP Loan Connect";
 export const TAGLINE = "AI Credit Profile Analysis & Smart Loan Matching";
+/** Naked brand domain (emails, display). Prefer CANONICAL_SITE_ORIGIN for absolute URLs. */
 export const DOMAIN = "vploanconnect.in";
+/** Canonical public origin — always www in production. */
+export const CANONICAL_SITE_ORIGIN = "https://www.vploanconnect.in";
 /** Public contact shown on website — never use a personal Gmail here */
 export const PUBLIC_SUPPORT_EMAIL = "support@vploanconnect.in";
 export const PUBLIC_GRIEVANCE_EMAIL = "support@vploanconnect.in";

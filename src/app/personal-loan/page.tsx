@@ -58,10 +58,10 @@ export default function PersonalLoanPage() {
     "@context": "https://schema.org",
     "@type": "Service",
     name: "VP Loan Connect Personal Loan Profile Check",
-    url: "https://vploanconnect.in/personal-loan",
+    url: "https://www.vploanconnect.in/personal-loan",
     description: "Preliminary personal-loan readiness assessment based on self-reported profile information.",
     areaServed: "IN",
-    provider: { "@type": "Organization", name: "VP Loan Connect" },
+    provider: { "@type": "Organization", name: "VP Loan Connect", url: "https://www.vploanconnect.in" },
   };
 
   return (

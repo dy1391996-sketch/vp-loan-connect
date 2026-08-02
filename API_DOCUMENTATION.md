@@ -54,7 +54,7 @@ Returns:
 {
   "assessmentId": "uuid",
   "accessToken": "signed-token",
-  "resultUrl": "https://vploanconnect.in/result/uuid?token=..."
+  "resultUrl": "https://www.vploanconnect.in/result/uuid?token=..."
 }
 ```
 

@@ -305,7 +305,7 @@ export async function POST(request: NextRequest) {
     // Never log token material; message paths above exclude raw JWT/jose text by design.
     console.error("assessment_submit_failed", message === "INVALID_ORIGIN" ? message : "server_error");
     if (message === "INVALID_ORIGIN") {
-      return NextResponse.json({ error: "Please reload this page on vploanconnect.in and try again." }, { status: 403 });
+      return NextResponse.json({ error: "Please reload this page on www.vploanconnect.in and try again." }, { status: 403 });
     }
     return NextResponse.json({ error: "We could not save your assessment. Please try again." }, { status: 500 });
   }
