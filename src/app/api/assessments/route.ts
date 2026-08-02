@@ -15,7 +15,12 @@ export async function POST(request: NextRequest) {
   try {
     assertSameOrigin(request);
     const parsed = assessmentSchema.safeParse(await request.json());
-    if (!parsed.success) return NextResponse.json({ error: "Please review the highlighted assessment fields.", fields: parsed.error.flatten().fieldErrors }, { status: 400 });
+    if (!parsed.success) {
+      const fields = parsed.error.flatten().fieldErrors;
+      const invalidFields = Object.keys(fields);
+      console.warn("assessment_validation_failed", { invalidFields, issueCodes: parsed.error.issues.map((issue) => issue.code) });
+      return NextResponse.json({ error: invalidFields.length ? `Please check: ${invalidFields.join(", ")}.` : "Please review the assessment fields.", fields }, { status: 400 });
+    }
     const input = parsed.data;
     const mobile = normalizeIndianMobile(input.mobile);
     const token = await verifyAccessToken(input.otpVerificationToken, "otp_verified");
