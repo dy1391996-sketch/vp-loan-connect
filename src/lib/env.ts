@@ -125,6 +125,11 @@ export function missingPaymentCredentialKeys(config: ServerEnv): string[] {
   }
 }
 
+/** Checkout/create-order credentials only. Webhook secrets fail closed at webhook handlers. */
+export function missingCheckoutPaymentCredentialKeys(config: ServerEnv): string[] {
+  return missingPaymentCredentialKeys(config).filter((key) => key !== "RAZORPAY_WEBHOOK_SECRET" && key !== "CASHFREE_WEBHOOK_SECRET");
+}
+
 export function validateBuildEnvironment(environment: NodeJS.ProcessEnv): ServerEnv {
   const parsed = serverEnvSchema.safeParse({ ...environment, NODE_ENV: "production" });
   if (!parsed.success) {
@@ -142,15 +147,21 @@ export function validateBuildEnvironment(environment: NodeJS.ProcessEnv): Server
 /**
  * Critical production gate for payments + OTP (always enforced at runtime/prebuild on Vercel production).
  * Does NOT require WhatsApp Meta / GSTIN / grievance — those fail closed at provider call-sites when unconfigured.
+ * Razorpay webhook secret is recommended but not a build blocker; webhook route rejects unsigned events.
  */
 export function validateCriticalProductionEnvironment(environment: NodeJS.ProcessEnv): ServerEnv {
   const config = validateBuildEnvironment(environment);
   if (config.PAYMENT_PROVIDER === "mock") {
     throw new Error("PAYMENT_PROVIDER must be razorpay, cashfree, phonepe, or payu in production.");
   }
-  const paymentMissing = missingPaymentCredentialKeys(config);
+  const paymentMissing = missingCheckoutPaymentCredentialKeys(config);
   if (paymentMissing.length) {
     throw new Error(`Missing ${config.PAYMENT_PROVIDER} payment credentials: ${paymentMissing.join(", ")}`);
+  }
+  if (config.PAYMENT_PROVIDER === "razorpay" && !config.RAZORPAY_WEBHOOK_SECRET) {
+    console.warn(
+      "[env] RAZORPAY_WEBHOOK_SECRET is not set. Checkout can still verify client signatures; configure the webhook secret in Vercel so /api/webhooks/razorpay can accept events.",
+    );
   }
   if (config.OTP_PROVIDER !== "custom") throw new Error("OTP_PROVIDER must be custom in production.");
   if (!String(config.OTP_API_URL ?? "").trim() || !String(config.OTP_API_KEY ?? "").trim()) {
@@ -164,11 +175,15 @@ export function validateCriticalProductionEnvironment(environment: NodeJS.Proces
   return config;
 }
 
-/** Full production checklist (legal identity + WhatsApp Meta). Use when the business stack is fully configured. */
+/** Full production checklist (legal identity + WhatsApp Meta + webhook secrets). Use when the business stack is fully configured. */
 export function validateProductionEnvironment(environment: NodeJS.ProcessEnv): ServerEnv {
   const config = validateCriticalProductionEnvironment(environment);
   const missing = requiredProductionBaseValues.filter((key) => String(config[key] ?? "").trim().length === 0);
   if (missing.length) throw new Error(`Missing production environment variables: ${missing.join(", ")}`);
+  const webhookMissing = missingPaymentCredentialKeys(config).filter((key) => key.includes("WEBHOOK"));
+  if (webhookMissing.length) {
+    throw new Error(`Missing ${config.PAYMENT_PROVIDER} webhook credentials: ${webhookMissing.join(", ")}`);
+  }
   if (config.WHATSAPP_PROVIDER !== "meta") throw new Error("WHATSAPP_PROVIDER must be meta in production.");
   if (!/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(config.BUSINESS_GSTIN)) throw new Error("BUSINESS_GSTIN must use the official 15-character format.");
   if (!/^\+?[1-9]\d{9,14}$/.test(config.SUPPORT_WHATSAPP)) throw new Error("SUPPORT_WHATSAPP must be in international format.");

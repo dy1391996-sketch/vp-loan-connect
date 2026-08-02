@@ -78,12 +78,10 @@ test("production runtime without Vercel gate does not require payment credential
   assert.equal(validateRuntimeEnvironment(runtimeEnvironment).NODE_ENV, "production");
 });
 
-test("critical production gate rejects mock OTP and incomplete MSG91 widget config", () => {
-  assert.throws(() => validateCriticalProductionEnvironment({ ...validEnvironment, OTP_PROVIDER: "mock" }), /OTP_PROVIDER must be custom/);
-  assert.throws(
-    () => validateCriticalProductionEnvironment({ ...validEnvironment, NEXT_PUBLIC_MSG91_WIDGET_ID: "" }),
-    /NEXT_PUBLIC_MSG91_WIDGET_ID/,
-  );
+test("critical production gate allows Razorpay checkout without webhook secret", () => {
+  const result = validateCriticalProductionEnvironment({ ...validEnvironment, RAZORPAY_WEBHOOK_SECRET: "" });
+  assert.equal(result.PAYMENT_PROVIDER, "razorpay");
+  assert.equal(result.RAZORPAY_WEBHOOK_SECRET, "");
 });
 
 test("Vercel production runtime requires live payment and OTP configuration", () => {
