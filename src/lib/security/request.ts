@@ -16,7 +16,12 @@ function canonicalOrigin(value: string) {
 
 export function assertSameOrigin(request: NextRequest) {
   const origin = request.headers.get("origin");
-  if (!origin) return;
+  if (!origin) {
+    // Browser fetch/XHR always send Origin on cross-site and same-site POST in modern browsers.
+    // Reject anonymous origin in production to reduce raw API script abuse.
+    if (process.env.NODE_ENV === "production") throw new Error("INVALID_ORIGIN");
+    return;
+  }
   const expected = new URL(getPublicAppUrl()).origin;
   const requestOrigin = request.nextUrl.origin;
   if (origin === expected || origin === requestOrigin) return;

@@ -41,3 +41,6 @@ export function safeJson<T>(value: T): T {
 export function redactMobile(mobile: string) {
   return mobile.replace(/(\+91)(\d{2})\d{4}(\d{4})/, "$1$2****$3");
 }
+
+export { maskPan } from "@/lib/domain/identity";
+

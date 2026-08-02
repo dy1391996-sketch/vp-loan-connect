@@ -25,32 +25,50 @@ import {
 } from "@/lib/constants";
 import { trackEvent } from "@/lib/analytics-client";
 import { captureAttributionFromSearch, getAttributionPayload } from "@/lib/attribution";
+import { ageFromDob, evaluateIncomeLoanConsistency } from "@/lib/domain/cross-field-rules";
+import { isIndividualPan, isValidPanFormat, maskPan, normalizePan } from "@/lib/domain/identity";
+import { isImpossibleMobile, looksLikeFakePersonName, looksLikeWeakAddress } from "@/lib/domain/risk-signals";
 import { incomeRangeMidpoints } from "@/lib/domain/scoring";
+import { getPanProvider } from "@/lib/providers/pan";
 import { cn } from "@/lib/utils";
+
+type ResidenceType = "OWNED" | "RENTED" | "PARENTAL" | "OTHER";
 
 type FormState = {
   fullName: string;
   mobile: string;
   email: string;
   panNumber: string;
+  dateOfBirth: string;
   state: string;
   city: string;
   residentialAddress: string;
   pinCode: string;
+  residenceType: ResidenceType | "";
+  monthsAtAddress: string;
   loanAmount: string;
   loanPurpose: string;
   loanType: string;
   employmentType: string;
   employerOrBusinessName: string;
   monthlyIncomeRange: string;
+  existingEmi: string;
+  durationMonths: string;
   creditRange: string;
+  aadhaarAvailable: boolean;
+  addressProofAvailable: boolean;
+  incomeProofAvailable: boolean;
+  bankStatementAvailable: boolean;
+  sixMonthBankStatement: boolean;
+  currentOverdue: boolean;
+  settledOrWrittenOff: boolean;
   serviceConsent: boolean;
   marketingConsent: boolean;
 };
 
-const PAN_PATTERN = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 const MSG91_WIDGET_ID = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID ?? "";
 const MSG91_WIDGET_TOKEN = process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ?? "";
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const STEPS = [
   { id: 1, label: "Verify" },
@@ -64,17 +82,29 @@ const initialState: FormState = {
   mobile: "",
   email: "",
   panNumber: "",
+  dateOfBirth: "",
   state: "",
   city: "",
   residentialAddress: "",
   pinCode: "",
+  residenceType: "",
+  monthsAtAddress: "",
   loanAmount: "100000",
   loanPurpose: "Other personal need",
   loanType: "PERSONAL",
   employmentType: "",
   employerOrBusinessName: "",
   monthlyIncomeRange: "",
+  existingEmi: "",
+  durationMonths: "",
   creditRange: "UNKNOWN",
+  aadhaarAvailable: false,
+  addressProofAvailable: false,
+  incomeProofAvailable: false,
+  bankStatementAvailable: false,
+  sixMonthBankStatement: false,
+  currentOverdue: false,
+  settledOrWrittenOff: false,
   serviceConsent: false,
   marketingConsent: false,
 };
@@ -89,6 +119,18 @@ function getMsg91AccessToken(value: unknown): string {
   for (const child of Object.values(record)) {
     const token = getMsg91AccessToken(child);
     if (token) return token;
+  }
+  return "";
+}
+
+function firstFieldError(fields: unknown): string {
+  if (!fields || typeof fields !== "object") return "";
+  for (const value of Object.values(fields as Record<string, unknown>)) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (Array.isArray(value)) {
+      const message = value.find((item) => typeof item === "string" && item.trim());
+      if (typeof message === "string") return message.trim();
+    }
   }
   return "";
 }
@@ -148,7 +190,7 @@ export function AssessmentForm() {
     setForm((current) => {
       const next = { ...current, [key]: value };
       if (key === "panNumber" && typeof value === "string") {
-        next.panNumber = value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
+        next.panNumber = normalizePan(value);
       }
       return next;
     });
@@ -182,8 +224,16 @@ export function AssessmentForm() {
   }
 
   async function requestOtp() {
-    if (form.fullName.trim().length < 2 || !/^[6-9]\d{9}$/.test(form.mobile) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      setError("Enter your full name, a valid 10-digit mobile number and email address.");
+    if (looksLikeFakePersonName(form.fullName)) {
+      setError("Enter your full name as on PAN (not a test or dummy value).");
+      return;
+    }
+    if (isImpossibleMobile(form.mobile)) {
+      setError("Enter a valid 10-digit Indian mobile number (not a placeholder or repeated digits).");
+      return;
+    }
+    if (!EMAIL_PATTERN.test(form.email)) {
+      setError("Enter a valid email address.");
       return;
     }
     if (!MSG91_WIDGET_ID || !MSG91_WIDGET_TOKEN) {
@@ -272,31 +322,88 @@ export function AssessmentForm() {
 
   function validateStep(current: number) {
     if (current === 1) {
-      if (form.fullName.trim().length < 2) return "Enter your full name as on PAN.";
-      if (!/^[6-9]\d{9}$/.test(form.mobile)) return "Enter a valid 10-digit Indian mobile number.";
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return "Enter a valid email address.";
+      if (looksLikeFakePersonName(form.fullName)) return "Enter your full name as on PAN (not a test or dummy value).";
+      if (isImpossibleMobile(form.mobile)) return "Enter a valid 10-digit Indian mobile number (not a placeholder or repeated digits).";
+      if (!EMAIL_PATTERN.test(form.email)) return "Enter a valid email address.";
       if (!otpToken) return "Please verify your email with OTP before continuing.";
       return "";
     }
+
     if (current === 2) {
-      if (!PAN_PATTERN.test(form.panNumber)) return "Enter a valid 10-character PAN (e.g. ABCDE1234F).";
+      const pan = normalizePan(form.panNumber);
+      const panCheck = getPanProvider().checkFormat(pan);
+      if (panCheck.formatStatus !== "format_valid") return panCheck.message;
+      if (!isIndividualPan(pan)) return "Use an individual PAN (4th character must be P) for this personal profile.";
+
+      const age = ageFromDob(form.dateOfBirth);
+      if (age === null) return "Enter a valid date of birth (YYYY-MM-DD).";
+      if (age < 21) return "Applicant must be at least 21 years old for this product.";
+      if (age > 65) return "Applicant age exceeds the supported limit for this product (65).";
+
       if (!form.employmentType) return "Choose how you earn.";
+      if (looksLikeFakePersonName(form.employerOrBusinessName) || form.employerOrBusinessName.trim().length < 2) {
+        return "Enter a meaningful employer or business name.";
+      }
       if (!form.monthlyIncomeRange) return "Choose your monthly income range.";
-      if (!form.loanAmount || Number(form.loanAmount) < 5000) return "Choose a loan amount of at least ₹5,000.";
+
+      const loanAmount = Number(form.loanAmount);
+      if (!form.loanAmount || !Number.isFinite(loanAmount) || loanAmount < 5000) {
+        return "Choose a loan amount of at least ₹5,000.";
+      }
       if (!form.loanPurpose.trim()) return "Choose what you need the money for.";
+
+      if (form.existingEmi.trim() === "" || !/^\d+(\.\d+)?$/.test(form.existingEmi.trim())) {
+        return "Enter your total existing monthly EMI (use 0 if none).";
+      }
+      const existingEmi = Number(form.existingEmi);
+      if (!Number.isFinite(existingEmi) || existingEmi < 0) return "Existing EMI cannot be negative.";
+
+      if (form.durationMonths.trim() === "" || !/^\d+$/.test(form.durationMonths.trim())) {
+        return "Enter months employed / in business (1–480).";
+      }
+      const durationMonths = Number(form.durationMonths);
+      if (!Number.isInteger(durationMonths) || durationMonths < 1 || durationMonths > 480) {
+        return "Employment/business duration must be between 1 and 480 months.";
+      }
+
+      if (!form.creditRange) return "Choose your approximate credit range.";
+
+      const consistency = evaluateIncomeLoanConsistency({
+        monthlyIncomeRange: form.monthlyIncomeRange,
+        existingEmi,
+        loanAmount,
+        durationMonths,
+        employmentType: form.employmentType,
+        dateOfBirth: form.dateOfBirth,
+      });
+      if (consistency[0]) return consistency[0].message;
+
       return "";
     }
+
     if (current === 3) {
       if (!/^\d{6}$/.test(form.pinCode)) return "Enter a valid 6-digit PIN code.";
       if (form.state.trim().length < 2) return "Enter your state.";
       if (form.city.trim().length < 2) return "Enter your city.";
-      if (form.residentialAddress.trim().length < 8) return "Enter your full residential address.";
+      if (looksLikeWeakAddress(form.residentialAddress)) {
+        return "Enter a complete residential address (house/street/locality), at least 12 characters.";
+      }
+      if (!form.residenceType) return "Choose your residence type.";
+      if (form.monthsAtAddress.trim() === "" || !/^\d+$/.test(form.monthsAtAddress.trim())) {
+        return "Enter how many months you have lived at this address.";
+      }
+      const monthsAtAddress = Number(form.monthsAtAddress);
+      if (!Number.isInteger(monthsAtAddress) || monthsAtAddress < 0 || monthsAtAddress > 600) {
+        return "Months at address must be between 0 and 600.";
+      }
       return "";
     }
+
     if (current === 4) {
       if (!form.serviceConsent) return "Service consent is required to continue.";
       return "";
     }
+
     return "";
   }
 
@@ -319,46 +426,52 @@ export function AssessmentForm() {
 
   function buildPayload() {
     const monthly = incomeRangeMidpoints[form.monthlyIncomeRange as keyof typeof incomeRangeMidpoints] ?? 32500;
-    const isBusiness = ["SELF_EMPLOYED", "BUSINESS_OWNER", "FREELANCER"].includes(form.employmentType);
-    const employer =
-      form.employerOrBusinessName.trim() ||
-      (form.employmentType === "SALARIED" ? "Employer" : isBusiness ? "Self / Business" : "Self");
+    const pan = normalizePan(form.panNumber);
+    const panFormatOk = isValidPanFormat(pan) && isIndividualPan(pan);
+    const existingEmi = Math.max(0, Number(form.existingEmi) || 0);
+    const durationMonths = Math.min(480, Math.max(0, Number(form.durationMonths) || 0));
+    const monthsAtAddress = Math.min(600, Math.max(0, Number(form.monthsAtAddress) || 0));
 
     return {
       fullName: form.fullName.trim(),
       mobile: form.mobile,
       email: form.email.trim(),
-      panNumber: form.panNumber.toUpperCase(),
+      panNumber: pan,
+      dateOfBirth: form.dateOfBirth,
       state: form.state.trim(),
       city: form.city.trim(),
       residentialAddress: form.residentialAddress.trim(),
       pinCode: form.pinCode,
+      residenceType: (form.residenceType || "OTHER") as ResidenceType,
+      monthsAtAddress,
       loanAmount: Number(form.loanAmount) || 100000,
       loanPurpose: form.loanPurpose || "Other personal need",
       loanType: form.loanType || "PERSONAL",
       employmentType: form.employmentType,
-      employerOrBusinessName: employer,
+      employerOrBusinessName: form.employerOrBusinessName.trim(),
       officeAddress: form.residentialAddress.trim(),
       monthlyIncomeRange: form.monthlyIncomeRange,
       annualIncome: Math.round(monthly * 12),
-      durationMonths: 12,
+      durationMonths,
       salaryBankCredit: form.employmentType === "SALARIED",
-      itrAvailable: isBusiness,
-      gstAvailable: form.employmentType === "BUSINESS_OWNER",
+      itrAvailable: false,
+      gstAvailable: false,
       udyamAvailable: false,
-      sixMonthBankStatement: true,
-      existingEmi: 0,
-      activeLoans: 0,
+      sixMonthBankStatement: form.sixMonthBankStatement,
+      existingEmi,
+      activeLoans: existingEmi > 0 ? 1 : 0,
       cardOutstanding: 0,
-      currentOverdue: false,
-      settledOrWrittenOff: false,
+      currentOverdue: form.currentOverdue,
+      settledOrWrittenOff: form.settledOrWrittenOff,
       creditRange: (form.creditRange || "UNKNOWN") as FormState["creditRange"],
-      panAvailable: true,
-      aadhaarAvailable: true,
-      addressProofAvailable: true,
-      incomeProofAvailable: true,
-      bankStatementAvailable: true,
-      businessRegistrationAvailable: form.employmentType === "BUSINESS_OWNER",
+      panFormatValidated: panFormatOk,
+      panVerificationStatus: "not_verified" as const,
+      panAvailable: panFormatOk,
+      aadhaarAvailable: form.aadhaarAvailable,
+      addressProofAvailable: form.addressProofAvailable,
+      incomeProofAvailable: form.incomeProofAvailable,
+      bankStatementAvailable: form.bankStatementAvailable,
+      businessRegistrationAvailable: false,
       securedAssetAvailable: false,
       serviceConsent: form.serviceConsent,
       marketingConsent: form.marketingConsent,
@@ -383,13 +496,22 @@ export function AssessmentForm() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify(buildPayload()),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Unable to save your profile.");
+      const data = (await response.json()) as {
+        error?: string;
+        fields?: Record<string, string[] | undefined>;
+        assessmentId?: string;
+        accessToken?: string;
+      };
+      if (!response.ok) {
+        const fieldMessage = firstFieldError(data.fields);
+        const base = data.error || "Unable to save your profile.";
+        throw new Error(fieldMessage && fieldMessage !== base ? `${base} ${fieldMessage}` : fieldMessage || base);
+      }
       trackEvent("assessment_completed");
       trackEvent("checkout_redirect_early");
       // Hard navigate so checkout remounts and autostarts Razorpay immediately.
       window.location.assign(
-        `/checkout?product=credit-health-action-plan&assessment=${data.assessmentId}&token=${encodeURIComponent(data.accessToken)}&autostart=1`,
+        `/checkout?product=credit-health-action-plan&assessment=${data.assessmentId}&token=${encodeURIComponent(data.accessToken || "")}&autostart=1`,
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to open payment.");
@@ -496,7 +618,11 @@ function VerifyStep({
         <Field label="Full name" required>
           <Input autoComplete="name" value={form.fullName} onChange={(e) => update("fullName", e.target.value)} placeholder="Name as on PAN" />
         </Field>
-        <Field label="Mobile number" required hint="Prefer the number linked to WhatsApp">
+        <Field
+          label="Mobile number"
+          required
+          hint="Prefer the number linked to WhatsApp. Email verified via OTP. Mobile is linked to your profile after email verification."
+        >
           <Input
             className="number-field"
             inputMode="numeric"
@@ -508,7 +634,7 @@ function VerifyStep({
             placeholder="Enter 10-digit number"
           />
         </Field>
-        <Field label="Email" required hint="OTP arrives from VP Loan Connect">
+        <Field label="Email" required hint="OTP arrives from VP Loan Connect — this verifies your email only">
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               type="email"
@@ -525,7 +651,7 @@ function VerifyStep({
               </Button>
             ) : (
               <span className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-100 px-4 py-3 text-sm font-bold text-brand-800">
-                <Check size={17} /> Verified
+                <Check size={17} /> Email verified
               </span>
             )}
           </div>
@@ -539,7 +665,34 @@ function VerifyStep({
   );
 }
 
+function DocToggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <label className={cn("flex cursor-pointer items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm font-bold transition", checked ? "border-brand-600 bg-brand-100/50 text-brand-800" : "border-line bg-white text-navy-900")}>
+      <span>{label}</span>
+      <Select
+        className="min-h-11 w-28"
+        value={checked ? "yes" : "no"}
+        onChange={(e) => onChange(e.target.value === "yes")}
+      >
+        <option value="no">No</option>
+        <option value="yes">Yes</option>
+      </Select>
+    </label>
+  );
+}
+
 function EligibilityStep({ form, update }: StepProps) {
+  const panCheck = getPanProvider().checkFormat(form.panNumber);
+  const panFormatOk = panCheck.formatStatus === "format_valid" && isIndividualPan(form.panNumber);
+
   return (
     <div>
       <h2 className="text-2xl font-extrabold tracking-[-0.04em] text-navy-950 sm:text-3xl">Check your eligibility</h2>
@@ -548,15 +701,34 @@ function EligibilityStep({ form, update }: StepProps) {
       </p>
 
       <div className="mt-7 grid gap-5 sm:grid-cols-2">
-        <Field label="PAN card number" required hint="10-character PAN, e.g. ABCDE1234F">
+        <Field
+          label="PAN card number"
+          required
+          hint={
+            panFormatOk
+              ? "PAN format validated — identity verification pending"
+              : form.panNumber.length > 0
+                ? panCheck.message
+                : "10-character individual PAN, e.g. ABCPG1234F"
+          }
+        >
           <Input
             className="uppercase tracking-[0.18em]"
             autoComplete="off"
             maxLength={10}
             value={form.panNumber}
             onChange={(e) => update("panNumber", e.target.value)}
-            placeholder="ABCDE1234F"
-            aria-invalid={form.panNumber.length > 0 && !PAN_PATTERN.test(form.panNumber) ? true : undefined}
+            placeholder="ABCPG1234F"
+            aria-invalid={form.panNumber.length > 0 && !panFormatOk ? true : undefined}
+          />
+        </Field>
+        <Field label="Date of birth" required hint="Must be age 21–65">
+          <Input
+            type="date"
+            autoComplete="bday"
+            value={form.dateOfBirth}
+            onChange={(e) => update("dateOfBirth", e.target.value)}
+            max={new Date().toISOString().slice(0, 10)}
           />
         </Field>
         <Field label="You work as" required>
@@ -568,6 +740,22 @@ function EligibilityStep({ form, update }: StepProps) {
             <option value="FREELANCER">Freelancer / gig</option>
             <option value="OTHER">Other</option>
           </Select>
+        </Field>
+        <Field label="Employer / business name" required>
+          <Input
+            value={form.employerOrBusinessName}
+            onChange={(e) => update("employerOrBusinessName", e.target.value)}
+            placeholder="e.g. Acme Pvt Ltd / My Shop"
+          />
+        </Field>
+        <Field label="Months employed / in business" required hint="Total months in current employment or business">
+          <Input
+            className="number-field"
+            inputMode="numeric"
+            value={form.durationMonths}
+            onChange={(e) => update("durationMonths", e.target.value.replace(/\D/g, "").slice(0, 3))}
+            placeholder="e.g. 24"
+          />
         </Field>
         <Field label="Monthly net income" required>
           <Select value={form.monthlyIncomeRange} onChange={(e) => update("monthlyIncomeRange", e.target.value)}>
@@ -581,11 +769,13 @@ function EligibilityStep({ form, update }: StepProps) {
             <option value="150000_PLUS">₹1,50,000+</option>
           </Select>
         </Field>
-        <Field label="Company / shop name" hint="Optional but improves matching">
+        <Field label="Existing monthly EMI total" required hint="Use 0 if you have no EMIs">
           <Input
-            value={form.employerOrBusinessName}
-            onChange={(e) => update("employerOrBusinessName", e.target.value)}
-            placeholder="e.g. Acme Pvt Ltd / My Shop"
+            className="number-field"
+            inputMode="numeric"
+            value={form.existingEmi}
+            onChange={(e) => update("existingEmi", e.target.value.replace(/[^\d.]/g, "").slice(0, 10))}
+            placeholder="e.g. 8500"
           />
         </Field>
         <Field label="Loan amount needed" required>
@@ -615,7 +805,7 @@ function EligibilityStep({ form, update }: StepProps) {
             <option value="Business working capital">Business working capital</option>
           </Select>
         </Field>
-        <Field label="CIBIL / credit range (approx)" hint="Self-reported — no bureau pull">
+        <Field label="CIBIL / credit range (approx)" required hint="Self-reported — no bureau pull">
           <Select value={form.creditRange} onChange={(e) => update("creditRange", e.target.value)}>
             <option value="UNKNOWN">I don&apos;t know</option>
             <option value="BELOW_550">Below 550</option>
@@ -626,6 +816,20 @@ function EligibilityStep({ form, update }: StepProps) {
             <option value="750_PLUS">750+</option>
           </Select>
         </Field>
+      </div>
+
+      <div className="mt-8">
+        <h3 className="text-sm font-extrabold uppercase tracking-[0.12em] text-slate-500">Document readiness</h3>
+        <p className="mt-2 text-sm leading-6 text-slate-600">Answer honestly. Unchecked means not currently available — do not claim documents you do not have.</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <DocToggle label="Aadhaar available" checked={form.aadhaarAvailable} onChange={(v) => update("aadhaarAvailable", v)} />
+          <DocToggle label="Address proof available" checked={form.addressProofAvailable} onChange={(v) => update("addressProofAvailable", v)} />
+          <DocToggle label="Income proof available" checked={form.incomeProofAvailable} onChange={(v) => update("incomeProofAvailable", v)} />
+          <DocToggle label="Bank statement available" checked={form.bankStatementAvailable} onChange={(v) => update("bankStatementAvailable", v)} />
+          <DocToggle label="6-month bank statement" checked={form.sixMonthBankStatement} onChange={(v) => update("sixMonthBankStatement", v)} />
+          <DocToggle label="Any current overdue" checked={form.currentOverdue} onChange={(v) => update("currentOverdue", v)} />
+          <DocToggle label="Settled or written-off history" checked={form.settledOrWrittenOff} onChange={(v) => update("settledOrWrittenOff", v)} />
+        </div>
       </div>
     </div>
   );
@@ -666,7 +870,25 @@ function AddressStep({
         <Field label="City" required>
           <Input autoComplete="address-level2" value={form.city} onChange={(e) => update("city", e.target.value)} placeholder="e.g. Greater Noida" />
         </Field>
-        <Field label="Residential address" required>
+        <Field label="Residence type" required>
+          <Select value={form.residenceType} onChange={(e) => update("residenceType", e.target.value as ResidenceType | "")}>
+            <option value="">Choose one</option>
+            <option value="OWNED">Owned</option>
+            <option value="RENTED">Rented</option>
+            <option value="PARENTAL">Parental / family</option>
+            <option value="OTHER">Other</option>
+          </Select>
+        </Field>
+        <Field label="Months at this address" required>
+          <Input
+            className="number-field"
+            inputMode="numeric"
+            value={form.monthsAtAddress}
+            onChange={(e) => update("monthsAtAddress", e.target.value.replace(/\D/g, "").slice(0, 3))}
+            placeholder="e.g. 18"
+          />
+        </Field>
+        <Field label="Residential address" required hint="House / street / locality — at least 12 characters">
           <Input
             autoComplete="street-address"
             value={form.residentialAddress}
@@ -706,7 +928,7 @@ function UnlockStep({ form, update }: StepProps) {
           <strong>Name:</strong> {form.fullName}
         </p>
         <p>
-          <strong>PAN:</strong> {form.panNumber}
+          <strong>PAN:</strong> {maskPan(form.panNumber)}
         </p>
         <p>
           <strong>Need:</strong> ₹{Number(form.loanAmount).toLocaleString("en-IN")} · {form.loanPurpose}
@@ -715,6 +937,10 @@ function UnlockStep({ form, update }: StepProps) {
           <strong>City:</strong> {form.city}, {form.state}
         </p>
       </div>
+
+      <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-950">
+        Results are indicative only — not a loan approval, sanction, or credit decision. Lenders make their own decisions after you apply on their official sites.
+      </p>
 
       <div className="mt-6 grid gap-3">
         {["Credit profile explanation", "Loan-readiness analysis", "Best-fit lenders shown first", "Official apply links (you click voluntarily)"].map((item) => (
