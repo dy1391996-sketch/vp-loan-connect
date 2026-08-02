@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { createProviderOrder } from "@/lib/payments/razorpay";
+import { createProviderOrder, mapPaymentError, reportMissingPaymentCredentials } from "@/lib/payments";
 import { datedReference } from "@/lib/payments/order-service";
 import { assertSameOrigin, rateLimit } from "@/lib/security/request";
 import { USP_PRODUCT_SLUG, USP_SALE_PRICE } from "@/lib/constants";
-import { getServerEnv } from "@/lib/env";
+import { getPublicAppUrl, getServerEnv, missingPaymentCredentialKeys } from "@/lib/env";
 import { verifyAccessToken } from "@/lib/security/tokens";
 
 export const runtime = "nodejs";
@@ -17,40 +17,6 @@ const schema = z.object({
   resultToken: z.string().min(20),
   referralCode: z.string().max(20).optional(),
 });
-
-function publicPaymentError(message: string) {
-  if (message === "INVALID_ORIGIN") {
-    return {
-      status: 403,
-      error: "Please reload this page on www.vploanconnect.in and try again.",
-    };
-  }
-  if (message.includes("Razorpay order credentials") || message.includes("Mock payments are disabled")) {
-    return {
-      status: 503,
-      error: "Payment gateway is not configured on the server. Set PAYMENT_PROVIDER=razorpay and Razorpay keys on Vercel.",
-    };
-  }
-  if (message.includes("Razorpay authentication failed") || message.includes("KEY_ID looks invalid")) {
-    return {
-      status: 502,
-      error: "Razorpay keys are invalid or mismatched (test/live). Update RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET on Vercel, then redeploy.",
-    };
-  }
-  if (message.includes("Razorpay order creation failed")) {
-    return {
-      status: 502,
-      error: message,
-    };
-  }
-  if (message.includes("Invalid payment amount")) {
-    return { status: 400, error: message };
-  }
-  return {
-    status: 500,
-    error: "Unable to open checkout right now. Please try again.",
-  };
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,13 +33,33 @@ export async function POST(request: NextRequest) {
     }
 
     const env = getServerEnv();
-    const [assessment, product] = await Promise.all([
+    const credentialReport = reportMissingPaymentCredentials(env);
+    if (env.PAYMENT_PROVIDER !== "mock" && credentialReport.missing.length) {
+      return NextResponse.json(
+        {
+          error: `Payment gateway (${credentialReport.displayName}) is not configured. Missing: ${credentialReport.missing.join(", ")}.`,
+          provider: credentialReport.provider,
+          missing: credentialReport.missing,
+          keyConfigured: false,
+        },
+        { status: 503 },
+      );
+    }
+
+    const [assessment, product, lead] = await Promise.all([
       prisma.assessment.findUnique({ where: { id: parsed.data.assessmentId } }),
       prisma.product.findUnique({ where: { slug: parsed.data.productSlug } }),
+      prisma.lead.findUnique({ where: { id: token.leadId }, select: { fullName: true, mobile: true } }),
     ]);
     if (!assessment || assessment.leadId !== token.leadId || assessment.status !== "COMPLETED" || !product?.active) {
       return NextResponse.json({ error: "Assessment or product is unavailable." }, { status: 404 });
     }
+
+    const emailAnswer = await prisma.assessmentAnswer.findFirst({
+      where: { assessmentId: assessment.id, questionKey: "email" },
+      select: { value: true },
+    });
+    const customerEmail = typeof emailAnswer?.value === "string" ? emailAnswer.value : undefined;
 
     const subtotal = product.slug === USP_PRODUCT_SLUG ? USP_SALE_PRICE : Number(product.salePrice);
     const gstAmount = Math.round(subtotal * Number(product.gstRate)) / 100;
@@ -105,9 +91,16 @@ export async function POST(request: NextRequest) {
           referral: order.referralCode ?? "",
           provider_mode: env.PAYMENT_PROVIDER,
         },
+        customer: {
+          name: lead?.fullName,
+          mobile: lead?.mobile,
+          email: customerEmail,
+        },
+        returnUrl: `${getPublicAppUrl()}/api/payments/return?internalOrderId=${order.id}`,
+        notifyUrl: `${getPublicAppUrl()}/api/webhooks/payments/${env.PAYMENT_PROVIDER}`,
       });
       await prisma.$transaction([
-        prisma.order.update({ where: { id: order.id }, data: { providerOrderId: provider.orderId, status: "PENDING" } }),
+        prisma.order.update({ where: { id: order.id }, data: { providerOrderId: provider.providerOrderId, status: "PENDING" } }),
         prisma.payment.create({
           data: {
             orderId: order.id,
@@ -122,12 +115,13 @@ export async function POST(request: NextRequest) {
         internalOrderId: order.id,
         orderReference: order.orderReference,
         provider: provider.provider,
-        providerOrderId: provider.orderId,
+        providerOrderId: provider.providerOrderId,
         keyId: provider.keyId,
         amountPaise,
         currency: "INR",
         name: "VP Loan Connect",
         description: product.name,
+        checkout: provider.checkout,
       });
     } catch (error) {
       await prisma.order.update({ where: { id: order.id }, data: { status: "FAILED" } });
@@ -136,16 +130,18 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown";
     console.error("create_order_failed", message);
-    const mapped = publicPaymentError(message);
+    const mapped = mapPaymentError(error);
     let provider = "unknown";
     let keyConfigured = false;
+    let missing: string[] = [];
     try {
       const env = getServerEnv();
       provider = env.PAYMENT_PROVIDER;
-      keyConfigured = Boolean(env.RAZORPAY_KEY_ID?.trim() && env.RAZORPAY_KEY_SECRET?.trim());
+      missing = missingPaymentCredentialKeys(env);
+      keyConfigured = missing.length === 0;
     } catch {
       // ignore env read issues in error path
     }
-    return NextResponse.json({ error: mapped.error, provider, keyConfigured }, { status: mapped.status });
+    return NextResponse.json({ error: mapped.error, provider, keyConfigured, missing: mapped.missing ?? missing }, { status: mapped.status });
   }
 }

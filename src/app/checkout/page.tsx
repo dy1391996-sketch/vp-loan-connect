@@ -43,12 +43,12 @@ export default async function CheckoutPage({
           <div className="mb-8">
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-brand-700">Secure payment</p>
             <h1 className="mt-3 text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">
-              {autoStart ? "Opening Razorpay…" : `Review your ${USP_PRICE_LABEL} ${USP_PRODUCT_NAME}`}
+              {autoStart ? "Opening secure payment…" : `Review your ${USP_PRICE_LABEL} ${USP_PRODUCT_NAME}`}
             </h1>
             <p className="mt-3 text-sm leading-7 text-slate-600">
               {autoStart
                 ? "Your profile is saved. The secure payment window should open automatically — tap Pay if it does not."
-                : "Review the plan and total price, then open the secure Razorpay payment window."}
+                : "Review the plan and total price, then open the secure payment window."}
             </p>
           </div>
           <CheckoutClient
@@ -76,7 +76,7 @@ function InvalidCheckout() {
       icon={LockKeyhole}
       eyebrow="Secure checkout"
       title="Secure payment link required"
-      description="Complete the short profile and unlock step first so we can open Razorpay securely."
+      description="Complete the short profile and unlock step first so we can open secure payment."
       action={{ href: "/apply/quick", label: "Start quick apply" }}
     />
   );

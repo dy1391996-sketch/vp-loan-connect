@@ -14,8 +14,34 @@ declare global {
       open: () => void;
       on: (event: string, callback: (response: { error?: { description?: string } }) => void) => void;
     };
+    Cashfree?: new (options: { mode: "sandbox" | "production" }) => {
+      checkout: (options: { paymentSessionId: string; redirectTarget?: string }) => Promise<unknown>;
+    };
   }
 }
+
+type CheckoutDescriptor =
+  | { mode: "mock" }
+  | { mode: "razorpay_modal"; keyId: string; orderId: string }
+  | { mode: "cashfree_checkout"; paymentSessionId: string; env: "sandbox" | "production" }
+  | { mode: "phonepe_redirect"; redirectUrl: string }
+  | { mode: "payu_hosted"; actionUrl: string; fields: Record<string, string> };
+
+type CreateOrderResponse = {
+  error?: string;
+  provider?: string;
+  keyConfigured?: boolean;
+  missing?: string[];
+  internalOrderId: string;
+  orderReference: string;
+  providerOrderId: string;
+  keyId?: string;
+  amountPaise: number;
+  currency: string;
+  name: string;
+  description: string;
+  checkout?: CheckoutDescriptor;
+};
 
 type Props = {
   assessmentId: string;
@@ -39,6 +65,28 @@ export function CheckoutClient(props: Props) {
   const [error, setError] = useState("");
   const startedRef = useRef(false);
 
+  async function completeVerified(verified: { orderReference: string; reportId: string; reportToken: string }, provider: string) {
+    trackEvent("payment_completed", { product: props.productSlug, provider });
+    router.push(
+      `/payment/success?order=${encodeURIComponent(verified.orderReference)}&report=${verified.reportId}&token=${encodeURIComponent(verified.reportToken)}`,
+    );
+  }
+
+  async function verifyWithServer(internalOrderId: string, payload: Record<string, unknown>, provider: string) {
+    const verifyResponse = await fetch("/api/payments/verify", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ internalOrderId, ...payload }),
+    });
+    const verified = await verifyResponse.json();
+    if (!verifyResponse.ok) {
+      setError(verified.error || "Payment could not be verified.");
+      setBusy(false);
+      return;
+    }
+    await completeVerified(verified, provider);
+  }
+
   async function pay() {
     setBusy(true);
     setError("");
@@ -55,16 +103,20 @@ export function CheckoutClient(props: Props) {
           referralCode: props.referralCode,
         }),
       });
-      const order = await orderResponse.json();
+      const order = (await orderResponse.json()) as CreateOrderResponse;
       if (!orderResponse.ok) {
-        const suffix =
-          typeof order.provider === "string"
-            ? ` (provider: ${order.provider}${order.keyConfigured === false ? ", keys missing" : ""})`
-            : "";
+        const missing = Array.isArray(order.missing) && order.missing.length ? `, missing: ${order.missing.join(", ")}` : "";
+        const suffix = typeof order.provider === "string" ? ` (provider: ${order.provider}${order.keyConfigured === false ? ", keys missing" : ""}${missing})` : "";
         throw new Error(`${order.error || "Payment order could not be created."}${suffix}`);
       }
 
-      if (order.provider === "mock") {
+      const checkout =
+        order.checkout ||
+        (order.provider === "mock"
+          ? ({ mode: "mock" } as const)
+          : ({ mode: "razorpay_modal", keyId: order.keyId || "", orderId: order.providerOrderId } as const));
+
+      if (checkout.mode === "mock" || order.provider === "mock") {
         const response = await fetch("/api/payments/mock-complete", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -72,58 +124,78 @@ export function CheckoutClient(props: Props) {
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Test payment could not be completed.");
-        trackEvent("payment_completed", { product: props.productSlug, provider: "mock" });
-        router.push(`/payment/success?order=${encodeURIComponent(data.orderReference)}&report=${data.reportId}&token=${encodeURIComponent(data.reportToken)}`);
+        await completeVerified(data, "mock");
         return;
       }
 
-      await loadRazorpay();
-      if (!window.Razorpay) throw new Error("The secure payment window could not be opened. Disable blockers and try again.");
-
-      const checkout = new window.Razorpay({
-        key: order.keyId,
-        amount: order.amountPaise,
-        currency: order.currency,
-        name: order.name,
-        description: order.description,
-        order_id: order.providerOrderId,
-        prefill: {
-          name: props.customerName,
-          contact: props.customerMobile.replace("+91", ""),
-        },
-        theme: { color: "#0a9265" },
-        modal: {
-          ondismiss: () => setBusy(false),
-          confirm_close: true,
-        },
-        handler: async (payment: Record<string, string>) => {
-          try {
-            const verifyResponse = await fetch("/api/payments/verify", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ internalOrderId: order.internalOrderId, ...payment }),
-            });
-            const verified = await verifyResponse.json();
-            if (!verifyResponse.ok) {
-              setError(verified.error || "Payment could not be verified.");
+      if (checkout.mode === "razorpay_modal") {
+        await loadScript("https://checkout.razorpay.com/v1/checkout.js", () => Boolean(window.Razorpay));
+        if (!window.Razorpay) throw new Error("The secure payment window could not be opened. Disable blockers and try again.");
+        const rzp = new window.Razorpay({
+          key: checkout.keyId || order.keyId,
+          amount: order.amountPaise,
+          currency: order.currency,
+          name: order.name,
+          description: order.description,
+          order_id: checkout.orderId || order.providerOrderId,
+          prefill: {
+            name: props.customerName,
+            contact: props.customerMobile.replace("+91", ""),
+          },
+          theme: { color: "#0a9265" },
+          modal: {
+            ondismiss: () => setBusy(false),
+            confirm_close: true,
+          },
+          handler: async (payment: Record<string, string>) => {
+            try {
+              await verifyWithServer(order.internalOrderId, payment, "razorpay");
+            } catch {
+              setError("Payment was taken but verification failed. Contact support with your payment reference.");
               setBusy(false);
-              return;
             }
-            trackEvent("payment_completed", { product: props.productSlug, provider: "razorpay" });
-            router.push(`/payment/success?order=${encodeURIComponent(verified.orderReference)}&report=${verified.reportId}&token=${encodeURIComponent(verified.reportToken)}`);
-          } catch {
-            setError("Payment was taken but verification failed. Contact support with your payment reference.");
-            setBusy(false);
-          }
-        },
-      });
+          },
+        });
+        rzp.on("payment.failed", (response) => {
+          router.push(
+            `/payment/failed?assessment=${props.assessmentId}&product=${props.productSlug}&token=${encodeURIComponent(props.resultToken)}&reason=${encodeURIComponent(response.error?.description || "Payment could not be completed")}`,
+          );
+        });
+        rzp.open();
+        return;
+      }
 
-      checkout.on("payment.failed", (response) => {
-        router.push(
-          `/payment/failed?assessment=${props.assessmentId}&product=${props.productSlug}&token=${encodeURIComponent(props.resultToken)}&reason=${encodeURIComponent(response.error?.description || "Payment could not be completed")}`,
-        );
-      });
-      checkout.open();
+      if (checkout.mode === "cashfree_checkout") {
+        await loadScript("https://sdk.cashfree.com/js/v3/cashfree.js", () => Boolean(window.Cashfree));
+        if (!window.Cashfree) throw new Error("Cashfree checkout could not be loaded.");
+        const cashfree = new window.Cashfree({ mode: checkout.env });
+        await cashfree.checkout({ paymentSessionId: checkout.paymentSessionId, redirectTarget: "_self" });
+        // Cashfree redirects; webhook/return will finalize. Soft-verify after return handled by return route.
+        return;
+      }
+
+      if (checkout.mode === "phonepe_redirect") {
+        window.location.assign(checkout.redirectUrl);
+        return;
+      }
+
+      if (checkout.mode === "payu_hosted") {
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = checkout.actionUrl;
+        for (const [key, value] of Object.entries(checkout.fields)) {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = key;
+          input.value = value;
+          form.appendChild(input);
+        }
+        document.body.appendChild(form);
+        form.submit();
+        return;
+      }
+
+      throw new Error("Unsupported checkout mode for the configured payment provider.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Payment could not be started.");
       setBusy(false);
@@ -136,7 +208,6 @@ export function CheckoutClient(props: Props) {
     startedRef.current = true;
     autoStartedAssessments.add(props.assessmentId);
     void pay();
-    // Auto-open Razorpay once when arriving from assessment unlock.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.autoStart, props.assessmentId]);
 
@@ -169,11 +240,11 @@ export function CheckoutClient(props: Props) {
 
         <Button size="lg" className="mt-6 w-full" onClick={() => void pay()} disabled={busy} aria-busy={busy}>
           {busy ? <Loader2 className="animate-spin" size={18} /> : <LockKeyhole size={18} />}
-          {busy ? "Opening Razorpay…" : `Pay securely: ${props.total}`}
+          {busy ? "Opening secure payment…" : `Pay securely: ${props.total}`}
         </Button>
         <p className="mt-4 flex items-center justify-center gap-2 text-center text-xs leading-5 text-slate-500">
           <ShieldCheck className="shrink-0 text-brand-700" size={15} />
-          Razorpay opens automatically after unlock. Complete payment there to get official connect links.
+          Secure checkout opens automatically after unlock. Complete payment to get official connect links.
         </p>
       </div>
 
@@ -209,21 +280,21 @@ function Price({ label, value, strong }: { label: string; value: string; strong?
   );
 }
 
-async function loadRazorpay() {
-  if (window.Razorpay) return;
+async function loadScript(src: string, ready: () => boolean) {
+  if (ready()) return;
   await new Promise<void>((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+    const existing = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`);
     if (existing) {
       existing.addEventListener("load", () => resolve(), { once: true });
-      existing.addEventListener("error", () => reject(new Error("Razorpay checkout could not be loaded.")), { once: true });
-      if (window.Razorpay) resolve();
+      existing.addEventListener("error", () => reject(new Error("Payment checkout could not be loaded.")), { once: true });
+      if (ready()) resolve();
       return;
     }
     const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.src = src;
     script.async = true;
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Razorpay checkout could not be loaded."));
+    script.onerror = () => reject(new Error("Payment checkout could not be loaded."));
     document.head.appendChild(script);
   });
 }

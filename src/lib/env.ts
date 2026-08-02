@@ -1,6 +1,11 @@
 import { z } from "zod";
 
 const optionalUrl = z.string().url().optional().or(z.literal(""));
+const trimSecret = z
+  .string()
+  .optional()
+  .default("")
+  .transform((value) => value.trim().replace(/^['"]|['"]$/g, "").trim());
 
 const serverEnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -12,23 +17,41 @@ const serverEnvSchema = z.object({
     .string()
     .trim()
     .toLowerCase()
-    .pipe(z.enum(["mock", "razorpay"]))
+    .pipe(z.enum(["mock", "razorpay", "cashfree", "phonepe", "payu"]))
     .default("mock"),
-  RAZORPAY_KEY_ID: z
+  RAZORPAY_KEY_ID: trimSecret,
+  RAZORPAY_KEY_SECRET: trimSecret,
+  RAZORPAY_WEBHOOK_SECRET: trimSecret,
+  CASHFREE_APP_ID: trimSecret,
+  CASHFREE_SECRET_KEY: trimSecret,
+  CASHFREE_WEBHOOK_SECRET: trimSecret,
+  CASHFREE_ENV: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .pipe(z.enum(["sandbox", "production"]))
+    .default("sandbox"),
+  PHONEPE_MERCHANT_ID: trimSecret,
+  PHONEPE_SALT_KEY: trimSecret,
+  PHONEPE_SALT_INDEX: z
     .string()
     .optional()
-    .default("")
-    .transform((value) => value.trim().replace(/^['"]|['"]$/g, "").trim()),
-  RAZORPAY_KEY_SECRET: z
+    .default("1")
+    .transform((value) => value.trim().replace(/^['"]|['"]$/g, "").trim() || "1"),
+  PHONEPE_ENV: z
     .string()
-    .optional()
-    .default("")
-    .transform((value) => value.trim().replace(/^['"]|['"]$/g, "").trim()),
-  RAZORPAY_WEBHOOK_SECRET: z
+    .trim()
+    .toLowerCase()
+    .pipe(z.enum(["sandbox", "production"]))
+    .default("sandbox"),
+  PAYU_KEY: trimSecret,
+  PAYU_SALT: trimSecret,
+  PAYU_ENV: z
     .string()
-    .optional()
-    .default("")
-    .transform((value) => value.trim().replace(/^['"]|['"]$/g, "").trim()),
+    .trim()
+    .toLowerCase()
+    .pipe(z.enum(["test", "production"]))
+    .default("test"),
   WHATSAPP_PROVIDER: z.enum(["mock", "meta"]).default("mock"),
   WHATSAPP_API_URL: optionalUrl,
   WHATSAPP_ACCESS_TOKEN: z.string().optional().default(""),
@@ -51,6 +74,7 @@ const serverEnvSchema = z.object({
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
+export type PaymentProviderId = ServerEnv["PAYMENT_PROVIDER"];
 
 const requiredBuildValues: Array<keyof ServerEnv> = [
   "DATABASE_URL",
@@ -61,10 +85,7 @@ const requiredBuildValues: Array<keyof ServerEnv> = [
   "SUPPORT_EMAIL",
 ];
 
-const requiredProductionValues: Array<keyof ServerEnv> = [
-  "RAZORPAY_KEY_ID",
-  "RAZORPAY_KEY_SECRET",
-  "RAZORPAY_WEBHOOK_SECRET",
+const requiredProductionBaseValues: Array<keyof ServerEnv> = [
   "WHATSAPP_API_URL",
   "WHATSAPP_ACCESS_TOKEN",
   "WHATSAPP_PHONE_NUMBER_ID",
@@ -78,6 +99,31 @@ const requiredProductionValues: Array<keyof ServerEnv> = [
   "GRIEVANCE_NAME",
   "GRIEVANCE_EMAIL",
 ];
+
+export function missingPaymentCredentialKeys(config: ServerEnv): string[] {
+  switch (config.PAYMENT_PROVIDER) {
+    case "razorpay":
+      return [
+        !config.RAZORPAY_KEY_ID ? "RAZORPAY_KEY_ID" : "",
+        !config.RAZORPAY_KEY_SECRET ? "RAZORPAY_KEY_SECRET" : "",
+        !config.RAZORPAY_WEBHOOK_SECRET ? "RAZORPAY_WEBHOOK_SECRET" : "",
+      ].filter(Boolean);
+    case "cashfree":
+      return [!config.CASHFREE_APP_ID ? "CASHFREE_APP_ID" : "", !config.CASHFREE_SECRET_KEY ? "CASHFREE_SECRET_KEY" : ""].filter(Boolean);
+    case "phonepe":
+      return [
+        !config.PHONEPE_MERCHANT_ID ? "PHONEPE_MERCHANT_ID" : "",
+        !config.PHONEPE_SALT_KEY ? "PHONEPE_SALT_KEY" : "",
+        !config.PHONEPE_SALT_INDEX ? "PHONEPE_SALT_INDEX" : "",
+      ].filter(Boolean);
+    case "payu":
+      return [!config.PAYU_KEY ? "PAYU_KEY" : "", !config.PAYU_SALT ? "PAYU_SALT" : ""].filter(Boolean);
+    case "mock":
+      return [];
+    default:
+      return ["PAYMENT_PROVIDER"];
+  }
+}
 
 export function validateBuildEnvironment(environment: NodeJS.ProcessEnv): ServerEnv {
   const parsed = serverEnvSchema.safeParse({ ...environment, NODE_ENV: "production" });
@@ -95,9 +141,15 @@ export function validateBuildEnvironment(environment: NodeJS.ProcessEnv): Server
 
 export function validateProductionEnvironment(environment: NodeJS.ProcessEnv): ServerEnv {
   const config = validateBuildEnvironment(environment);
-  const missing = requiredProductionValues.filter((key) => String(config[key] ?? "").trim().length === 0);
+  const missing = requiredProductionBaseValues.filter((key) => String(config[key] ?? "").trim().length === 0);
   if (missing.length) throw new Error(`Missing production environment variables: ${missing.join(", ")}`);
-  if (config.PAYMENT_PROVIDER !== "razorpay") throw new Error("PAYMENT_PROVIDER must be razorpay in production.");
+  if (config.PAYMENT_PROVIDER === "mock") {
+    throw new Error("PAYMENT_PROVIDER must be razorpay, cashfree, phonepe, or payu in production.");
+  }
+  const paymentMissing = missingPaymentCredentialKeys(config);
+  if (paymentMissing.length) {
+    throw new Error(`Missing ${config.PAYMENT_PROVIDER} payment credentials: ${paymentMissing.join(", ")}`);
+  }
   if (config.OTP_PROVIDER !== "custom") throw new Error("OTP_PROVIDER must be custom in production.");
   if (config.WHATSAPP_PROVIDER !== "meta") throw new Error("WHATSAPP_PROVIDER must be meta in production.");
   if (!/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(config.BUSINESS_GSTIN)) throw new Error("BUSINESS_GSTIN must use the official 15-character format.");

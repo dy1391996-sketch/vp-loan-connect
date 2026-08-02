@@ -71,8 +71,28 @@ test("production runtime does not require unrelated integration credentials", ()
   assert.equal(validateRuntimeEnvironment(runtimeEnvironment).NODE_ENV, "production");
 });
 
-test("production environment rejects mock providers", () => {
+test("production environment rejects mock OTP provider", () => {
   assert.throws(() => validateProductionEnvironment({ ...validEnvironment, OTP_PROVIDER: "mock" }), /OTP_PROVIDER must be custom/);
+});
+
+test("production environment rejects mock payment provider", () => {
+  assert.throws(
+    () => validateProductionEnvironment({ ...validEnvironment, PAYMENT_PROVIDER: "mock" }),
+    /PAYMENT_PROVIDER must be razorpay, cashfree, phonepe, or payu/,
+  );
+});
+
+test("production environment requires credentials for the selected payment provider only", () => {
+  assert.throws(
+    () =>
+      validateProductionEnvironment({
+        ...validEnvironment,
+        PAYMENT_PROVIDER: "cashfree",
+        CASHFREE_APP_ID: "",
+        CASHFREE_SECRET_KEY: "",
+      }),
+    /Missing cashfree payment credentials/,
+  );
 });
 
 test("production environment rejects incomplete legal identity", () => {

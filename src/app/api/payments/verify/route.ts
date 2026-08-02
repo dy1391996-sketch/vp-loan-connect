@@ -2,28 +2,57 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getPublicAppUrl, getServerEnv } from "@/lib/env";
+import { getPaymentProvider } from "@/lib/payments";
 import { processSuccessfulPayment } from "@/lib/payments/order-service";
-import { verifyRazorpayPaymentSignature } from "@/lib/payments/razorpay";
 import { sendWhatsAppTemplate } from "@/lib/providers/whatsapp";
 import { assertSameOrigin } from "@/lib/security/request";
 import { signAccessToken } from "@/lib/security/tokens";
 
-const schema = z.object({ internalOrderId: z.string().uuid(), razorpay_order_id: z.string().min(3), razorpay_payment_id: z.string().min(3), razorpay_signature: z.string().min(10) });
+const schema = z
+  .object({
+    internalOrderId: z.string().uuid(),
+    providerOrderId: z.string().min(3).optional(),
+    providerPaymentId: z.string().min(3).optional(),
+    signature: z.string().min(10).optional(),
+    razorpay_order_id: z.string().min(3).optional(),
+    razorpay_payment_id: z.string().min(3).optional(),
+    razorpay_signature: z.string().min(10).optional(),
+  })
+  .passthrough();
 
 export async function POST(request: NextRequest) {
   try {
     assertSameOrigin(request);
     const parsed = schema.safeParse(await request.json());
     if (!parsed.success) return NextResponse.json({ error: "Invalid payment response." }, { status: 400 });
+
     const env = getServerEnv();
+    const provider = getPaymentProvider();
     const order = await prisma.order.findUnique({ where: { id: parsed.data.internalOrderId } });
-    if (!order || order.providerOrderId !== parsed.data.razorpay_order_id) return NextResponse.json({ error: "Payment order mismatch." }, { status: 400 });
-    if (!env.RAZORPAY_KEY_SECRET) return NextResponse.json({ error: "Payment verification is not configured." }, { status: 503 });
-    if (!verifyRazorpayPaymentSignature(parsed.data.razorpay_order_id, parsed.data.razorpay_payment_id, parsed.data.razorpay_signature, env.RAZORPAY_KEY_SECRET)) {
-      return NextResponse.json({ error: "Payment signature verification failed." }, { status: 400 });
+    if (!order) return NextResponse.json({ error: "Payment order mismatch." }, { status: 400 });
+
+    const verified = await provider.verifyClientPayment(
+      {
+        internalOrderId: parsed.data.internalOrderId,
+        providerOrderId: parsed.data.providerOrderId || parsed.data.razorpay_order_id,
+        providerPaymentId: parsed.data.providerPaymentId || parsed.data.razorpay_payment_id,
+        signature: parsed.data.signature || parsed.data.razorpay_signature,
+        raw: parsed.data as Record<string, unknown>,
+      },
+      order.providerOrderId,
+      env,
+    );
+
+    if (!verified.ok) {
+      const status = verified.reason.includes("not configured") ? 503 : 400;
+      return NextResponse.json({ error: verified.reason }, { status });
     }
 
-    const processed = await processSuccessfulPayment({ orderId: order.id, providerPaymentId: parsed.data.razorpay_payment_id, provider: "razorpay" });
+    const processed = await processSuccessfulPayment({
+      orderId: order.id,
+      providerPaymentId: verified.providerPaymentId,
+      provider: provider.id,
+    });
     const reportToken = await signAccessToken("report_access", processed.report.id, { leadId: order.leadId, orderId: order.id }, "72h");
     const reportUrl = `${getPublicAppUrl()}/report/${processed.report.id}?token=${encodeURIComponent(reportToken)}`;
     Promise.all([
