@@ -165,18 +165,14 @@ export function AssessmentForm() {
     if (!/^\d{6}$/.test(pin)) return;
     setPinLookupBusy(true);
     try {
-      const response = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
-      const data = (await response.json()) as Array<{
-        Status?: string;
-        PostOffice?: Array<{ District?: string; State?: string; Name?: string }>;
-      }>;
-      const office = data?.[0]?.Status === "Success" ? data[0].PostOffice?.[0] : null;
-      if (office) {
+      const response = await fetch(`/api/pincode?pin=${pin}`);
+      const data = (await response.json()) as { city?: string; state?: string };
+      if (response.ok && (data.city || data.state)) {
         setForm((current) => ({
           ...current,
           pinCode: pin,
-          city: office.District || office.Name || current.city,
-          state: office.State || current.state,
+          city: data.city || current.city,
+          state: data.state || current.state,
         }));
       }
     } catch {
