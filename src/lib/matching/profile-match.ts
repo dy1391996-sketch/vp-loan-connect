@@ -151,7 +151,7 @@ export function scoreCandidate(profile: MatchProfile, candidate: MatchCandidateI
   else if (profile.documentationStatus === "Incomplete") score -= 4;
 
   if (candidate.category === "Credit Health Support" && ["BELOW_550", "550_599", "600_649", "UNKNOWN"].includes(credit)) {
-    score += 15;
+    score += 28;
     reasons.push("Checking your official bureau report first is useful for this profile");
   }
 
