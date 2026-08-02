@@ -8,10 +8,15 @@ const serverEnvSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url(),
   NEXTAUTH_SECRET: z.string().min(32),
   REPORT_SIGNING_SECRET: z.string().min(32),
-  PAYMENT_PROVIDER: z.enum(["mock", "razorpay"]).default("mock"),
-  RAZORPAY_KEY_ID: z.string().optional().default(""),
-  RAZORPAY_KEY_SECRET: z.string().optional().default(""),
-  RAZORPAY_WEBHOOK_SECRET: z.string().optional().default(""),
+  PAYMENT_PROVIDER: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .pipe(z.enum(["mock", "razorpay"]))
+    .default("mock"),
+  RAZORPAY_KEY_ID: z.string().trim().optional().default(""),
+  RAZORPAY_KEY_SECRET: z.string().trim().optional().default(""),
+  RAZORPAY_WEBHOOK_SECRET: z.string().trim().optional().default(""),
   WHATSAPP_PROVIDER: z.enum(["mock", "meta"]).default("mock"),
   WHATSAPP_API_URL: optionalUrl,
   WHATSAPP_ACCESS_TOKEN: z.string().optional().default(""),

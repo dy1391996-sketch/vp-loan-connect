@@ -31,6 +31,8 @@ type Props = {
   autoStart?: boolean;
 };
 
+const autoStartedAssessments = new Set<string>();
+
 export function CheckoutClient(props: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(Boolean(props.autoStart));
@@ -54,7 +56,13 @@ export function CheckoutClient(props: Props) {
         }),
       });
       const order = await orderResponse.json();
-      if (!orderResponse.ok) throw new Error(order.error || "Payment order could not be created.");
+      if (!orderResponse.ok) {
+        const suffix =
+          typeof order.provider === "string"
+            ? ` (provider: ${order.provider}${order.keyConfigured === false ? ", keys missing" : ""})`
+            : "";
+        throw new Error(`${order.error || "Payment order could not be created."}${suffix}`);
+      }
 
       if (order.provider === "mock") {
         const response = await fetch("/api/payments/mock-complete", {
@@ -124,11 +132,13 @@ export function CheckoutClient(props: Props) {
 
   useEffect(() => {
     if (!props.autoStart || startedRef.current) return;
+    if (autoStartedAssessments.has(props.assessmentId)) return;
     startedRef.current = true;
+    autoStartedAssessments.add(props.assessmentId);
     void pay();
     // Auto-open Razorpay once when arriving from assessment unlock.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.autoStart]);
+  }, [props.autoStart, props.assessmentId]);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_0.75fr]">
