@@ -7,8 +7,10 @@ import { incomeRangeMidpoints } from "./scoring";
 const yesNo = z.boolean();
 
 const baseAssessmentSchema = z.object({
-  otpVerificationToken: z.string().min(20, "Complete email OTP verification first."),
-  mobileOtpVerificationToken: z.string().min(20, "Complete mobile SMS OTP verification first."),
+  otpVerificationToken: z.string({ required_error: "Complete email OTP verification first." }).min(20, "Complete email OTP verification first."),
+  mobileOtpVerificationToken: z
+    .string({ required_error: "Complete mobile SMS OTP verification first." })
+    .min(20, "Complete mobile SMS OTP verification first."),
   fullName: z
     .string()
     .trim()
