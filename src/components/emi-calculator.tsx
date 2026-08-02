@@ -5,10 +5,20 @@ import { Field, Input } from "@/components/ui/form";
 import { calculateEmi } from "@/lib/domain/emi";
 import { formatInr } from "@/lib/utils";
 
-export function EmiCalculator() {
-  const [principal, setPrincipal] = useState(500000);
-  const [rate, setRate] = useState(14);
-  const [months, setMonths] = useState(36);
+type EmiCalculatorProps = {
+  initialPrincipal?: number;
+  initialRate?: number;
+  initialMonths?: number;
+};
+
+export function EmiCalculator({
+  initialPrincipal = 500000,
+  initialRate = 14,
+  initialMonths = 36,
+}: EmiCalculatorProps = {}) {
+  const [principal, setPrincipal] = useState(initialPrincipal);
+  const [rate, setRate] = useState(initialRate);
+  const [months, setMonths] = useState(initialMonths);
   const result = useMemo(() => calculateEmi(Math.max(1, principal), Math.max(0, rate), Math.max(1, Math.round(months))), [principal, rate, months]);
   return (
     <div className="rounded-[2rem] border border-line/80 bg-white p-6 shadow-soft sm:p-9">

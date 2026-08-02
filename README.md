@@ -20,7 +20,7 @@ VP Loan Connect is not a bank, NBFC, lender or credit bureau. It does not sancti
 
 Public and customer routes:
 
-- `/`, `/check`, `/assessment`, `/result/[id]`
+- `/`, `/check`, `/personal-loan`, `/assessment`, `/result/[id]`
 - `/credit-health`, `/loan-readiness`, `/checkout`
 - `/payment/success`, `/payment/failed`, `/report/[id]`
 - `/refer`, `/r/[code]`, `/referral-dashboard`, `/consultation`

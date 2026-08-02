@@ -21,7 +21,7 @@ const validEnvironment: NodeJS.ProcessEnv = {
   OTP_PROVIDER: "custom",
   OTP_API_URL: "https://otp.example.test/send",
   OTP_API_KEY: "otp-secret",
-  BUSINESS_NAME: "THE99CREW FACILITY MANAGEMENT",
+  BUSINESS_NAME: "VP Loan Connect",
   BUSINESS_GSTIN: "06ABCDE1234F1Z5",
   BUSINESS_ADDRESS: "Registered business address",
   SUPPORT_EMAIL: "support@vploanconnect.in",

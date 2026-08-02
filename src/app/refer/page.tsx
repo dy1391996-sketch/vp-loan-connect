@@ -38,7 +38,7 @@ export default function ReferPage() {
               <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-100 text-brand-700"><IndianRupee size={24} /></span>
               <p className="mt-6 text-sm font-semibold text-slate-500">Default qualifying reward</p>
               <p className="mt-1 text-5xl font-black tracking-[-0.06em]">₹20</p>
-              <p className="mt-3 text-sm leading-7 text-slate-600">Per validated ₹99 Credit Health Action Plan purchase. Reward values remain configurable.</p>
+              <p className="mt-3 text-sm leading-7 text-slate-600">Per validated ₹99 Credit Profile Booster purchase. Reward values remain configurable.</p>
               <div className="mt-6 rounded-2xl bg-surface p-5 text-sm text-slate-600">Minimum payout threshold <strong className="mt-1 block text-lg text-navy-950">₹250</strong></div>
             </div>
           </div>

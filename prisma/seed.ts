@@ -1,5 +1,31 @@
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { PrismaClient, ProductType } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { MATCH_CATALOG } from "../src/lib/matching/catalog";
+
+function loadEnvFile(name: string) {
+  const path = resolve(process.cwd(), name);
+  if (!existsSync(path)) return;
+  for (const line of readFileSync(path, "utf8").split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const index = trimmed.indexOf("=");
+    if (index <= 0) continue;
+    const key = trimmed.slice(0, index).trim();
+    let value = trimmed.slice(index + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    if (process.env[key] === undefined) process.env[key] = value;
+  }
+}
+
+loadEnvFile(".env");
+loadEnvFile(".env.local");
 
 const prisma = new PrismaClient();
 
@@ -39,33 +65,35 @@ async function main() {
   await prisma.product.upsert({
     where: { slug: "credit-health-action-plan" },
     update: {
-      name: "VP Credit & Loan Match Plan",
-      regularPrice: 399,
-      salePrice: 199,
+      name: "Credit Profile Booster",
+      regularPrice: 299,
+      salePrice: 99,
       gstRate: 18,
       deliverables: [
-        "Personalized borrower-profile analysis",
-        "Credit-improvement action checklist",
-        "Indicative amount and affordability view",
-        "Profile-matched verified lender or LSP links",
-        "Downloadable action plan",
-        "Secure report access"
+        "Credit profile explanation in simple language",
+        "Loan-readiness analysis for your profile",
+        "Profile-matched bank, NBFC and fintech options first",
+        "Higher-fit lenders prioritised by approval likelihood",
+        "Official application handoff links",
+        "Downloadable action plan PDF",
+        "Secure report access",
       ],
     },
     create: {
       slug: "credit-health-action-plan",
-      name: "VP Credit & Loan Match Plan",
+      name: "Credit Profile Booster",
       type: ProductType.CREDIT_HEALTH_ACTION_PLAN,
-      regularPrice: 399,
-      salePrice: 199,
+      regularPrice: 299,
+      salePrice: 99,
       gstRate: 18,
       deliverables: [
-        "Personalized credit-health summary",
-        "Credit-risk factors and EMI burden analysis",
-        "Credit utilization and dispute-process guidance",
-        "30-day action plan and 90-day roadmap",
-        "Branded downloadable PDF",
-        "WhatsApp support instructions",
+        "Credit profile explanation in simple language",
+        "Loan-readiness analysis for your profile",
+        "Profile-matched bank, NBFC and fintech options first",
+        "Higher-fit lenders prioritised by approval likelihood",
+        "Official application handoff links",
+        "Downloadable action plan PDF",
+        "Secure report access",
       ],
     },
   });
@@ -94,7 +122,7 @@ async function main() {
   const settings = [
     { key: "assessment_questions", value: assessmentQuestions, description: "Versioned assessment question catalogue" },
     { key: "score_bands", value: scoreBands, description: "Educational internal readiness score labels", public: true },
-    { key: "referral_reward_credit_health", value: { amount: 20, currency: "INR" }, description: "Reward for a validated ₹199 product order" },
+    { key: "referral_reward_credit_health", value: { amount: 20, currency: "INR" }, description: "Reward for a validated ₹99 Credit Profile Booster order" },
     { key: "referral_validation_days", value: 14, description: "Days a reward remains pending before approval" },
     { key: "referral_minimum_payout", value: { amount: 250, currency: "INR" }, description: "Minimum approved balance for payout", public: true },
     { key: "referral_milestone_bonuses", value: { "5": 0, "10": 0, "25": 0 }, description: "Owner-configurable milestone bonuses; zero until approved" },
@@ -125,7 +153,62 @@ async function main() {
     console.info("Skipped administrator seed. Set a unique ADMIN_EMAIL and ADMIN_INITIAL_PASSWORD (12+ characters).");
   }
 
-  console.info("VP Loan Connect seed completed without demo customers, lenders, approvals, or testimonials.");
+  for (const entry of MATCH_CATALOG) {
+    const existing = await prisma.lender.findFirst({ where: { displayName: entry.displayName } });
+    const lender =
+      existing ??
+      (await prisma.lender.create({
+        data: {
+          legalName: entry.legalName,
+          displayName: entry.displayName,
+          regulatedEntityType: entry.regulatedEntityType,
+          verified: true,
+          legalAgreementActive: false,
+          logoUsePermitted: false,
+          productDetailsApproved: true,
+          active: true,
+        },
+      }));
+
+    if (existing) {
+      await prisma.lender.update({
+        where: { id: existing.id },
+        data: {
+          legalName: entry.legalName,
+          regulatedEntityType: entry.regulatedEntityType,
+          verified: true,
+          productDetailsApproved: true,
+          active: true,
+        },
+      });
+    }
+
+    const product = await prisma.lenderProduct.findFirst({
+      where: { lenderId: lender.id, name: entry.productName },
+    });
+    if (product) {
+      await prisma.lenderProduct.update({
+        where: { id: product.id },
+        data: {
+          category: entry.category,
+          eligibilityRules: entry.rules,
+          active: true,
+        },
+      });
+    } else {
+      await prisma.lenderProduct.create({
+        data: {
+          lenderId: lender.id,
+          name: entry.productName,
+          category: entry.category,
+          eligibilityRules: entry.rules,
+          active: true,
+        },
+      });
+    }
+  }
+
+  console.info(`VP Loan Connect seed completed with ${MATCH_CATALOG.length} matched lender catalog entries.`);
 }
 
 main()

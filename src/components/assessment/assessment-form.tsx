@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Choice, Field, Input, Select } from "@/components/ui/form";
 import { MARKETING_CONSENT_TEXT, SERVICE_CONSENT_TEXT } from "@/lib/constants";
 import { trackEvent } from "@/lib/analytics-client";
+import { captureAttributionFromSearch, getAttributionPayload } from "@/lib/attribution";
 import { cn } from "@/lib/utils";
 
 type FormState = {
@@ -26,8 +27,8 @@ const initialState: FormState = {
 };
 
 const steps = ["Loan Need", "Income", "CIBIL", "Documents", "Finish"];
-const MSG91_WIDGET_ID = "36674474665a323737323137";
-const MSG91_WIDGET_TOKEN = "555142TvR76oBwmFeV6a6bb64dP1";
+const MSG91_WIDGET_ID = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID ?? "";
+const MSG91_WIDGET_TOKEN = process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ?? "";
 
 function getMsg91AccessToken(value: unknown): string {
   if (typeof value === "string" && value.trim()) return value.trim();
@@ -54,10 +55,48 @@ export function AssessmentForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => { trackEvent("assessment_started"); }, []);
+  useEffect(() => {
+    trackEvent("assessment_started");
+  }, []);
 
-  const source = searchParams.get("utm_source") || "direct";
-  const referralCode = useMemo(() => searchParams.get("ref") || (typeof document !== "undefined" ? document.cookie.match(/(?:^|; )vplc_ref=([^;]+)/)?.[1] : "") || "", [searchParams]);
+  useEffect(() => {
+    captureAttributionFromSearch(searchParams);
+
+    const amount = searchParams.get("amount") || searchParams.get("loanAmount");
+    const loanType = searchParams.get("loanType") || searchParams.get("type");
+    const purpose = searchParams.get("purpose") || searchParams.get("loanPurpose");
+
+    setForm((current) => {
+      const next = { ...current };
+      let changed = false;
+
+      if (!current.loanAmount && amount && /^\d+$/.test(amount)) {
+        next.loanAmount = String(Math.min(500000, Math.max(5000, Number(amount))));
+        changed = true;
+      }
+      if (!current.loanType && loanType) {
+        const normalized = loanType.trim().toUpperCase();
+        const allowed = ["PERSONAL", "BUSINESS", "GOLD", "PROPERTY", "CREDIT_HEALTH"];
+        if (allowed.includes(normalized)) {
+          next.loanType = normalized;
+          changed = true;
+        } else if (/personal|cash/i.test(loanType)) {
+          next.loanType = "PERSONAL";
+          changed = true;
+        }
+      }
+      if (!current.loanPurpose && purpose) {
+        next.loanPurpose = purpose.slice(0, 120);
+        changed = true;
+      }
+
+      return changed ? next : current;
+    });
+  }, [searchParams]);
+
+  const attribution = useMemo(() => getAttributionPayload(searchParams), [searchParams]);
+  const source = attribution.utm_source || searchParams.get("source") || "direct";
+  const referralCode = useMemo(() => searchParams.get("ref") || attribution.ref || (typeof document !== "undefined" ? document.cookie.match(/(?:^|; )vplc_ref=([^;]+)/)?.[1] : "") || "", [searchParams, attribution.ref]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -68,6 +107,10 @@ export function AssessmentForm() {
   async function requestOtp() {
     if (form.fullName.trim().length < 2 || !/^[6-9]\d{9}$/.test(form.mobile) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       setError("Enter your full name, a valid 10-digit mobile number and email address.");
+      return;
+    }
+    if (!MSG91_WIDGET_ID || !MSG91_WIDGET_TOKEN) {
+      setError("MSG91 OTP widget is not configured. Set NEXT_PUBLIC_MSG91_WIDGET_ID and NEXT_PUBLIC_MSG91_WIDGET_TOKEN.");
       return;
     }
 
@@ -184,7 +227,7 @@ export function AssessmentForm() {
       ...form,
       loanAmount: Number(form.loanAmount), annualIncome: Number(form.annualIncome), durationMonths: Number(form.durationMonths), existingEmi: Number(form.existingEmi), activeLoans: Number(form.activeLoans), cardOutstanding: Number(form.cardOutstanding),
       otpVerificationToken: otpToken, source, referralCode,
-      utm: Object.fromEntries(["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"].map((key) => [key, searchParams.get(key)]).filter((entry): entry is [string, string] => Boolean(entry[1]))),
+      utm: getAttributionPayload(searchParams),
     };
     try {
       const response = await fetch("/api/assessments", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
@@ -254,11 +297,11 @@ function BasicStep({ form, update, otpStarted, otpVerified, busy, requestOtp }: 
 
       <div className="my-8 border-t border-line" />
       <h3 className="text-lg font-extrabold text-navy-950">Your contact details</h3>
-      <p className="mt-2 text-sm text-slate-600">We use email OTP to secure your profile result.</p>
+      <p className="mt-2 text-sm text-slate-600">VP Loan Connect email OTP se aapka result secure kiya jata hai. OTP website brand “VP Loan Connect” se aata hai.</p>
       <div className="mt-6 grid gap-5 sm:grid-cols-2">
         <Field label="Full name" required><Input autoComplete="name" value={form.fullName} onChange={(e) => update("fullName", e.target.value)} placeholder="Your full name" /></Field>
         <Field label="WhatsApp mobile number" required hint="10-digit Indian mobile number"><Input className="number-field" inputMode="numeric" autoComplete="tel" maxLength={10} value={form.mobile} disabled={otpVerified} onChange={(e) => update("mobile", e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="98XXXXXXXX" /></Field>
-        <Field label="Email address" required hint="We will send the OTP to this email"><div className="flex gap-2"><Input type="email" autoComplete="email" value={form.email} disabled={otpVerified} onChange={(e) => update("email", e.target.value.trim())} placeholder="name@example.com" />{!otpVerified ? <Button type="button" variant="secondary" className="shrink-0" disabled={busy} onClick={requestOtp}>{busy ? <Loader2 className="animate-spin" size={17} /> : null}{otpStarted ? "Resend OTP" : "Verify email"}</Button> : <span className="grid min-w-12 place-items-center rounded-xl bg-brand-100 text-brand-700"><Check size={19} /></span>}</div>{otpStarted && !otpVerified ? <p className="mt-2 text-xs text-slate-500">Enter the email OTP in the secure MSG91 window to complete verification.</p> : null}</Field>
+        <Field label="Email address" required hint="OTP issi email pe VP Loan Connect se jayega"><div className="flex gap-2"><Input type="email" autoComplete="email" value={form.email} disabled={otpVerified} onChange={(e) => update("email", e.target.value.trim())} placeholder="name@example.com" />{!otpVerified ? <Button type="button" variant="secondary" className="shrink-0" disabled={busy} onClick={requestOtp}>{busy ? <Loader2 className="animate-spin" size={17} /> : null}{otpStarted ? "Resend OTP" : "Verify email"}</Button> : <span className="grid min-w-12 place-items-center rounded-xl bg-brand-100 text-brand-700"><Check size={19} /></span>}</div>{otpStarted && !otpVerified ? <p className="mt-2 text-xs text-slate-500">Secure OTP window mein code enter karein. Sender brand: VP Loan Connect.</p> : null}</Field>
         <div className="hidden sm:block" />
         <Field label="State" required><Input autoComplete="address-level1" value={form.state} onChange={(e) => update("state", e.target.value)} placeholder="e.g. Uttar Pradesh" /></Field>
         <Field label="City" required><Input autoComplete="address-level2" value={form.city} onChange={(e) => update("city", e.target.value)} placeholder="e.g. Greater Noida" /></Field>

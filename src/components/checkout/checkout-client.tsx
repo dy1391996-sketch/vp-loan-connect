@@ -112,7 +112,7 @@ export function CheckoutClient(props: Props) {
       <div className="rounded-[2rem] border border-line/80 bg-white p-6 shadow-soft sm:p-8">
         <div className="flex items-start justify-between gap-5 border-b border-line pb-6">
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-700">Selected ₹199 plan</p>
+            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-700">Selected ₹99 Credit Profile Booster</p>
             <h2 className="mt-3 text-2xl font-extrabold tracking-[-0.035em] text-navy-950">{props.productName}</h2>
           </div>
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-brand-100 text-brand-700"><ReceiptText size={21} /></span>
@@ -141,7 +141,7 @@ export function CheckoutClient(props: Props) {
       <aside className="rounded-[2rem] bg-navy-950 p-6 text-white shadow-card sm:p-8">
         <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-500">What you unlock after payment</p>
         <div className="mt-7 grid gap-5">
-          {["Personalized analysis based on your profile", "Downloadable credit and loan match plan", "Time-limited secure report access", "Refund protection for duplicate payments or system failures"].map((item) => (
+          {["Personalized Credit Profile Booster analysis", "Downloadable action plan PDF", "Time-limited secure report access", "Refund protection for duplicate payments or system failures"].map((item) => (
             <p key={item} className="flex gap-3 text-sm leading-6 text-slate-300"><span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-500/15 text-brand-500"><Check size={14} strokeWidth={3} /></span>{item}</p>
           ))}
         </div>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { CheckCircle2, FileText, ReceiptText, ShieldCheck } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { PublicStatePanel } from "@/components/ui/public-state-panel";
+import { PUBLIC_SUPPORT_EMAIL } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { getServerEnv } from "@/lib/env";
 import { verifyAccessToken } from "@/lib/security/tokens";
@@ -39,7 +40,7 @@ export default async function PaymentSuccessPage({ searchParams }: { searchParam
             <span className="grid h-16 w-16 place-items-center rounded-3xl bg-brand-100 text-brand-700"><CheckCircle2 size={31} /></span>
             <p className="mt-6 text-xs font-extrabold uppercase tracking-[0.2em] text-brand-700">Payment confirmed</p>
             <h1 className="mt-3 text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">Payment verified successfully</h1>
-            <p className="mt-3 text-sm leading-7 text-slate-600">Your personalized loan match plan is ready. This is not a loan sanction or lender fee.</p>
+            <p className="mt-3 text-sm leading-7 text-slate-600">Your Credit Profile Booster is ready. This is not a loan sanction or lender fee.</p>
             <div className="mt-7 grid gap-4 sm:grid-cols-2">
               <Info icon={ReceiptText} label="Order reference" value={report.order.orderReference} />
               <Info icon={FileText} label="Report reference" value={report.reportReference} />
@@ -51,10 +52,9 @@ export default async function PaymentSuccessPage({ searchParams }: { searchParam
           <div className="mt-5 rounded-3xl border border-line bg-white p-6 shadow-sm">
             <h2 className="font-extrabold text-navy-950">Invoice information</h2>
             <div className="mt-4 grid gap-2 text-sm leading-6 text-slate-600">
-              <p><strong>Business name:</strong> {env.BUSINESS_NAME}</p>
+              <p><strong>Issued by:</strong> VP Loan Connect</p>
               {env.BUSINESS_GSTIN ? <p><strong>GSTIN:</strong> {env.BUSINESS_GSTIN}</p> : null}
-              {env.BUSINESS_ADDRESS ? <p><strong>Registered office:</strong> {env.BUSINESS_ADDRESS}</p> : null}
-              <p><strong>Support email:</strong> {env.SUPPORT_EMAIL}</p>
+              <p><strong>Support email:</strong> {PUBLIC_SUPPORT_EMAIL}</p>
             </div>
           </div>
         </div>

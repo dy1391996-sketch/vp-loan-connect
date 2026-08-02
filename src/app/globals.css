@@ -8,11 +8,13 @@
   --color-brand-600: #0a9265;
   --color-brand-500: #19b77e;
   --color-brand-100: #ddf8ed;
-  --color-surface: #f5f8f7;
-  --color-line: #dfe9e6;
-  --font-sans: "Noto Sans Devanagari", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --color-surface: #f3f7f5;
+  --color-line: #d8e4df;
+  --font-sans: var(--font-dm-sans), "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-manrope), var(--font-dm-sans), "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif;
   --shadow-soft: 0 28px 80px rgba(6, 21, 33, 0.12);
   --shadow-card: 0 14px 42px rgba(6, 21, 33, 0.08);
+  --shadow-premium: 0 40px 100px rgba(6, 21, 33, 0.28);
 }
 
 :root {
@@ -68,21 +70,39 @@ a {
 }
 
 .section-space {
-  padding-block: clamp(4.5rem, 8vw, 7.5rem);
+  padding-block: clamp(5rem, 9vw, 8rem);
 }
 
 .text-balance {
   text-wrap: balance;
 }
 
+.font-display {
+  font-family: var(--font-display);
+}
+
 .hero-grid,
 .hero-premium {
+  background-color: #061521;
   background-image:
-    radial-gradient(circle at 78% 12%, rgba(25, 183, 126, 0.2), transparent 28rem),
-    radial-gradient(circle at 12% 80%, rgba(28, 104, 153, 0.18), transparent 25rem),
-    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
-  background-size: auto, auto, 48px 48px, 48px 48px;
+    radial-gradient(ellipse 80% 60% at 85% -10%, rgba(25, 183, 126, 0.28), transparent 55%),
+    radial-gradient(ellipse 50% 45% at 0% 100%, rgba(18, 90, 140, 0.22), transparent 50%),
+    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(25, 183, 126, 0.06), transparent 60%),
+    linear-gradient(165deg, #071a28 0%, #061521 45%, #0a1f30 100%),
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: auto, auto, auto, auto, 56px 56px, 56px 56px;
+  background-position: center;
+}
+
+.hero-premium::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(105deg, transparent 40%, rgba(25, 183, 126, 0.04) 50%, transparent 60%),
+    radial-gradient(ellipse 70% 40% at 50% 120%, rgba(0, 0, 0, 0.35), transparent);
 }
 
 .surface-grid {
@@ -92,16 +112,37 @@ a {
   background-size: 48px 48px;
 }
 
+.premium-panel {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04)),
+    rgba(255, 255, 255, 0.04);
+  box-shadow: var(--shadow-premium);
+  backdrop-filter: blur(20px);
+}
+
+.premium-ring {
+  background: conic-gradient(from 210deg, #19b77e, #0a9265, #123852, #19b77e);
+}
+
 .animate-rise {
-  animation: rise 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: rise 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .animate-rise-delay {
-  animation: rise 700ms 120ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: rise 800ms 140ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-rise-late {
+  animation: rise 900ms 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .animate-float {
-  animation: float 5.5s ease-in-out infinite;
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 4.5s ease-in-out infinite;
 }
 
 .skeleton {
@@ -126,7 +167,7 @@ a {
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(22px);
   }
   to {
     opacity: 1;
@@ -140,7 +181,19 @@ a {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-8px);
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.04);
   }
 }
 

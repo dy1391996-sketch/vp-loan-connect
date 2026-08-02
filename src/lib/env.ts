@@ -23,7 +23,7 @@ const serverEnvSchema = z.object({
   OTP_API_KEY: z.string().optional().default(""),
   MOCK_OTP_CODE: z.string().regex(/^\d{6}$/).default("123456"),
   STORE_CONSENT_IP: z.enum(["true", "false"]).default("false").transform((value) => value === "true"),
-  BUSINESS_NAME: z.string().default("THE99CREW FACILITY MANAGEMENT"),
+  BUSINESS_NAME: z.string().default("VP Loan Connect"),
   BUSINESS_GSTIN: z.string().optional().default(""),
   BUSINESS_ADDRESS: z.string().optional().default(""),
   SUPPORT_EMAIL: z.string().email(),

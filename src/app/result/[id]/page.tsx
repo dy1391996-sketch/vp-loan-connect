@@ -71,19 +71,19 @@ export default async function ResultPage({ params, searchParams }: { params: Pro
             <div className="grid lg:grid-cols-[1.1fr_0.75fr]">
               <div className="p-7 sm:p-10">
                 <span className="inline-flex items-center gap-2 rounded-full bg-brand-100 px-4 py-2 text-xs font-extrabold text-brand-700"><Sparkles size={15} />Recommended next step</span>
-                <h2 className="mt-5 text-balance text-3xl font-black tracking-[-0.045em] text-navy-950 sm:text-4xl">Unlock your ₹199 Credit & Loan Match Plan</h2>
-                <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">Get a focused credit-improvement action plan, application-readiness checklist and verified digital loan platforms matched to your profile. This plan does not change your bureau score instantly and does not guarantee approval.</p>
+                <h2 className="mt-5 text-balance text-3xl font-black tracking-[-0.045em] text-navy-950 sm:text-4xl">Unlock your ₹99 Credit Profile Booster</h2>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">Samjhein apni credit profile, loan readiness analyse karein, aur apne profile ke hisaab se relevant bank / NBFC / fintech options pehle dekhein. Yeh score instantly change nahi karta aur approval guarantee nahi hai.</p>
                 <div className="mt-7 grid gap-3 sm:grid-cols-2">
-                  {["Profile-matched short-term loan options", "Credit improvement action checklist", "Estimated amount and affordability view", "Verified lender or LSP application links"].map((item) => <p key={item} className="flex items-start gap-2 text-sm font-semibold text-slate-700"><Check className="mt-0.5 shrink-0 text-brand-600" size={17} />{item}</p>)}
+                  {["Credit profile explained simply", "Loan-readiness analysis", "Best-fit lenders shown first", "Official apply links — no random sites"].map((item) => <p key={item} className="flex items-start gap-2 text-sm font-semibold text-slate-700"><Check className="mt-0.5 shrink-0 text-brand-600" size={17} />{item}</p>)}
                 </div>
               </div>
               <div className="bg-navy-950 p-7 text-white sm:p-10">
                 <Zap className="text-brand-500" size={28} />
                 <p className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-slate-300">One-time access</p>
-                <p className="mt-2 text-5xl font-black text-brand-500">₹199 <span className="text-base text-slate-300">+ GST</span></p>
-                <p className="mt-2 text-sm font-bold">Total payable: ₹234.82</p>
-                <ButtonLink href={checkoutUrl} size="lg" className="mt-7 w-full">Unlock My Matches <ArrowRight size={18} /></ButtonLink>
-                <p className="mt-4 text-xs leading-6 text-slate-400">Fee is for the digital assessment, action plan and access to matched options—not a lender fee or loan approval fee.</p>
+                <p className="mt-2 text-5xl font-black text-brand-500">₹99 <span className="text-base text-slate-300">+ GST</span></p>
+                <p className="mt-2 text-sm font-bold">Total payable: ₹116.82</p>
+                <ButtonLink href={checkoutUrl} size="lg" className="mt-7 w-full">Get Credit Profile Booster <ArrowRight size={18} /></ButtonLink>
+                <p className="mt-4 text-xs leading-6 text-slate-400">Fee is for profile analysis and matched options—not a lender fee or loan approval fee.</p>
               </div>
             </div>
           </div>

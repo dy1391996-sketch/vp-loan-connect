@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { createProviderOrder } from "@/lib/payments/razorpay";
 import { datedReference } from "@/lib/payments/order-service";
 import { assertSameOrigin, rateLimit } from "@/lib/security/request";
+import { USP_PRODUCT_SLUG, USP_SALE_PRICE } from "@/lib/constants";
 import { verifyAccessToken } from "@/lib/security/tokens";
 
 const schema = z.object({ assessmentId: z.string().uuid(), productSlug: z.enum(["credit-health-action-plan", "complete-loan-readiness-report"]), resultToken: z.string().min(20), referralCode: z.string().max(20).optional() });
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
     if (!rateLimit(`checkout:${token.leadId}`, 10, 60 * 60 * 1000).allowed) return NextResponse.json({ error: "Too many checkout attempts." }, { status: 429 });
     const [assessment, product] = await Promise.all([prisma.assessment.findUnique({ where: { id: parsed.data.assessmentId } }), prisma.product.findUnique({ where: { slug: parsed.data.productSlug } })]);
     if (!assessment || assessment.leadId !== token.leadId || assessment.status !== "COMPLETED" || !product?.active) return NextResponse.json({ error: "Assessment or product is unavailable." }, { status: 404 });
-    const subtotal = product.slug === "credit-health-action-plan" ? 199 : Number(product.salePrice); const gstAmount = Math.round(subtotal * Number(product.gstRate)) / 100; const totalAmount = Math.round((subtotal + gstAmount) * 100) / 100;
+    const subtotal = product.slug === USP_PRODUCT_SLUG ? USP_SALE_PRICE : Number(product.salePrice); const gstAmount = Math.round(subtotal * Number(product.gstRate)) / 100; const totalAmount = Math.round((subtotal + gstAmount) * 100) / 100;
     const order = await prisma.order.create({ data: { orderReference: datedReference("VPLC-ORD"), leadId: assessment.leadId, assessmentId: assessment.id, productId: product.id, subtotal, gstAmount, totalAmount, status: "CREATED", referralCode: parsed.data.referralCode || assessment.referralCode, source: assessment.source } });
     try {
       const provider = await createProviderOrder({ amountPaise: Math.round(totalAmount * 100), receipt: order.orderReference, notes: { internal_order_id: order.id, product: product.slug, referral: order.referralCode ?? "" } });
