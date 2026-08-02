@@ -6,6 +6,7 @@ import { useState } from "react";
 import { ButtonLink } from "@/components/ui/button";
 
 const links = [
+  ["Quick Apply", "/apply/quick"],
   ["Personal Loan", "/personal-loan"],
   ["₹99 Booster", "/credit-health"],
   ["How it works", "/#how-it-works"],
@@ -34,8 +35,8 @@ export function Header() {
           ))}
         </nav>
         <div className="hidden sm:block">
-          <ButtonLink href="/assessment" size="sm" variant="dark">
-            Free Profile Check <ArrowRight size={16} />
+          <ButtonLink href="/apply/quick" size="sm" variant="dark">
+            Quick Apply <ArrowRight size={16} />
           </ButtonLink>
         </div>
         <button
@@ -56,8 +57,8 @@ export function Header() {
                 {label}
               </Link>
             ))}
-            <ButtonLink href="/assessment" className="mt-2 w-full" variant="dark">
-              Free Profile Check <ArrowRight size={16} />
+            <ButtonLink href="/apply/quick" className="mt-2 w-full" variant="dark">
+              Quick Apply <ArrowRight size={16} />
             </ButtonLink>
           </nav>
         </div>

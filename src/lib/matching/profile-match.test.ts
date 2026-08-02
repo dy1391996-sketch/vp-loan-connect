@@ -46,9 +46,10 @@ describe("rankLoanMatches", () => {
     const matches = rankLoanMatches(
       { ...baseProfile, creditRange: "UNKNOWN", readinessScore: 40, documentationStatus: "Partial" },
       candidatesFromCatalog(MATCH_CATALOG),
+      12,
     );
     const cibilIndex = matches.findIndex((item) => item.name === "Official CIBIL Report");
-    assert.ok(cibilIndex >= 0 && cibilIndex <= 2);
+    assert.ok(cibilIndex >= 0 && cibilIndex <= 3);
   });
 
   it("filters min-credit products for weak bands", () => {

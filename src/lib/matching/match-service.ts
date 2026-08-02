@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { MATCH_CATALOG } from "@/lib/matching/catalog";
 import {
+  bundlePaidConnectOptions,
   candidatesFromCatalog,
   parseProductRules,
   rankLoanMatches,
@@ -10,7 +11,7 @@ import {
 
 export type { MatchedOption, MatchProfile };
 
-export async function getProfileMatchedOptions(profile: MatchProfile, limit = 6): Promise<MatchedOption[]> {
+async function loadCandidates() {
   const products = await prisma.lenderProduct.findMany({
     where: {
       active: true,
@@ -37,6 +38,15 @@ export async function getProfileMatchedOptions(profile: MatchProfile, limit = 6)
     })
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
 
-  const candidates = fromDb.length > 0 ? fromDb : candidatesFromCatalog(MATCH_CATALOG);
+  return fromDb.length > 0 ? fromDb : candidatesFromCatalog(MATCH_CATALOG);
+}
+
+export async function getProfileMatchedOptions(profile: MatchProfile, limit = 6): Promise<MatchedOption[]> {
+  const candidates = await loadCandidates();
   return rankLoanMatches(profile, candidates, limit);
+}
+
+export async function getPaidConnectBundle(profile: MatchProfile, matchedLimit = 8) {
+  const candidates = await loadCandidates();
+  return bundlePaidConnectOptions(profile, candidates, matchedLimit);
 }

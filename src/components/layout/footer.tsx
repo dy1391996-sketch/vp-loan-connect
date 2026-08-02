@@ -32,6 +32,7 @@ export function Footer() {
           <p className="font-display font-bold">Explore</p>
           <div className="mt-4 grid gap-1">
             {[
+              ["Quick apply", "/apply/quick"],
               ["Personal loan", "/personal-loan"],
               ["Free assessment", "/assessment"],
               ["Credit Profile Booster", "/credit-health"],

@@ -166,29 +166,49 @@ function fitLabel(score: number, index: number): MatchedOption["fitLabel"] {
   return "Alternative option";
 }
 
+function toMatchedOption(profile: MatchProfile, candidate: MatchCandidateInput, index: number): MatchedOption {
+  const { score, reasons } = scoreCandidate(profile, candidate);
+  return {
+    id: candidate.id,
+    name: candidate.lenderName,
+    productName: candidate.productName,
+    description: candidate.rules.description,
+    href: candidate.rules.applyUrl,
+    disclosure: candidate.rules.disclosure || "Final eligibility is decided only by the regulated lender after verification.",
+    category: candidate.category,
+    fitScore: score,
+    fitLabel: fitLabel(score, index),
+    reasons,
+  };
+}
+
 export function rankLoanMatches(profile: MatchProfile, candidates: MatchCandidateInput[], limit = 6): MatchedOption[] {
-  const ranked = candidates
+  return candidates
     .filter((candidate) => parseRules(candidate.rules) && isEligibleCandidate(profile, candidate))
-    .map((candidate) => {
-      const { score, reasons } = scoreCandidate(profile, candidate);
-      return {
-        id: candidate.id,
-        name: candidate.lenderName,
-        productName: candidate.productName,
-        description: candidate.rules.description,
-        href: candidate.rules.applyUrl,
-        disclosure: candidate.rules.disclosure || "Final eligibility is decided only by the regulated lender after verification.",
-        category: candidate.category,
-        fitScore: score,
-        fitLabel: "Alternative option" as const,
-        reasons,
-      };
-    })
+    .map((candidate) => toMatchedOption(profile, candidate, 99))
     .sort((a, b) => b.fitScore - a.fitScore || a.name.localeCompare(b.name))
     .slice(0, limit)
     .map((option, index) => ({ ...option, fitLabel: fitLabel(option.fitScore, index) }));
+}
 
-  return ranked;
+/** Paid unlock: best-fit first, then remaining official platforms users can still open. */
+export function bundlePaidConnectOptions(
+  profile: MatchProfile,
+  candidates: MatchCandidateInput[],
+  matchedLimit = 8,
+): { matched: MatchedOption[]; more: MatchedOption[] } {
+  const matched = rankLoanMatches(profile, candidates, matchedLimit);
+  const matchedIds = new Set(matched.map((item) => item.id));
+  const more = candidates
+    .filter((candidate) => parseRules(candidate.rules) && !matchedIds.has(candidate.id))
+    .map((candidate) => toMatchedOption(profile, candidate, 99))
+    .sort((a, b) => b.fitScore - a.fitScore || a.name.localeCompare(b.name))
+    .map((option) => ({
+      ...option,
+      fitLabel: "Alternative option" as const,
+      reasons: option.reasons.length ? option.reasons : ["Additional official platform you can review"],
+    }));
+  return { matched, more };
 }
 
 export function candidatesFromCatalog(
