@@ -9,6 +9,7 @@ import { assertFormatOnlyNeverClaimsVerified, getPanProvider } from "@/lib/provi
 function validPayload(overrides: Record<string, unknown> = {}) {
   return {
     otpVerificationToken: "x".repeat(40),
+    mobileOtpVerificationToken: "y".repeat(40),
     fullName: "Rahul Sharma",
     mobile: "9876512345",
     email: "rahul.sharma@gmail.com",

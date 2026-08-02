@@ -1,7 +1,7 @@
 import { errors as JoseErrors, jwtVerify, SignJWT } from "jose";
 import { getServerEnv } from "@/lib/env";
 
-type TokenPurpose = "otp_verified" | "result_access" | "report_access" | "lead_access" | "admin_session";
+type TokenPurpose = "otp_verified" | "mobile_otp_verified" | "result_access" | "report_access" | "lead_access" | "admin_session";
 
 export type AccessTokenFailureReason =
   | "INVALID_TOKEN_PURPOSE"

@@ -142,9 +142,21 @@ export function AssessmentForm() {
   const [otpStarted, setOtpStarted] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpToken, setOtpToken] = useState("");
+  const [mobileOtpRequestId, setMobileOtpRequestId] = useState("");
+  const [mobileOtpCode, setMobileOtpCode] = useState("");
+  const [mobileOtpToken, setMobileOtpToken] = useState("");
+  const [mobileOtpVerified, setMobileOtpVerified] = useState(false);
+  const [mobileOtpBusy, setMobileOtpBusy] = useState(false);
+  const [mobileResendIn, setMobileResendIn] = useState(0);
   const [pinLookupBusy, setPinLookupBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (mobileResendIn <= 0) return;
+    const timer = window.setTimeout(() => setMobileResendIn((current) => Math.max(0, current - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [mobileResendIn]);
 
   useEffect(() => {
     trackEvent("assessment_started");
@@ -195,7 +207,17 @@ export function AssessmentForm() {
       return next;
     });
     setError("");
-    if ((key === "mobile" || key === "email") && value !== form[key]) {
+    if (key === "mobile" && value !== form.mobile) {
+      setMobileOtpVerified(false);
+      setMobileOtpToken("");
+      setMobileOtpRequestId("");
+      setMobileOtpCode("");
+      setMobileResendIn(0);
+      setOtpVerified(false);
+      setOtpToken("");
+      setOtpStarted(false);
+    }
+    if (key === "email" && value !== form.email) {
       setOtpVerified(false);
       setOtpToken("");
       setOtpStarted(false);
@@ -223,6 +245,90 @@ export function AssessmentForm() {
     }
   }
 
+  async function sendMobileOtp() {
+    if (looksLikeFakePersonName(form.fullName)) {
+      setError("Enter your full name as on PAN (not a test or dummy value).");
+      return;
+    }
+    if (isImpossibleMobile(form.mobile)) {
+      setError("Enter a valid 10-digit Indian mobile number (not a placeholder or repeated digits).");
+      return;
+    }
+    setMobileOtpBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/mobile/send-otp", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          fullName: form.fullName,
+          mobile: form.mobile,
+          source,
+          ...(mobileOtpRequestId ? { requestId: mobileOtpRequestId } : {}),
+        }),
+      });
+      const data = (await response.json()) as {
+        error?: string;
+        code?: string;
+        requestId?: string;
+        resendAvailableAt?: string;
+        developmentCode?: string;
+      };
+      if (!response.ok) throw new Error(data.error || "Unable to send mobile OTP.");
+      setMobileOtpRequestId(data.requestId || "");
+      setMobileOtpCode("");
+      setMobileOtpVerified(false);
+      setMobileOtpToken("");
+      if (data.resendAvailableAt) {
+        const seconds = Math.max(0, Math.ceil((new Date(data.resendAvailableAt).getTime() - Date.now()) / 1000));
+        setMobileResendIn(seconds || 60);
+      } else {
+        setMobileResendIn(60);
+      }
+      trackEvent("mobile_otp_sent");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to send mobile OTP.");
+    } finally {
+      setMobileOtpBusy(false);
+    }
+  }
+
+  async function verifyMobileOtp() {
+    if (!mobileOtpRequestId) {
+      setError("Send the mobile OTP first.");
+      return;
+    }
+    if (!/^\d{6}$/.test(mobileOtpCode.trim())) {
+      setError("Enter the 6-digit OTP sent to your mobile.");
+      return;
+    }
+    setMobileOtpBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/mobile/verify-otp", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          requestId: mobileOtpRequestId,
+          mobile: form.mobile,
+          code: mobileOtpCode.trim(),
+          fullName: form.fullName,
+          source,
+        }),
+      });
+      const data = (await response.json()) as { error?: string; verificationToken?: string };
+      if (!response.ok) throw new Error(data.error || "Mobile OTP verification failed.");
+      setMobileOtpVerified(true);
+      setMobileOtpToken(data.verificationToken || "");
+      setMobileOtpCode("");
+      trackEvent("mobile_verified");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Mobile OTP verification failed.");
+    } finally {
+      setMobileOtpBusy(false);
+    }
+  }
+
   async function requestOtp() {
     if (looksLikeFakePersonName(form.fullName)) {
       setError("Enter your full name as on PAN (not a test or dummy value).");
@@ -230,6 +336,10 @@ export function AssessmentForm() {
     }
     if (isImpossibleMobile(form.mobile)) {
       setError("Enter a valid 10-digit Indian mobile number (not a placeholder or repeated digits).");
+      return;
+    }
+    if (!mobileOtpVerified || !mobileOtpToken) {
+      setError("Verify your mobile number with SMS OTP before email verification.");
       return;
     }
     if (!EMAIL_PATTERN.test(form.email)) {
@@ -324,8 +434,9 @@ export function AssessmentForm() {
     if (current === 1) {
       if (looksLikeFakePersonName(form.fullName)) return "Enter your full name as on PAN (not a test or dummy value).";
       if (isImpossibleMobile(form.mobile)) return "Enter a valid 10-digit Indian mobile number (not a placeholder or repeated digits).";
+      if (!mobileOtpToken || !mobileOtpVerified) return "Please verify your mobile number with SMS OTP before continuing.";
       if (!EMAIL_PATTERN.test(form.email)) return "Enter a valid email address.";
-      if (!otpToken) return "Please verify your email with OTP before continuing.";
+      if (!otpToken || !otpVerified) return "Please verify your email with OTP before continuing.";
       return "";
     }
 
@@ -476,6 +587,7 @@ export function AssessmentForm() {
       serviceConsent: form.serviceConsent,
       marketingConsent: form.marketingConsent,
       otpVerificationToken: otpToken,
+      mobileOtpVerificationToken: mobileOtpToken,
       source,
       referralCode,
       utm: getAttributionPayload(searchParams),
@@ -550,7 +662,22 @@ export function AssessmentForm() {
 
       <div className="p-5 sm:p-8 lg:p-10">
         {step === 1 ? (
-          <VerifyStep form={form} update={update} otpStarted={otpStarted} otpVerified={otpVerified || Boolean(otpToken)} busy={busy} requestOtp={requestOtp} />
+          <VerifyStep
+            form={form}
+            update={update}
+            otpStarted={otpStarted}
+            otpVerified={otpVerified || Boolean(otpToken)}
+            busy={busy || mobileOtpBusy}
+            requestOtp={requestOtp}
+            mobileOtpVerified={mobileOtpVerified || Boolean(mobileOtpToken)}
+            mobileOtpCode={mobileOtpCode}
+            setMobileOtpCode={setMobileOtpCode}
+            mobileOtpSent={Boolean(mobileOtpRequestId)}
+            mobileResendIn={mobileResendIn}
+            sendMobileOtp={sendMobileOtp}
+            verifyMobileOtp={verifyMobileOtp}
+            mobileOtpBusy={mobileOtpBusy}
+          />
         ) : null}
         {step === 2 ? <EligibilityStep form={form} update={update} /> : null}
         {step === 3 ? <AddressStep form={form} update={update} pinLookupBusy={pinLookupBusy} onPinBlur={lookupPin} /> : null}
@@ -594,7 +721,28 @@ function VerifyStep({
   otpVerified,
   busy,
   requestOtp,
-}: StepProps & { otpStarted: boolean; otpVerified: boolean; busy: boolean; requestOtp: () => void }) {
+  mobileOtpVerified,
+  mobileOtpCode,
+  setMobileOtpCode,
+  mobileOtpSent,
+  mobileResendIn,
+  sendMobileOtp,
+  verifyMobileOtp,
+  mobileOtpBusy,
+}: StepProps & {
+  otpStarted: boolean;
+  otpVerified: boolean;
+  busy: boolean;
+  requestOtp: () => void;
+  mobileOtpVerified: boolean;
+  mobileOtpCode: string;
+  setMobileOtpCode: (value: string) => void;
+  mobileOtpSent: boolean;
+  mobileResendIn: number;
+  sendMobileOtp: () => void;
+  verifyMobileOtp: () => void;
+  mobileOtpBusy: boolean;
+}) {
   return (
     <div>
       <div className="mx-auto mb-6 grid h-12 w-12 place-items-center rounded-full bg-brand-100 text-brand-700">
@@ -602,12 +750,12 @@ function VerifyStep({
       </div>
       <h2 className="text-center text-2xl font-extrabold tracking-[-0.04em] text-navy-950 sm:text-3xl">Verify to continue</h2>
       <p className="mx-auto mt-3 max-w-md text-center text-sm leading-7 text-slate-600">
-        Check eligibility in minutes. Safe, digital process — no lender decision here.
+        Verify mobile by SMS and email by OTP. Both are required before eligibility.
       </p>
 
       <div className="mt-5 flex flex-wrap items-center justify-center gap-4 text-xs font-bold text-brand-700">
         <span className="inline-flex items-center gap-1.5">
-          <LockKeyhole size={14} /> Bank-grade OTP
+          <LockKeyhole size={14} /> SMS + email OTP
         </span>
         <span className="inline-flex items-center gap-1.5">
           <Sparkles size={14} /> 2-minute flow
@@ -616,38 +764,80 @@ function VerifyStep({
 
       <div className="mt-8 grid gap-5">
         <Field label="Full name" required>
-          <Input autoComplete="name" value={form.fullName} onChange={(e) => update("fullName", e.target.value)} placeholder="Name as on PAN" />
-        </Field>
-        <Field
-          label="Mobile number"
-          required
-          hint="Prefer the number linked to WhatsApp. Email verified via OTP. Mobile is linked to your profile after email verification."
-        >
           <Input
-            className="number-field"
-            inputMode="numeric"
-            autoComplete="tel"
-            maxLength={10}
-            value={form.mobile}
-            disabled={otpVerified}
-            onChange={(e) => update("mobile", e.target.value.replace(/\D/g, "").slice(0, 10))}
-            placeholder="Enter 10-digit number"
+            autoComplete="name"
+            value={form.fullName}
+            disabled={mobileOtpVerified || otpVerified}
+            onChange={(e) => update("fullName", e.target.value)}
+            placeholder="Name as on PAN"
           />
         </Field>
-        <Field label="Email" required hint="OTP arrives from VP Loan Connect — this verifies your email only">
+
+        <Field label="Mobile number" required hint="Indian mobile only. We send a 6-digit SMS OTP.">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              className="number-field"
+              inputMode="numeric"
+              autoComplete="tel"
+              maxLength={10}
+              value={form.mobile}
+              disabled={mobileOtpVerified}
+              onChange={(e) => update("mobile", e.target.value.replace(/\D/g, "").slice(0, 10))}
+              placeholder="Enter 10-digit number"
+            />
+            {!mobileOtpVerified ? (
+              <Button
+                type="button"
+                variant="secondary"
+                className="shrink-0 sm:min-w-40"
+                disabled={busy || mobileOtpBusy || mobileResendIn > 0}
+                onClick={sendMobileOtp}
+              >
+                {mobileOtpBusy ? <Loader2 className="animate-spin" size={17} /> : null}
+                {mobileResendIn > 0 ? `Resend in ${mobileResendIn}s` : mobileOtpSent ? "Resend SMS OTP" : "Send SMS OTP"}
+              </Button>
+            ) : (
+              <span className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-100 px-4 py-3 text-sm font-bold text-brand-800">
+                <Check size={17} /> Mobile verified
+              </span>
+            )}
+          </div>
+        </Field>
+
+        {!mobileOtpVerified && mobileOtpSent ? (
+          <Field label="SMS OTP" required hint="Enter the 6-digit code from SMS. Expires in 5 minutes.">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input
+                className="number-field tracking-[0.35em]"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={mobileOtpCode}
+                onChange={(e) => setMobileOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="••••••"
+              />
+              <Button type="button" className="shrink-0 sm:min-w-40" disabled={busy || mobileOtpBusy || mobileOtpCode.length !== 6} onClick={verifyMobileOtp}>
+                {mobileOtpBusy ? <Loader2 className="animate-spin" size={17} /> : null}
+                Verify mobile
+              </Button>
+            </div>
+          </Field>
+        ) : null}
+
+        <Field label="Email" required hint="OTP arrives from VP Loan Connect — verifies email after mobile SMS">
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               type="email"
               autoComplete="email"
               value={form.email}
-              disabled={otpVerified}
+              disabled={otpVerified || !mobileOtpVerified}
               onChange={(e) => update("email", e.target.value.trim())}
               placeholder="Enter your email"
             />
             {!otpVerified ? (
-              <Button type="button" variant="secondary" className="shrink-0 sm:min-w-40" disabled={busy} onClick={requestOtp}>
+              <Button type="button" variant="secondary" className="shrink-0 sm:min-w-40" disabled={busy || !mobileOtpVerified} onClick={requestOtp}>
                 {busy ? <Loader2 className="animate-spin" size={17} /> : null}
-                {otpStarted ? "Resend OTP" : "Get verification code"}
+                {otpStarted ? "Resend email OTP" : "Get email code"}
               </Button>
             ) : (
               <span className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-100 px-4 py-3 text-sm font-bold text-brand-800">

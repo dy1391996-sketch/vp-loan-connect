@@ -33,6 +33,9 @@ export default async function AdminLeadPage({ params }: { params: Promise<{ id: 
         <Panel title="Profile">
           <Data label="Stage" value={LEAD_STAGE_LABELS[lead.stage]} />
           <Data label="Source" value={lead.source || "Direct"} />
+          <Data label="Mobile verified" value={lead.mobileVerifiedAt ? "Yes" : "No"} />
+          <Data label="Verification time" value={lead.mobileVerifiedAt?.toLocaleString("en-IN") || "—"} />
+          <Data label="Verification method" value={lead.mobileVerificationMethod || (lead.mobileVerifiedAt ? "Unknown" : "—")} />
           <Data label="PAN (masked)" value={panNumber} />
           <Data label="Referral code" value={lead.referralCode} />
           <Data label="Referred by" value={lead.referredByCode || "—"} />

@@ -154,6 +154,7 @@ model Lead {
   referralCode          String   @unique
   referredByCode        String?
   mobileVerifiedAt      DateTime?
+  mobileVerificationMethod String? @db.VarChar(32)
   marketingOptedOutAt   DateTime?
   lastContactedAt       DateTime?
   notes                 String?
@@ -190,8 +191,10 @@ model OtpRequest {
   otpHash      String
   providerRef  String?
   attemptCount Int      @default(0)
+  resendCount  Int      @default(0)
   expiresAt    DateTime
   verifiedAt   DateTime?
+  lastSentAt   DateTime @default(now())
   userAgent    String?
   ipHash       String?
   createdAt    DateTime @default(now())

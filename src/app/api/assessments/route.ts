@@ -60,17 +60,48 @@ export async function POST(request: NextRequest) {
     };
 
     const mobile = normalizeIndianMobile(input.mobile);
-    const token = await verifyAccessToken(input.otpVerificationToken, "otp_verified");
-    if (token.sub !== mobile || typeof token.leadId !== "string") {
-      return NextResponse.json({ error: "Mobile verification does not match this assessment." }, { status: 403 });
+    const emailToken = await verifyAccessToken(input.otpVerificationToken, "otp_verified");
+    if (emailToken.sub !== mobile || typeof emailToken.leadId !== "string") {
+      return NextResponse.json({ error: "Email verification does not match this assessment." }, { status: 403 });
     }
 
-    const tokenEmail = typeof (token as { email?: unknown }).email === "string" ? String((token as { email?: string }).email).toLowerCase() : "";
-    if (tokenEmail && tokenEmail !== input.email.toLowerCase()) {
+    const tokenEmail = typeof (emailToken as { email?: unknown }).email === "string" ? String((emailToken as { email?: string }).email).toLowerCase() : "";
+    if (!tokenEmail || tokenEmail !== input.email.toLowerCase()) {
       return NextResponse.json({ error: "Verified email does not match this assessment." }, { status: 403 });
     }
 
-    if (!rateLimit(`assessment-submit:${token.leadId}`, 8, 60 * 60 * 1000).allowed) {
+    let mobileToken;
+    try {
+      mobileToken = await verifyAccessToken(input.mobileOtpVerificationToken, "mobile_otp_verified");
+    } catch (error) {
+      if (isAccessTokenError(error)) {
+        console.warn("assessment_mobile_otp_rejected", { reason: error.reason });
+        return NextResponse.json(
+          { error: "Complete mobile SMS OTP verification again.", code: "MOBILE_OTP_VERIFICATION_REQUIRED" },
+          { status: 403 },
+        );
+      }
+      throw error;
+    }
+    if (mobileToken.sub !== mobile || typeof mobileToken.leadId !== "string") {
+      return NextResponse.json({ error: "Mobile SMS verification does not match this assessment." }, { status: 403 });
+    }
+    if (mobileToken.leadId !== emailToken.leadId) {
+      return NextResponse.json({ error: "Email and mobile verifications must belong to the same profile." }, { status: 403 });
+    }
+
+    const leadGate = await prisma.lead.findUnique({
+      where: { id: emailToken.leadId },
+      select: { id: true, mobile: true, mobileVerifiedAt: true, mobileVerificationMethod: true, deletedAt: true },
+    });
+    if (!leadGate || leadGate.deletedAt || leadGate.mobile !== mobile || !leadGate.mobileVerifiedAt || leadGate.mobileVerificationMethod !== "SMS") {
+      return NextResponse.json(
+        { error: "Complete mobile SMS OTP verification again.", code: "MOBILE_OTP_VERIFICATION_REQUIRED" },
+        { status: 403 },
+      );
+    }
+
+    if (!rateLimit(`assessment-submit:${emailToken.leadId}`, 8, 60 * 60 * 1000).allowed) {
       return NextResponse.json({ error: "Too many assessment submissions. Please try again later." }, { status: 429 });
     }
 
@@ -117,6 +148,7 @@ export async function POST(request: NextRequest) {
       ([key]) =>
         ![
           "otpVerificationToken",
+          "mobileOtpVerificationToken",
           "serviceConsent",
           "marketingConsent",
           "fullName",
@@ -133,7 +165,7 @@ export async function POST(request: NextRequest) {
     );
 
     console.info("assessment_submit_accepted", {
-      leadId: token.leadId,
+      leadId: emailToken.leadId,
       pan: maskPan(input.panNumber),
       loanAmount: input.loanAmount,
       employmentType: input.employmentType,
@@ -141,7 +173,7 @@ export async function POST(request: NextRequest) {
 
     const assessment = await prisma.$transaction(async (tx) => {
       const lead = await tx.lead.update({
-        where: { id: token.leadId as string },
+        where: { id: emailToken.leadId as string },
         data: {
           fullName: sanitizeText(input.fullName),
           state: sanitizeText(input.state),
@@ -241,9 +273,9 @@ export async function POST(request: NextRequest) {
       return created;
     });
 
-    const accessToken = await signAccessToken("result_access", assessment.id, { leadId: token.leadId as string }, "7d");
+    const accessToken = await signAccessToken("result_access", assessment.id, { leadId: emailToken.leadId as string }, "7d");
     const resultUrl = `${getPublicAppUrl()}/result/${assessment.id}?token=${encodeURIComponent(accessToken)}`;
-    sendWhatsAppTemplate(token.leadId as string, "FREE_RESULT_READY", { link: resultUrl }).catch((error) =>
+    sendWhatsAppTemplate(emailToken.leadId as string, "FREE_RESULT_READY", { link: resultUrl }).catch((error) =>
       console.error("whatsapp_result_failed", error instanceof Error ? error.message : "unknown"),
     );
     return NextResponse.json({

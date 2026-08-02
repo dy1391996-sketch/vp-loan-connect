@@ -51,6 +51,11 @@ export function rateLimit(key: string, limit: number, windowMs: number) {
   return { allowed: true, remaining: limit - current.count };
 }
 
+/** Test-only helper — clears in-memory rate-limit buckets. */
+export function resetRateLimitsForTests() {
+  buckets.clear();
+}
+
 export function sanitizeText(value: string) {
   return value.replace(/[<>]/g, "").replace(/[\u0000-\u001F\u007F]/g, "").trim();
 }

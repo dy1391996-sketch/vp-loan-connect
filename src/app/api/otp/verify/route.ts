@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   try {
     assertSameOrigin(request);
     const parsed = schema.safeParse(await request.json());
-    if (!parsed.success) return NextResponse.json({ error: "Complete SMS OTP verification again." }, { status: 400 });
+    if (!parsed.success) return NextResponse.json({ error: "Complete email OTP verification again." }, { status: 400 });
 
     const mobile = normalizeIndianMobile(parsed.data.mobile);
     if (!rateLimit(`otp-widget-verify:${mobile}`, 8, 10 * 60 * 1000).allowed) {
@@ -87,10 +87,17 @@ export async function POST(request: NextRequest) {
 
     if (!lead || lead.deletedAt) return NextResponse.json({ error: "This profile is not available. Contact support." }, { status: 403 });
 
-    const verifiedAt = new Date();
-    await prisma.lead.update({ where: { id: lead.id }, data: { mobileVerifiedAt: verifiedAt, stage: "OTP_VERIFIED" } });
-    const verificationToken = await signAccessToken("otp_verified", mobile, { leadId: lead.id, provider: "msg91_email_widget", email: parsed.data.email.toLowerCase() }, "20m");
-    return NextResponse.json({ verified: true, verificationToken });
+    // Email widget proves email only — mobile SMS verification is a separate step.
+    if (lead.stage === "NEW_LEAD") {
+      await prisma.lead.update({ where: { id: lead.id }, data: { stage: "OTP_VERIFIED" } });
+    }
+    const verificationToken = await signAccessToken(
+      "otp_verified",
+      mobile,
+      { leadId: lead.id, provider: "msg91_email_widget", email: parsed.data.email.toLowerCase() },
+      "20m",
+    );
+    return NextResponse.json({ verified: true, verificationToken, channel: "email" });
   } catch (error) {
     console.error("otp_widget_verify_failed", error instanceof Error ? error.message : "unknown");
     return NextResponse.json({ error: "Unable to verify OTP right now." }, { status: 500 });
