@@ -53,7 +53,9 @@ Rotate these passwords before any shared environment.
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
-- [Meta / WhatsApp / Instagram setup](docs/META_INTEGRATION.md)
+- [Architecture diagrams](docs/ARCHITECTURE_DIAGRAM.md)
+- [Meta / WhatsApp setup](docs/META_INTEGRATION.md)
+- [Instagram connection](docs/INSTAGRAM_CONNECTION.md)
 - [WhatsApp templates](docs/WHATSAPP_TEMPLATES.md)
 - [Razorpay setup](docs/RAZORPAY_SETUP.md)
 - [OpenAI setup](docs/OPENAI_SETUP.md)
