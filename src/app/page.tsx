@@ -70,17 +70,17 @@ const faqs = [
   ["Is the free result a loan approval?", "No. It is an indicative view based on your answers. Eligibility, APR, amount and approval are decided only by the relevant lender."],
   ["Do I need to upload documents?", "Not during the initial assessment. We only ask whether documents are available. Never share a UPI PIN, CVV, bank password or Aadhaar OTP."],
   ["Will this profile check affect my CIBIL score?", "No. This assessment uses your self-reported CIBIL range; it does not pull a bureau report or create a lender enquiry."],
-  ["Is the ₹99 Credit Profile Booster mandatory?", "No. Your indicative result is free. The optional ₹99 Booster unlocks credit-profile guidance, readiness analysis and profile-matched application options."],
+  ["Is the ₹99 Credit Profile Booster mandatory?", "Matched official apply links and the full Credit Profile Booster require ₹99 + GST. We are not a lender and do not charge a % platform fee on your loan amount."],
   ["How will my information be used?", "Service consent covers the requested assessment. Marketing consent is separate and optional, and can be withdrawn."],
 ] as const;
 
 const journey = [
-  ["01", "Free assessment", "Share income, EMI, CIBIL range and documents status."],
-  ["02", "Indicative result", "See readiness and EMI capacity instantly."],
-  ["03", "₹99 Credit Profile Booster", "Unlock profile analysis and matched options."],
-  ["04", "Best matches first", "Stronger profile → better-fit lenders shown first."],
-  ["05", "Official apply", "Continue on the lender’s official application flow."],
-  ["06", "Your choice", "No automatic data sharing without your action."],
+  ["01", "Amount & purpose", "Start on Quick Apply with what you need."],
+  ["02", "Verify", "Name, mobile, email OTP from VP Loan Connect."],
+  ["03", "Eligibility + address", "PAN, income, credit range, and current address."],
+  ["04", "₹99 unlock", "Credit Profile Booster — not a lender fee."],
+  ["05", "Official apply", "Continue on the partner’s official flow."],
+  ["06", "Your choice", "No automatic data sharing without your click."],
 ] as const;
 
 export default function HomePage() {
@@ -108,31 +108,31 @@ export default function HomePage() {
           <div className="animate-rise relative z-10">
             <p className="font-display text-sm font-extrabold tracking-[0.28em] text-brand-500">VP LOAN CONNECT</p>
             <h1 className="font-display mt-6 max-w-3xl text-balance text-4xl font-extrabold leading-[1.05] tracking-[-0.055em] sm:text-5xl lg:text-[4.15rem]">
-              Apni credit profile samjho.
-              <span className="mt-2 block text-brand-500">Phir best loan matches dekho.</span>
+              Verify. Check eligibility.
+              <span className="mt-2 block text-brand-500">Unlock honest matches.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300 sm:text-xl">
-              Free readiness check pehle. Sirf ₹99 mein Credit Profile Booster — banks, NBFCs aur fintechs jo aapke profile se match karen.
+              Ad-ready funnel: OTP → PAN & income → address → ₹99 Credit Profile Booster. Official partner links after payment — no 10% platform fee games.
             </p>
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-              <ButtonLink href="/assessment" size="lg">
-                Free Profile Check <ArrowRight size={18} aria-hidden="true" />
+              <ButtonLink href="/apply/quick" size="lg">
+                Start quick apply <ArrowRight size={18} aria-hidden="true" />
               </ButtonLink>
               <ButtonLink href="/credit-health" variant="glass" size="lg">
-                ₹99 Credit Profile Booster
+                What ₹99 includes
               </ButtonLink>
             </div>
             <div className="mt-10 flex flex-wrap gap-x-7 gap-y-3 text-sm text-slate-300">
               <span className="flex items-center gap-2">
-                <Clock3 className="text-brand-500" size={17} />2-minute free result
+                <Clock3 className="text-brand-500" size={17} />~2-minute flow
               </span>
               <span className="flex items-center gap-2">
                 <FileCheck2 className="text-brand-500" size={17} />
-                No document upload
+                PAN + income
               </span>
               <span className="flex items-center gap-2">
                 <LockKeyhole className="text-brand-500" size={17} />
-                OTP from VP Loan Connect
+                ₹99 unlocks links
               </span>
             </div>
           </div>
@@ -215,14 +215,14 @@ export default function HomePage() {
         <div className="page-shell">
           <SectionHeading
             eyebrow="Simple, premium process"
-            title="Free check pehle. Smart matches baad mein."
-            description="Indicative result free hai. Optional ₹99 Credit Profile Booster se profile-matched options unlock hote hain."
+            title="Smooth apply. Honest ₹99 unlock."
+            description="A Quikkred-smooth journey without high % fees: verify, eligibility, address, then Credit Profile Booster for matched official links."
             align="center"
           />
           <div className="mt-16 grid gap-5 md:grid-cols-3">
-            <ProcessCard number="01" icon={UserRoundCheck} title="Complete your profile" description="Income, EMI, CIBIL range aur documents — kuch minutes mein." />
-            <ProcessCard number="02" icon={ChartNoAxesCombined} title="Free indicative result" description="Readiness, EMI capacity aur action points turant dekho." />
-            <ProcessCard number="03" icon={HandCoins} title="₹99 Credit Profile Booster" description="Profile samjho, readiness analyse karo, best-fit lenders pehle dekho." />
+            <ProcessCard number="01" icon={UserRoundCheck} title="Verify + eligibility" description="OTP, PAN, income and address in a 4-step mobile flow." />
+            <ProcessCard number="02" icon={HandCoins} title="Pay ₹99 Booster" description="Fixed Credit Profile Booster — not a lender processing fee." />
+            <ProcessCard number="03" icon={ChartNoAxesCombined} title="Matched options" description="Best-fit partners first, official apply links you choose." />
           </div>
         </div>
       </section>
@@ -418,15 +418,15 @@ export default function HomePage() {
                   Ready to understand your loan profile?
                 </h2>
                 <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
-                  Free check pehle. Stronger matches chahiye? Unlock the ₹99 Credit Profile Booster — no sensitive uploads, no false approval promise.
+                  Verify → eligibility → address → unlock matched official partner links with honest ₹99 + GST Credit Profile Booster.
                 </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
-                <ButtonLink href="/assessment" size="lg">
-                  Free Profile Check <ArrowRight size={18} />
+                <ButtonLink href="/apply/quick" size="lg">
+                  Start quick apply <ArrowRight size={18} />
                 </ButtonLink>
                 <ButtonLink href="/credit-health" variant="glass" size="lg">
-                  ₹99 Booster
+                  What ₹99 includes
                 </ButtonLink>
               </div>
             </div>

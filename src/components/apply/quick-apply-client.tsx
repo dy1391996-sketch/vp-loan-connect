@@ -78,16 +78,16 @@ export function QuickApplyClient() {
         {(
           [
             { n: "1", label: "Amount", active: true },
-            { n: "2", label: "Profile", active: false },
-            { n: "3", label: "Free result", active: false },
-            { n: "4", label: `${USP_PRICE_LABEL} unlock`, active: false },
+            { n: "2", label: "Verify", active: false },
+            { n: "3", label: "Eligibility", active: false },
+            { n: "4", label: "Unlock", active: false },
           ] as const
         ).map((step, index, list) => (
           <div key={step.label} className="flex items-center gap-2">
             <span className={cn("grid h-7 w-7 place-items-center rounded-full text-[11px]", step.active ? "bg-brand-600 text-white" : "bg-line text-slate-500")}>
               {step.n}
             </span>
-            <span className={cn(step.active ? "text-brand-700" : "text-slate-400")}>{step.label}</span>
+            <span className={cn("hidden sm:inline", step.active ? "text-brand-700" : "text-slate-400")}>{step.label}</span>
             {index < list.length - 1 ? <span className="mx-1 h-px w-6 bg-line sm:w-10" /> : null}
           </div>
         ))}
@@ -102,7 +102,7 @@ export function QuickApplyClient() {
           How much do you need?
         </h1>
         <p className="mt-3 text-sm leading-7 text-slate-600">
-          Amount choose karo. Free profile check pehle — phir optional {USP_PRICE_LABEL} Credit Profile Booster se official loan links unlock.
+          Pick amount and purpose — then verify OTP, share eligibility & address, and unlock official partner links with honest {USP_PRICE_LABEL} + GST.
         </p>
 
         <label className="mt-8 block">
@@ -156,11 +156,11 @@ export function QuickApplyClient() {
         </div>
 
         <div className="mt-7 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-          <strong>Honest pricing:</strong> Hum loan amount ka 10% fee nahi lete. Free check pehle. Matched official platforms unlock karne ke liye optional {USP_PRICE_LABEL} + GST — approval guarantee nahi.
+          <strong>Honest pricing:</strong> We do not take ~10% platform fees on loan amount. {USP_PRICE_LABEL} + GST unlocks Credit Profile Booster and official partner apply links — not a lender fee or approval.
         </div>
 
         <Button type="button" size="lg" className="mt-6 w-full" onClick={continueApply}>
-          Continue to free profile check <ArrowRight size={18} />
+          Continue to verify <ArrowRight size={18} />
         </Button>
 
         <div className="mt-5 grid gap-3 text-xs leading-6 text-slate-500 sm:grid-cols-2">
