@@ -7,10 +7,10 @@ Switch gateways with `PAYMENT_PROVIDER` only. Business unlock logic (`processSuc
 | `PAYMENT_PROVIDER` | Status |
 |---|---|
 | `razorpay` | Fully live-ready (existing flow preserved) |
-| `cashfree` | Fully implemented — needs credentials |
-| `phonepe` | Fully implemented for pay + verify/webhook — refund needs merchant API enablement |
-| `payu` | Fully implemented for hosted pay + hash verify/webhook — refund needs merchant API enablement |
-| `mock` | Local/CI only |
+| `cashfree` | Production-ready in code — needs Cashfree dashboard credentials + Vercel env before switch |
+| `phonepe` | Pay + verify/webhook implemented — refund needs merchant API enablement |
+| `payu` | Hosted pay + hash verify/webhook implemented — refund needs merchant API enablement |
+| `mock` | Local/CI only — blocked in Vercel Production |
 
 ## Credentials to collect (do not invent keys)
 
@@ -22,12 +22,15 @@ Switch gateways with `PAYMENT_PROVIDER` only. Business unlock logic (`processSuc
    (also available at `/api/webhooks/payments/razorpay`)  
    Events: `payment.captured`, `payment.failed`
 
-### Cashfree Payments
-1. `CASHFREE_APP_ID` — Merchant Dashboard → Developers → API Keys
-2. `CASHFREE_SECRET_KEY` — same page
-3. `CASHFREE_WEBHOOK_SECRET` — optional but recommended (falls back to secret key if empty)
-4. `CASHFREE_ENV` — `sandbox` or `production`  
-   Webhook URL: `https://www.vploanconnect.in/api/webhooks/payments/cashfree`
+### Cashfree Payments (backup / primary when Razorpay delayed)
+1. `CASHFREE_APP_ID` — Merchant Dashboard → Developers → API Keys (**Production** keys)
+2. `CASHFREE_SECRET_KEY` — same page (also used to verify webhooks if webhook secret unset)
+3. `CASHFREE_WEBHOOK_SECRET` — optional; leave empty to use `CASHFREE_SECRET_KEY` (official PG signing secret)
+4. `CASHFREE_ENV=production` — required when `PAYMENT_PROVIDER=cashfree` on Vercel Production  
+   **Notify URL:** `https://www.vploanconnect.in/api/webhooks/payments/cashfree`  
+   **Return URL:** generated as `/api/payments/return?order_id={order_id}&internalOrderId=…`  
+   Suggested webhook events: `PAYMENT_SUCCESS_WEBHOOK`, `PAYMENT_FAILED_WEBHOOK`  
+   **Do not** switch `PAYMENT_PROVIDER=cashfree` until Production App ID + Secret Key are set.
 
 ### PhonePe Payment Gateway
 1. `PHONEPE_MERCHANT_ID`
@@ -44,13 +47,17 @@ Switch gateways with `PAYMENT_PROVIDER` only. Business unlock logic (`processSuc
    Success/failure return: `/api/payments/return`  
    Webhook URL: `https://www.vploanconnect.in/api/webhooks/payments/payu`
 
-## Go-live checklist
+## Go-live checklist (Cashfree)
 
-1. Set `PAYMENT_PROVIDER` to the gateway that has credentials ready first.
-2. Paste only that provider’s secrets into Vercel Production env (no quotes).
-3. Register the webhook URL in the provider dashboard.
-4. Redeploy Vercel.
-5. Run a ₹116.82 (₹99 + GST) test payment on `/assessment` → Unlock.
+1. Create / approve Cashfree Production merchant account.
+2. Copy Production `CASHFREE_APP_ID` + `CASHFREE_SECRET_KEY` into Vercel **Production** only.
+3. Set `CASHFREE_ENV=production`.
+4. Register webhook notify URL in Cashfree dashboard (above).
+5. Set `PAYMENT_PROVIDER=cashfree` (only after keys are present).
+6. Redeploy Vercel Production.
+7. Open checkout once and confirm Cashfree production hosted checkout loads.
+8. Complete one real ₹99 + GST payment only after explicit owner approval.
+9. Confirm unlock, report download, admin payment row, and duplicate webhook/refresh safety.
 
 ## Architecture
 
@@ -58,4 +65,12 @@ Switch gateways with `PAYMENT_PROVIDER` only. Business unlock logic (`processSuc
 - Factory: `src/lib/payments/index.ts` → `getPaymentProvider()`
 - Adapters: `src/lib/payments/providers/{razorpay,cashfree,phonepe,payu,mock}.ts`
 - Shared webhook processor: `src/lib/payments/webhook-handler.ts`
+- Return/reconcile: `/api/payments/return`, `/api/payments/reconcile`
 - Checkout UI reads `checkout.mode` and launches the correct UX (modal / SDK / redirect / hosted form)
+
+## Safety rules
+
+- No silent fallback between gateways after a failed attempt (avoids double charge).
+- Historical orders always verify/refund through the **recorded** payment provider.
+- Mock provider is blocked in Vercel Production.
+- Amount and unlock are always server-side.

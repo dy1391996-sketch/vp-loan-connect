@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getPublicAppUrl, getServerEnv } from "@/lib/env";
-import { getPaymentProvider } from "@/lib/payments";
+import { getPaymentProvider, type PaymentProviderId } from "@/lib/payments";
 import { processSuccessfulPayment } from "@/lib/payments/order-service";
 import { sendWhatsAppTemplate } from "@/lib/providers/whatsapp";
 import { assertSameOrigin, rateLimit, requestIpHash } from "@/lib/security/request";
@@ -35,16 +35,21 @@ export async function POST(request: NextRequest) {
     }
 
     const env = getServerEnv();
-    const provider = getPaymentProvider();
-    const order = await prisma.order.findUnique({ where: { id: parsed.data.internalOrderId } });
+    const order = await prisma.order.findUnique({
+      where: { id: parsed.data.internalOrderId },
+      include: { payments: { orderBy: { createdAt: "desc" }, take: 1 } },
+    });
     if (!order) return NextResponse.json({ error: "Payment order mismatch." }, { status: 400 });
 
+    const paymentProvider = (order.payments[0]?.provider || env.PAYMENT_PROVIDER) as PaymentProviderId;
+    const provider = getPaymentProvider(paymentProvider);
     const verified = await provider.verifyClientPayment(
       {
         internalOrderId: parsed.data.internalOrderId,
         providerOrderId: parsed.data.providerOrderId || parsed.data.razorpay_order_id,
         providerPaymentId: parsed.data.providerPaymentId || parsed.data.razorpay_payment_id,
         signature: parsed.data.signature || parsed.data.razorpay_signature,
+        expectedAmountPaise: Math.round(Number(order.totalAmount) * 100),
         raw: parsed.data as Record<string, unknown>,
       },
       order.providerOrderId,

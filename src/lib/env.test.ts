@@ -123,8 +123,23 @@ test("production environment requires credentials for the selected payment provi
         PAYMENT_PROVIDER: "cashfree",
         CASHFREE_APP_ID: "",
         CASHFREE_SECRET_KEY: "",
+        CASHFREE_ENV: "production",
       }),
     /Missing cashfree payment credentials/,
+  );
+});
+
+test("critical production gate rejects Cashfree sandbox on production", () => {
+  assert.throws(
+    () =>
+      validateCriticalProductionEnvironment({
+        ...validEnvironment,
+        PAYMENT_PROVIDER: "cashfree",
+        CASHFREE_APP_ID: "app",
+        CASHFREE_SECRET_KEY: "secret",
+        CASHFREE_ENV: "sandbox",
+      }),
+    /CASHFREE_ENV must be production/,
   );
 });
 

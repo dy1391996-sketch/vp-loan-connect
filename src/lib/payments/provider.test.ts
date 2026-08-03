@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import { createHash, createHmac } from "node:crypto";
 import { missingPaymentCredentialKeys, type ServerEnv } from "@/lib/env";
 import { listPaymentProviders, mapPaymentError, PaymentConfigurationError } from "@/lib/payments";
+import { cashfreePaymentProvider, verifyCashfreeWebhookSignature } from "@/lib/payments/providers/cashfree";
 import { buildPayuPaymentHash, verifyPayuReverseHash } from "@/lib/payments/providers/payu";
 import { verifyRazorpayPaymentSignature, verifyRazorpayWebhookSignature } from "@/lib/payments/providers/razorpay";
 
@@ -140,6 +141,77 @@ describe("PayU hash helpers", () => {
         hash: "0".repeat(128),
       }),
       false,
+    );
+  });
+});
+
+describe("Cashfree webhook and verify helpers", () => {
+  it("accepts only a matching webhook signature over timestamp+rawBody", () => {
+    const secret = "cf-secret";
+    const timestamp = String(Date.now());
+    const body = JSON.stringify({ type: "PAYMENT_SUCCESS_WEBHOOK", data: { order: { order_id: "ord_1" } } });
+    const signature = createHmac("sha256", secret).update(`${timestamp}${body}`).digest("base64");
+    assert.equal(verifyCashfreeWebhookSignature(body, timestamp, signature, secret), true);
+    assert.equal(verifyCashfreeWebhookSignature(`${body} `, timestamp, signature, secret), false);
+    assert.equal(verifyCashfreeWebhookSignature(body, timestamp, "bad", secret), false);
+  });
+
+  it("parses success and failed webhook events and ignores pending", () => {
+    const success = cashfreePaymentProvider.parseWebhook(
+      JSON.stringify({
+        type: "PAYMENT_SUCCESS_WEBHOOK",
+        data: {
+          order: { order_id: "ord_1", order_currency: "INR" },
+          payment: { cf_payment_id: "pay_1", payment_status: "SUCCESS", payment_currency: "INR" },
+        },
+      }),
+      new Headers(),
+      baseEnv({ PAYMENT_PROVIDER: "cashfree", CASHFREE_APP_ID: "x", CASHFREE_SECRET_KEY: "y", CASHFREE_ENV: "production" }),
+    );
+    assert.equal(success.kind, "payment_captured");
+    if (success.kind === "payment_captured") {
+      assert.equal(success.providerOrderId, "ord_1");
+      assert.equal(success.providerPaymentId, "pay_1");
+    }
+
+    const failed = cashfreePaymentProvider.parseWebhook(
+      JSON.stringify({
+        type: "PAYMENT_FAILED_WEBHOOK",
+        data: {
+          order: { order_id: "ord_2" },
+          payment: { cf_payment_id: "pay_2", payment_status: "FAILED", payment_message: "Bank declined" },
+        },
+      }),
+      new Headers(),
+      baseEnv({ PAYMENT_PROVIDER: "cashfree", CASHFREE_APP_ID: "x", CASHFREE_SECRET_KEY: "y", CASHFREE_ENV: "production" }),
+    );
+    assert.equal(failed.kind, "payment_failed");
+
+    const ignored = cashfreePaymentProvider.parseWebhook(
+      JSON.stringify({ type: "PAYMENT_PENDING_WEBHOOK", data: { order: { order_id: "ord_3" }, payment: { payment_status: "PENDING" } } }),
+      new Headers(),
+      baseEnv({ PAYMENT_PROVIDER: "cashfree", CASHFREE_APP_ID: "x", CASHFREE_SECRET_KEY: "y", CASHFREE_ENV: "production" }),
+    );
+    assert.equal(ignored.kind, "ignored");
+  });
+
+  it("rejects webhook signatures with stale timestamps", () => {
+    const env = baseEnv({ PAYMENT_PROVIDER: "cashfree", CASHFREE_APP_ID: "app", CASHFREE_SECRET_KEY: "secret", CASHFREE_ENV: "production" });
+    const body = '{"type":"PAYMENT_SUCCESS_WEBHOOK"}';
+    const stale = String(Date.now() - 60 * 60 * 1000);
+    const signature = createHmac("sha256", "secret").update(`${stale}${body}`).digest("base64");
+    const headers = new Headers({ "x-webhook-timestamp": stale, "x-webhook-signature": signature });
+    assert.equal(cashfreePaymentProvider.verifyWebhookSignature(body, headers, env), false);
+  });
+
+  it("requires credentials and production env in critical gate messaging path", () => {
+    assert.deepEqual(cashfreePaymentProvider.missingCredentials(baseEnv({ PAYMENT_PROVIDER: "cashfree" })), [
+      "CASHFREE_APP_ID",
+      "CASHFREE_SECRET_KEY",
+    ]);
+    assert.throws(
+      () => cashfreePaymentProvider.assertConfigured(baseEnv({ PAYMENT_PROVIDER: "cashfree" })),
+      /CASHFREE_APP_ID/,
     );
   });
 });

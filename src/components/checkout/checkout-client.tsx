@@ -167,10 +167,23 @@ export function CheckoutClient(props: Props) {
 
       if (checkout.mode === "cashfree_checkout") {
         await loadScript("https://sdk.cashfree.com/js/v3/cashfree.js", () => Boolean(window.Cashfree));
-        if (!window.Cashfree) throw new Error("Cashfree checkout could not be loaded.");
+        if (!window.Cashfree) throw new Error("Cashfree checkout could not be loaded. Disable blockers and try again.");
         const cashfree = new window.Cashfree({ mode: checkout.env });
-        await cashfree.checkout({ paymentSessionId: checkout.paymentSessionId, redirectTarget: "_self" });
-        // Cashfree redirects; webhook/return will finalize. Soft-verify after return handled by return route.
+        try {
+          await cashfree.checkout({ paymentSessionId: checkout.paymentSessionId, redirectTarget: "_self" });
+          // Redirect checkout should navigate away. If the SDK resolves without navigation, recover server-side.
+          setError("Checkout was closed before payment completed. If money was deducted, tap retry — we will re-check securely.");
+          setBusy(false);
+        } catch (cashfreeError) {
+          const message = cashfreeError instanceof Error ? cashfreeError.message : "Cashfree checkout failed.";
+          if (/cancel|closed|dismiss|abort/i.test(message)) {
+            router.push(
+              `/payment/failed?assessment=${props.assessmentId}&product=${props.productSlug}&token=${encodeURIComponent(props.resultToken)}&reason=${encodeURIComponent("Payment was cancelled")}`,
+            );
+            return;
+          }
+          throw new Error("Cashfree checkout could not be completed. Please try again.");
+        }
         return;
       }
 

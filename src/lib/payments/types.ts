@@ -35,6 +35,8 @@ export type ClientVerifyPayload = {
   providerOrderId?: string;
   providerPaymentId?: string;
   signature?: string;
+  /** Server-trusted expected amount in paise (never from the browser). */
+  expectedAmountPaise?: number;
   /** Provider-specific fields (Razorpay handler, Cashfree order_id, PayU hash, etc.) */
   raw?: Record<string, unknown>;
 };
@@ -76,8 +78,12 @@ export type WebhookParseResult =
 
 export type RefundInput = {
   paymentId: string;
+  /** Merchant/provider order id — required for Cashfree refunds. */
+  providerOrderId?: string;
   amountPaise: number;
   refundReference: string;
+  /** Original payment provider — required when PAYMENT_PROVIDER has changed. */
+  provider?: PaymentProviderId;
 };
 
 export interface PaymentProvider {

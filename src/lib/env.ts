@@ -173,6 +173,16 @@ export function validateCriticalProductionEnvironment(environment: NodeJS.Proces
       "[env] RAZORPAY_WEBHOOK_SECRET is not set. Checkout can still verify client signatures; configure the webhook secret in Vercel so /api/webhooks/razorpay can accept events.",
     );
   }
+  if (config.PAYMENT_PROVIDER === "cashfree") {
+    if (config.CASHFREE_ENV !== "production") {
+      throw new Error("CASHFREE_ENV must be production when PAYMENT_PROVIDER=cashfree in production.");
+    }
+    if (!config.CASHFREE_WEBHOOK_SECRET) {
+      console.warn(
+        "[env] CASHFREE_WEBHOOK_SECRET is unset; Cashfree webhooks will verify using CASHFREE_SECRET_KEY (official PG client secret).",
+      );
+    }
+  }
   if (config.OTP_PROVIDER !== "custom") throw new Error("OTP_PROVIDER must be custom in production.");
   if (!String(config.OTP_API_URL ?? "").trim() || !String(config.OTP_API_KEY ?? "").trim()) {
     throw new Error("OTP_API_URL and OTP_API_KEY are required in production.");

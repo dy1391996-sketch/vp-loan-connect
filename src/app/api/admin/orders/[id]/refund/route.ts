@@ -51,6 +51,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try {
     const provider = await createProviderRefund({
       paymentId: payment.providerPaymentId,
+      providerOrderId: order.providerOrderId || undefined,
+      provider: payment.provider as "mock" | "razorpay" | "cashfree" | "phonepe" | "payu",
       amountPaise: Math.round(parsed.data.amount * 100),
       refundReference: refund.id,
     });

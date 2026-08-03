@@ -61,6 +61,25 @@ export async function POST(request: NextRequest) {
     });
     const customerEmail = typeof emailAnswer?.value === "string" ? emailAnswer.value : undefined;
 
+    // Expire stale unpaid checkouts for the same assessment+product so users cannot stack active orders.
+    await prisma.order.updateMany({
+      where: {
+        assessmentId: assessment.id,
+        productId: product.id,
+        status: { in: ["CREATED", "PENDING"] },
+        createdAt: { lt: new Date(Date.now() - 5 * 60 * 1000) },
+      },
+      data: { status: "FAILED" },
+    });
+
+    const alreadyPaid = await prisma.order.findFirst({
+      where: { assessmentId: assessment.id, productId: product.id, status: "PAID" },
+      include: { reports: { select: { id: true }, take: 1 } },
+    });
+    if (alreadyPaid?.reports[0]) {
+      return NextResponse.json({ error: "This booster is already unlocked for your assessment." }, { status: 409 });
+    }
+
     const subtotal = product.slug === USP_PRODUCT_SLUG ? USP_SALE_PRICE : Number(product.salePrice);
     const gstAmount = Math.round(subtotal * Number(product.gstRate)) / 100;
     const totalAmount = Math.round((subtotal + gstAmount) * 100) / 100;
@@ -96,7 +115,7 @@ export async function POST(request: NextRequest) {
           mobile: lead?.mobile,
           email: customerEmail,
         },
-        returnUrl: `${getPublicAppUrl()}/api/payments/return?internalOrderId=${order.id}`,
+        returnUrl: `${getPublicAppUrl()}/api/payments/return?order_id={order_id}&internalOrderId=${order.id}`,
         notifyUrl: `${getPublicAppUrl()}/api/webhooks/payments/${env.PAYMENT_PROVIDER}`,
       });
       await prisma.$transaction([

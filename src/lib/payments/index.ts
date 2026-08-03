@@ -75,7 +75,9 @@ export async function createProviderOrder(input: CreateOrderInput) {
 
 export async function createProviderRefund(input: RefundInput) {
   const env = getServerEnv();
-  return getPaymentProvider().createRefund(input, env);
+  // Refund through the payment's original provider — never the currently selected gateway alone.
+  const provider = getPaymentProvider(input.provider ?? (env.PAYMENT_PROVIDER as PaymentProviderId));
+  return provider.createRefund(input, env);
 }
 
 export function mapPaymentError(error: unknown): { status: number; error: string; missing?: string[] } {
