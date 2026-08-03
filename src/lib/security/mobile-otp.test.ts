@@ -184,11 +184,10 @@ describe("mobile OTP crypto and state machine", () => {
   });
 });
 
-describe("assessment dual-OTP bypass contract", () => {
-  it("requires mobile SMS token field in addition to email OTP token", async () => {
+describe("assessment email-OTP contract", () => {
+  it("requires email OTP token and accepts assessment without SMS OTP token", async () => {
     const { assessmentSchema } = await import("@/lib/domain/assessment-schema");
-    const missingMobile = assessmentSchema.safeParse({
-      otpVerificationToken: "x".repeat(40),
+    const base = {
       fullName: "Rahul Sharma",
       mobile: "9876512345",
       email: "rahul.sharma@gmail.com",
@@ -232,10 +231,18 @@ describe("assessment dual-OTP bypass contract", () => {
       serviceConsent: true,
       marketingConsent: false,
       source: "test",
-    });
-    assert.equal(missingMobile.success, false);
-    if (!missingMobile.success) {
-      assert.ok(missingMobile.error.issues.some((issue) => issue.path[0] === "mobileOtpVerificationToken"));
+    };
+
+    const missingEmail = assessmentSchema.safeParse(base);
+    assert.equal(missingEmail.success, false);
+    if (!missingEmail.success) {
+      assert.ok(missingEmail.error.issues.some((issue) => issue.path[0] === "otpVerificationToken"));
     }
+
+    const emailOnly = assessmentSchema.safeParse({
+      ...base,
+      otpVerificationToken: "x".repeat(40),
+    });
+    assert.equal(emailOnly.success, true);
   });
 });

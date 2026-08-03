@@ -70,33 +70,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Verified email does not match this assessment." }, { status: 403 });
     }
 
-    let mobileToken;
-    try {
-      mobileToken = await verifyAccessToken(input.mobileOtpVerificationToken, "mobile_otp_verified");
-    } catch (error) {
-      if (isAccessTokenError(error)) {
-        console.warn("assessment_mobile_otp_rejected", { reason: error.reason });
-        return NextResponse.json(
-          { error: "Complete mobile SMS OTP verification again.", code: "MOBILE_OTP_VERIFICATION_REQUIRED" },
-          { status: 403 },
-        );
-      }
-      throw error;
-    }
-    if (mobileToken.sub !== mobile || typeof mobileToken.leadId !== "string") {
-      return NextResponse.json({ error: "Mobile SMS verification does not match this assessment." }, { status: 403 });
-    }
-    if (mobileToken.leadId !== emailToken.leadId) {
-      return NextResponse.json({ error: "Email and mobile verifications must belong to the same profile." }, { status: 403 });
-    }
-
     const leadGate = await prisma.lead.findUnique({
       where: { id: emailToken.leadId },
-      select: { id: true, mobile: true, mobileVerifiedAt: true, mobileVerificationMethod: true, deletedAt: true },
+      select: { id: true, mobile: true, deletedAt: true },
     });
-    if (!leadGate || leadGate.deletedAt || leadGate.mobile !== mobile || !leadGate.mobileVerifiedAt || leadGate.mobileVerificationMethod !== "SMS") {
+    if (!leadGate || leadGate.deletedAt || leadGate.mobile !== mobile) {
       return NextResponse.json(
-        { error: "Complete mobile SMS OTP verification again.", code: "MOBILE_OTP_VERIFICATION_REQUIRED" },
+        { error: "Complete email OTP verification again.", code: "EMAIL_OTP_VERIFICATION_REQUIRED" },
         { status: 403 },
       );
     }
@@ -148,7 +128,6 @@ export async function POST(request: NextRequest) {
       ([key]) =>
         ![
           "otpVerificationToken",
-          "mobileOtpVerificationToken",
           "serviceConsent",
           "marketingConsent",
           "fullName",

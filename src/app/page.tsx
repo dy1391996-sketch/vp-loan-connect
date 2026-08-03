@@ -77,7 +77,7 @@ const faqs = [
 
 const journey = [
   ["01", "Amount & purpose", "Start on Quick Apply with what you need."],
-  ["02", "Verify", "Name, mobile, email OTP from VP Loan Connect."],
+  ["02", "Verify", "Name, mobile for contact, email OTP from VP Loan Connect."],
   ["03", "Eligibility + address", "PAN, income, credit range, and current address."],
   ["04", "₹99 unlock", "Credit Profile Booster — not a lender fee."],
   ["05", "Official apply", "Continue on the partner’s official flow."],

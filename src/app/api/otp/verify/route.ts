@@ -87,10 +87,15 @@ export async function POST(request: NextRequest) {
 
     if (!lead || lead.deletedAt) return NextResponse.json({ error: "This profile is not available. Contact support." }, { status: 403 });
 
-    // Email widget proves email only — mobile SMS verification is a separate step.
-    if (lead.stage === "NEW_LEAD") {
-      await prisma.lead.update({ where: { id: lead.id }, data: { stage: "OTP_VERIFIED" } });
-    }
+    // Email widget proves ownership of the submitted email and binds it to this lead/mobile contact.
+    await prisma.lead.update({
+      where: { id: lead.id },
+      data: {
+        stage: lead.stage === "NEW_LEAD" ? "OTP_VERIFIED" : lead.stage,
+        mobileVerifiedAt: lead.mobileVerifiedAt ?? new Date(),
+        mobileVerificationMethod: "EMAIL",
+      },
+    });
     const verificationToken = await signAccessToken(
       "otp_verified",
       mobile,

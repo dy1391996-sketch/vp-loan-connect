@@ -98,7 +98,6 @@ const requiredProductionBaseValues: Array<keyof ServerEnv> = [
   "WHATSAPP_PHONE_NUMBER_ID",
   "WHATSAPP_WEBHOOK_VERIFY_TOKEN",
   "WHATSAPP_APP_SECRET",
-  "OTP_API_URL",
   "OTP_API_KEY",
   "BUSINESS_GSTIN",
   "BUSINESS_ADDRESS",
@@ -223,8 +222,8 @@ export function validateCriticalProductionEnvironment(environment: NodeJS.Proces
     }
   }
   if (config.OTP_PROVIDER !== "custom") throw new Error("OTP_PROVIDER must be custom in production.");
-  if (!String(config.OTP_API_URL ?? "").trim() || !String(config.OTP_API_KEY ?? "").trim()) {
-    throw new Error("OTP_API_URL and OTP_API_KEY are required in production.");
+  if (!String(config.OTP_API_KEY ?? "").trim()) {
+    throw new Error("OTP_API_KEY is required in production for email OTP verification.");
   }
   const widgetId = String(environment.NEXT_PUBLIC_MSG91_WIDGET_ID ?? "").trim();
   const widgetToken = String(environment.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ?? "").trim();
