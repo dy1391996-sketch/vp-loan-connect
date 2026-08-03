@@ -48,12 +48,15 @@ export default async function ResultPage({ params, searchParams }: { params: Pro
             <div className="absolute -right-20 -top-28 h-80 w-80 rounded-full bg-brand-500/20 blur-3xl" />
             <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
               <div>
-                <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-brand-500">Your profile-based result</p>
-                <h1 className="mt-4 max-w-3xl text-balance text-4xl font-black tracking-[-0.055em] sm:text-6xl">You may qualify for an indicative offer of {offer.amount}.</h1>
-                <p className="mt-5 max-w-2xl text-sm leading-7 text-slate-300">Calculated from your stated income, current obligations, requested amount and self-reported CIBIL range. Final offers are issued only by the lender after verification.</p>
+                <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-brand-500">Your preliminary loan profile</p>
+                <h1 className="mt-4 max-w-3xl text-balance text-4xl font-black tracking-[-0.055em] sm:text-6xl">Your preliminary loan profile is ready</h1>
+                <p className="mt-5 max-w-2xl text-sm leading-7 text-slate-300">
+                  Indicative amount band {offer.amount} from your stated income, obligations and self-reported CIBIL range.
+                  This is not a lender approval and not a bureau score. Final approval, APR, amount and tenure are decided by the lender.
+                </p>
               </div>
               <div className="rounded-3xl border border-white/10 bg-white/10 p-6 backdrop-blur lg:min-w-56 lg:text-right">
-                <p className="text-xs font-semibold text-slate-300">Profile readiness</p>
+                <p className="text-xs font-semibold text-slate-300">Readiness band</p>
                 <p className="mt-1 text-5xl font-black tracking-[-0.06em] text-brand-500">{score.readinessScore}<span className="text-lg text-slate-400">/100</span></p>
                 <p className="mt-2 text-sm font-extrabold">{score.readinessLabel}</p>
               </div>
@@ -81,8 +84,8 @@ export default async function ResultPage({ params, searchParams }: { params: Pro
                 <Zap className="text-brand-500" size={28} />
                 <p className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-slate-300">One-time access</p>
                 <p className="mt-2 text-5xl font-black text-brand-500">₹99 <span className="text-base text-slate-300">+ GST</span></p>
-                <p className="mt-2 text-sm font-bold">Total payable: ₹116.82</p>
-                <ButtonLink href={checkoutUrl} size="lg" className="mt-7 w-full">Get Credit Profile Booster <ArrowRight size={18} /></ButtonLink>
+                <p className="mt-2 text-sm font-bold">GST ₹17.82 · Total payable: ₹116.82</p>
+                <ButtonLink href={checkoutUrl} size="lg" className="mt-7 w-full">Unlock full report for ₹116.82 <ArrowRight size={18} /></ButtonLink>
                 <p className="mt-4 text-xs leading-6 text-slate-400">Fee is for profile analysis and matched options—not a lender fee or loan approval fee.</p>
               </div>
             </div>

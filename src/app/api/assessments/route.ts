@@ -85,6 +85,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Too many assessment submissions. Please try again later." }, { status: 429 });
     }
 
+    // Deduplicate rapid re-submits with identical core profile for the same verified lead.
+    const recent = await prisma.assessment.findFirst({
+      where: {
+        leadId: emailToken.leadId,
+        status: "COMPLETED",
+        createdAt: { gte: new Date(Date.now() - 15 * 60 * 1000) },
+        loanAmount: input.loanAmount,
+        loanPurpose: input.loanPurpose,
+        employmentType: input.employmentType,
+        monthlyIncomeRange: input.monthlyIncomeRange,
+        creditRange: input.creditRange,
+      },
+      include: { score: true },
+      orderBy: { createdAt: "desc" },
+    });
+    if (recent?.score) {
+      const accessToken = await signAccessToken("result_access", recent.id, { leadId: emailToken.leadId as string }, "7d");
+      const resultUrl = `${getPublicAppUrl()}/result/${recent.id}?token=${encodeURIComponent(accessToken)}`;
+      return NextResponse.json({
+        assessmentId: recent.id,
+        accessToken,
+        resultUrl,
+        reused: true,
+        indicative: {
+          readinessScore: recent.score.readinessScore,
+          readinessLabel: recent.score.readinessLabel,
+          comfortableEmiMin: recent.score.comfortableEmiMin,
+          comfortableEmiMax: recent.score.comfortableEmiMax,
+          strengths: recent.score.strengths,
+          improvements: recent.score.improvements,
+          suitableCategories: recent.score.suitableCategories,
+          disclaimer: "Indicative eligibility estimate, not a loan approval. Not a bureau score or lender approval.",
+        },
+      });
+    }
+
     const scoreInput: ScoreInput = {
       loanAmount: input.loanAmount,
       loanType: input.loanType,
@@ -264,8 +300,15 @@ export async function POST(request: NextRequest) {
       indicative: {
         readinessScore: result.readinessScore,
         readinessLabel: result.readinessLabel,
-        ...capacity,
-        disclaimer: "Indicative eligibility estimate, not a loan approval.",
+        comfortableEmiMin: result.comfortableEmiMin,
+        comfortableEmiMax: result.comfortableEmiMax,
+        strengths: result.strengths,
+        improvements: result.improvements,
+        suitableCategories: result.suitableCategories,
+        monthlyIncomeMidpoint: capacity.monthlyIncomeMidpoint,
+        estimatedFoirPercent: capacity.estimatedFoirPercent,
+        loanToAnnualIncome: capacity.loanToAnnualIncome,
+        disclaimer: "Indicative eligibility estimate, not a loan approval. Not a bureau score or lender approval.",
       },
     });
   } catch (error) {

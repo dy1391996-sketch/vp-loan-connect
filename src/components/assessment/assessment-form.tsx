@@ -160,7 +160,7 @@ export function AssessmentForm() {
       const next = { ...current };
       let changed = false;
       if (amount && /^\d+$/.test(amount)) {
-        next.loanAmount = String(Math.min(500000, Math.max(5000, Number(amount))));
+        next.loanAmount = String(Math.min(1000000, Math.max(10000, Number(amount))));
         changed = true;
       }
       if (loanType) {
@@ -338,7 +338,7 @@ export function AssessmentForm() {
       const age = ageFromDob(form.dateOfBirth);
       if (age === null) return "Enter a valid date of birth (YYYY-MM-DD).";
       if (age < 21) return "Applicant must be at least 21 years old for this product.";
-      if (age > 65) return "Applicant age exceeds the supported limit for this product (65).";
+      if (age > 60) return "Applicant age exceeds the supported limit for this product (60).";
 
       if (!form.employmentType) return "Choose how you earn.";
       if (looksLikeFakePersonName(form.employerOrBusinessName) || form.employerOrBusinessName.trim().length < 2) {
@@ -347,8 +347,11 @@ export function AssessmentForm() {
       if (!form.monthlyIncomeRange) return "Choose your monthly income range.";
 
       const loanAmount = Number(form.loanAmount);
-      if (!form.loanAmount || !Number.isFinite(loanAmount) || loanAmount < 5000) {
-        return "Choose a loan amount of at least ₹5,000.";
+      if (!form.loanAmount || !Number.isFinite(loanAmount) || loanAmount < 10000) {
+        return "Choose a loan amount of at least ₹10,000.";
+      }
+      if (loanAmount > 1000000) {
+        return "Maximum loan amount is ₹10,00,000.";
       }
       if (!form.loanPurpose.trim()) return "Choose what you need the money for.";
 
@@ -508,11 +511,7 @@ export function AssessmentForm() {
         throw new Error(fieldMessage && fieldMessage !== base ? `${base} ${fieldMessage}` : fieldMessage || base);
       }
       trackEvent("assessment_completed");
-      trackEvent("checkout_redirect_early");
-      // Hard navigate so checkout remounts and autostarts payment immediately.
-      window.location.assign(
-        `/checkout?product=credit-health-action-plan&assessment=${data.assessmentId}&token=${encodeURIComponent(data.accessToken || "")}&autostart=1`,
-      );
+      window.location.assign(`/result/${data.assessmentId}?token=${encodeURIComponent(data.accessToken || "")}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to open payment.");
       setBusy(false);

@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: `Secure ${USP_PRICE_LABEL} Checkout`,
 export default async function CheckoutPage({
   searchParams,
 }: {
-  searchParams: Promise<{ product?: string; assessment?: string; token?: string; autostart?: string }>;
+  searchParams: Promise<{ product?: string; assessment?: string; token?: string }>;
 }) {
   const query = await searchParams;
   if (!query.product || !query.assessment || !query.token) return <InvalidCheckout />;
@@ -33,7 +33,6 @@ export default async function CheckoutPage({
   const subtotal = product.slug === USP_PRODUCT_SLUG ? USP_SALE_PRICE : Number(product.salePrice);
   const gst = Math.round(subtotal * Number(product.gstRate)) / 100;
   const total = Math.round((subtotal + gst) * 100) / 100;
-  const autoStart = query.autostart === "1" || query.autostart === "true";
 
   return (
     <section className="surface-grid min-h-screen bg-surface py-10 sm:py-16">
@@ -43,12 +42,10 @@ export default async function CheckoutPage({
           <div className="mb-8">
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-brand-700">Secure payment</p>
             <h1 className="mt-3 text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">
-              {autoStart ? "Opening secure payment…" : `Review your ${USP_PRICE_LABEL} ${USP_PRODUCT_NAME}`}
+              Review your {USP_PRICE_LABEL} {USP_PRODUCT_NAME}
             </h1>
             <p className="mt-3 text-sm leading-7 text-slate-600">
-              {autoStart
-                ? "Your profile is saved. The secure payment window should open automatically — tap Pay if it does not."
-                : "Review the plan and total price, then open the secure payment window."}
+              Review the fee and GST, then tap unlock to open secure Cashfree checkout. Checkout never starts automatically.
             </p>
           </div>
           <CheckoutClient
@@ -62,7 +59,6 @@ export default async function CheckoutPage({
             customerName={assessment.lead.fullName}
             customerMobile={assessment.lead.mobile}
             referralCode={assessment.referralCode ?? undefined}
-            autoStart={autoStart}
           />
         </div>
       </div>

@@ -37,7 +37,7 @@ const baseAssessmentSchema = z.object({
   pinCode: z.string().regex(/^\d{6}$/, "Enter a valid 6-digit PIN code."),
   residenceType: z.enum(["OWNED", "RENTED", "PARENTAL", "OTHER"]).default("OTHER"),
   monthsAtAddress: z.coerce.number().int().min(0).max(600).default(0),
-  loanAmount: z.coerce.number().min(5000, "Minimum loan amount is ₹5,000.").max(500000, "Maximum loan amount is ₹5,00,000."),
+  loanAmount: z.coerce.number().min(10000, "Minimum loan amount is ₹10,000.").max(1000000, "Maximum loan amount is ₹10,00,000."),
   loanPurpose: z.string().trim().min(2).max(120),
   loanType: z.enum(["PERSONAL", "BUSINESS", "MSME", "MUDRA_GUIDANCE", "GOLD", "PROPERTY", "CREDIT_HEALTH"]),
   employmentType: z.enum(["SALARIED", "SELF_EMPLOYED", "BUSINESS_OWNER", "FREELANCER", "OTHER"]),

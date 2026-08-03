@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, CircleAlert, Loader2, LockKeyhole, ReceiptText, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusNotice } from "@/components/ui/status-notice";
 import { PAYMENT_DESCRIPTION, PLATFORM_DISCLAIMER } from "@/lib/constants";
 import { trackEvent } from "@/lib/analytics-client";
+import { createCashfreeSdk, type CashfreeCheckoutInstance } from "@/lib/payments/cashfree-browser";
 
 declare global {
   interface Window {
@@ -14,9 +15,8 @@ declare global {
       open: () => void;
       on: (event: string, callback: (response: { error?: { description?: string } }) => void) => void;
     };
-    Cashfree?: new (options: { mode: "sandbox" | "production" }) => {
-      checkout: (options: { paymentSessionId: string; redirectTarget?: string }) => Promise<unknown>;
-    };
+    Cashfree?: ((options: { mode: "sandbox" | "production" }) => CashfreeCheckoutInstance) &
+      (new (options: { mode: "sandbox" | "production" }) => CashfreeCheckoutInstance);
   }
 }
 
@@ -54,16 +54,15 @@ type Props = {
   customerName: string;
   customerMobile: string;
   referralCode?: string;
+  /** @deprecated Checkout must start from an explicit user click. Ignored. */
   autoStart?: boolean;
 };
 
-const autoStartedAssessments = new Set<string>();
-
 export function CheckoutClient(props: Props) {
   const router = useRouter();
-  const [busy, setBusy] = useState(Boolean(props.autoStart));
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const startedRef = useRef(false);
+  const payInFlight = useRef(false);
 
   async function completeVerified(verified: { orderReference: string; reportId: string; reportToken: string }, provider: string) {
     trackEvent("payment_completed", { product: props.productSlug, provider });
@@ -88,6 +87,8 @@ export function CheckoutClient(props: Props) {
   }
 
   async function pay() {
+    if (payInFlight.current || busy) return;
+    payInFlight.current = true;
     setBusy(true);
     setError("");
     trackEvent("checkout_opened", { product: props.productSlug });
@@ -144,7 +145,10 @@ export function CheckoutClient(props: Props) {
           },
           theme: { color: "#0a9265" },
           modal: {
-            ondismiss: () => setBusy(false),
+            ondismiss: () => {
+              setBusy(false);
+              payInFlight.current = false;
+            },
             confirm_close: true,
           },
           handler: async (payment: Record<string, string>) => {
@@ -153,6 +157,7 @@ export function CheckoutClient(props: Props) {
             } catch {
               setError("Payment was taken but verification failed. Contact support with your payment reference.");
               setBusy(false);
+              payInFlight.current = false;
             }
           },
         });
@@ -168,12 +173,26 @@ export function CheckoutClient(props: Props) {
       if (checkout.mode === "cashfree_checkout") {
         await loadScript("https://sdk.cashfree.com/js/v3/cashfree.js", () => Boolean(window.Cashfree));
         if (!window.Cashfree) throw new Error("Cashfree checkout could not be loaded. Disable blockers and try again.");
-        const cashfree = new window.Cashfree({ mode: checkout.env });
+        if (!checkout.paymentSessionId) throw new Error("Payment session is missing. Please try again.");
+        const cashfree = createCashfreeSdk(window.Cashfree, checkout.env);
         try {
-          await cashfree.checkout({ paymentSessionId: checkout.paymentSessionId, redirectTarget: "_self" });
-          // Redirect checkout should navigate away. If the SDK resolves without navigation, recover server-side.
+          const checkoutResult = await cashfree.checkout({
+            paymentSessionId: checkout.paymentSessionId,
+            redirectTarget: "_self",
+          });
+          // Full-page redirect should navigate away. If SDK resolves without navigation, show recover path.
+          if (checkoutResult && typeof checkoutResult === "object" && "error" in checkoutResult) {
+            const message = String((checkoutResult as { error?: { message?: string } }).error?.message || "Checkout cancelled");
+            if (/cancel|closed|dismiss|abort/i.test(message)) {
+              router.push(
+                `/payment/failed?assessment=${props.assessmentId}&product=${props.productSlug}&token=${encodeURIComponent(props.resultToken)}&reason=${encodeURIComponent("Payment was cancelled")}`,
+              );
+              return;
+            }
+          }
           setError("Checkout was closed before payment completed. If money was deducted, tap retry — we will re-check securely.");
           setBusy(false);
+          payInFlight.current = false;
         } catch (cashfreeError) {
           const message = cashfreeError instanceof Error ? cashfreeError.message : "Cashfree checkout failed.";
           if (/cancel|closed|dismiss|abort/i.test(message)) {
@@ -212,17 +231,9 @@ export function CheckoutClient(props: Props) {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Payment could not be started.");
       setBusy(false);
+      payInFlight.current = false;
     }
   }
-
-  useEffect(() => {
-    if (!props.autoStart || startedRef.current) return;
-    if (autoStartedAssessments.has(props.assessmentId)) return;
-    startedRef.current = true;
-    autoStartedAssessments.add(props.assessmentId);
-    void pay();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.autoStart, props.assessmentId]);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_0.75fr]">
@@ -232,7 +243,7 @@ export function CheckoutClient(props: Props) {
             <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-700">Selected ₹99 Credit Profile Booster</p>
             <h2 className="mt-3 text-2xl font-extrabold tracking-[-0.035em] text-navy-950">{props.productName}</h2>
           </div>
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-brand-100 text-brand-700">
+          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-brand-100 text-brand-700">
             <ReceiptText size={21} />
           </span>
         </div>
@@ -249,15 +260,19 @@ export function CheckoutClient(props: Props) {
           <CircleAlert className="mt-1 shrink-0" size={19} aria-hidden="true" />
           {PAYMENT_DESCRIPTION}
         </div>
-        {error ? <StatusNotice tone="error" className="mt-5">{error}</StatusNotice> : null}
+        {error ? (
+          <div className="mt-5" aria-live="polite">
+            <StatusNotice tone="error">{error}</StatusNotice>
+          </div>
+        ) : null}
 
         <Button size="lg" className="mt-6 w-full" onClick={() => void pay()} disabled={busy} aria-busy={busy}>
           {busy ? <Loader2 className="animate-spin" size={18} /> : <LockKeyhole size={18} />}
-          {busy ? "Opening secure payment…" : `Pay securely: ${props.total}`}
+          {busy ? "Opening secure payment…" : `Unlock full report for ${props.total}`}
         </Button>
         <p className="mt-4 flex items-center justify-center gap-2 text-center text-xs leading-5 text-slate-500">
           <ShieldCheck className="shrink-0 text-brand-700" size={15} />
-          Secure checkout opens automatically after unlock. Complete payment to get official connect links.
+          Secure checkout opens only when you tap the button above.
         </p>
       </div>
 

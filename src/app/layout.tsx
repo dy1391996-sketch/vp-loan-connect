@@ -6,8 +6,7 @@ import "@fontsource/noto-sans-devanagari/600.css";
 import "@fontsource/noto-sans-devanagari/700.css";
 import "@fontsource/noto-sans-devanagari/800.css";
 import "./globals.css";
-import { Header } from "@/components/layout/header";
-import { Footer } from "@/components/layout/footer";
+import { SiteShell } from "@/components/layout/site-shell";
 import { AnalyticsProvider } from "@/components/analytics-provider";
 import { AttributionCapture } from "@/components/attribution-capture";
 import { APP_NAME, TAGLINE } from "@/lib/constants";
@@ -71,9 +70,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Suspense fallback={null}>
           <AttributionCapture />
         </Suspense>
-        <Header />
-        <main id="main-content">{children}</main>
-        <Footer />
+        <SiteShell>{children}</SiteShell>
       </body>
     </html>
   );

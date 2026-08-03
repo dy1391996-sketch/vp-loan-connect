@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
         assessmentId: assessment.id,
         productId: product.id,
         status: { in: ["CREATED", "PENDING"] },
-        createdAt: { lt: new Date(Date.now() - 5 * 60 * 1000) },
+        createdAt: { lt: new Date(Date.now() - 10 * 60 * 1000) },
       },
       data: { status: "FAILED" },
     });
@@ -84,6 +84,48 @@ export async function POST(request: NextRequest) {
     const gstAmount = Math.round(subtotal * Number(product.gstRate)) / 100;
     const totalAmount = Math.round((subtotal + gstAmount) * 100) / 100;
     const amountPaise = Math.round(totalAmount * 100);
+
+    // Reuse a recent pending order to avoid duplicate Cashfree sessions on repeated Pay clicks.
+    const existingPending = await prisma.order.findFirst({
+      where: {
+        assessmentId: assessment.id,
+        productId: product.id,
+        status: { in: ["CREATED", "PENDING"] },
+        createdAt: { gte: new Date(Date.now() - 10 * 60 * 1000) },
+        providerOrderId: { not: null },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (existingPending?.providerOrderId && env.PAYMENT_PROVIDER === "cashfree") {
+      try {
+        const { fetchCashfreeOrder } = await import("@/lib/payments/providers/cashfree");
+        const snapshot = await fetchCashfreeOrder(existingPending.providerOrderId, env);
+        if (snapshot.payment_session_id && String(snapshot.order_status || "").toUpperCase() !== "PAID") {
+          return NextResponse.json({
+            internalOrderId: existingPending.id,
+            orderReference: existingPending.orderReference,
+            provider: "cashfree",
+            providerOrderId: existingPending.providerOrderId,
+            amountPaise,
+            currency: "INR",
+            name: "VP Loan Connect",
+            description: product.name,
+            reused: true,
+            checkout: {
+              mode: "cashfree_checkout" as const,
+              paymentSessionId: snapshot.payment_session_id,
+              env: env.CASHFREE_ENV === "production" ? ("production" as const) : ("sandbox" as const),
+            },
+          });
+        }
+      } catch {
+        await prisma.order.update({ where: { id: existingPending.id }, data: { status: "FAILED" } });
+      }
+    } else if (existingPending && env.PAYMENT_PROVIDER !== "cashfree") {
+      // Non-Cashfree: mark previous unfinished order failed before creating a fresh session.
+      await prisma.order.update({ where: { id: existingPending.id }, data: { status: "FAILED" } });
+    }
 
     const order = await prisma.order.create({
       data: {

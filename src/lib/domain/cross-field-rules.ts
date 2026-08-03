@@ -58,8 +58,8 @@ export function evaluateIncomeLoanConsistency(input: {
       issues.push({ path: "dateOfBirth", message: "Enter a valid date of birth." });
     } else if (age < 21) {
       issues.push({ path: "dateOfBirth", message: "Applicant must be at least 21 years old for this product." });
-    } else if (age > 65) {
-      issues.push({ path: "dateOfBirth", message: "Applicant age exceeds the supported limit for this product (65)." });
+    } else if (age > 60) {
+      issues.push({ path: "dateOfBirth", message: "Applicant age exceeds the supported limit for this product (60)." });
     }
   }
 

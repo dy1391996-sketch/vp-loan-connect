@@ -143,6 +143,16 @@ describe("assessmentSchema server validation", () => {
     assert.equal(parsed.success, false);
   });
 
+  it("rejects amounts below ₹10,000 or above ₹10,00,000", () => {
+    assert.equal(assessmentSchema.safeParse(validPayload({ loanAmount: 5000 })).success, false);
+    assert.equal(assessmentSchema.safeParse(validPayload({ loanAmount: 1000001 })).success, false);
+    assert.equal(assessmentSchema.safeParse(validPayload({ loanAmount: 10000 })).success, true);
+  });
+
+  it("rejects age above 60", () => {
+    assert.equal(assessmentSchema.safeParse(validPayload({ dateOfBirth: "1950-01-01" })).success, false);
+  });
+
   it("rejects missing service consent", () => {
     const parsed = assessmentSchema.safeParse(validPayload({ serviceConsent: false }));
     assert.equal(parsed.success, false);

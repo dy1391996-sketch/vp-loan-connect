@@ -8,9 +8,9 @@ import {
 } from "./attribution";
 
 describe("attribution", () => {
-  it("picks partnership-style deep-link params", () => {
+  it("picks partnership-style deep-link params including click ids", () => {
     const params = new URLSearchParams(
-      "utm_content=BNOOV1&c=partnership&af_xp=custom&af_reengagement_window=30d&utm_campaign=switchmyloan_22_oct&is_retargeting=true&pid=Switchmyloan_PA_22Oct&utm_source=partnership"
+      "utm_content=BNOOV1&c=partnership&af_xp=custom&af_reengagement_window=30d&utm_campaign=switchmyloan_22_oct&is_retargeting=true&pid=Switchmyloan_PA_22Oct&utm_source=partnership&utm_id=cmp_1&fbclid=abc&gclid=xyz"
     );
     const picked = pickAttribution(params);
     assert.equal(picked.utm_source, "partnership");
@@ -19,6 +19,9 @@ describe("attribution", () => {
     assert.equal(picked.af_xp, "custom");
     assert.equal(picked.is_retargeting, "true");
     assert.equal(picked.utm_campaign, "switchmyloan_22_oct");
+    assert.equal(picked.utm_id, "cmp_1");
+    assert.equal(picked.fbclid, "abc");
+    assert.equal(picked.gclid, "xyz");
   });
 
   it("merges newer attribution over older values", () => {
