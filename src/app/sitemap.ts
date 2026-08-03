@@ -17,6 +17,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/consent-policy",
     "/data-deletion",
     "/contact",
+    "/about",
   ];
   return paths.map((path) => ({
     url: `${base}${path}`,

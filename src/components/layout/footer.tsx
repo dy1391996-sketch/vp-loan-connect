@@ -58,6 +58,9 @@ export function Footer() {
         <div>
           <p className="font-display font-bold">Support</p>
           <div className="mt-4 grid gap-1 text-sm text-slate-300">
+            <Link href="/about" className="inline-flex min-h-11 items-center hover:text-white">
+              About us
+            </Link>
             <Link href="/contact" className="inline-flex min-h-11 items-center hover:text-white">
               Contact us
             </Link>
