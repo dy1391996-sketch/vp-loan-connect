@@ -1,4 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm run db:deploy && pnpm exec prisma generate && pnpm run db:seed && pnpm run build"
+  "env": {
+    "PAYMENT_PROVIDER": "cashfree"
+  },
+  "buildCommand": "pnpm typecheck && pnpm lint && pnpm test && pnpm run db:deploy && pnpm exec prisma generate && pnpm run db:seed && pnpm build && pnpm verify:readiness"
 }
