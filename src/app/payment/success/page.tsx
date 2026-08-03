@@ -62,12 +62,12 @@ export default async function PaymentSuccessPage({ searchParams }: { searchParam
         <div className="mx-auto max-w-6xl">
           <div className="rounded-[2rem] border border-line/80 bg-white p-7 shadow-soft sm:p-10">
             <span className="grid h-16 w-16 place-items-center rounded-3xl bg-brand-100 text-brand-700"><CheckCircle2 size={31} /></span>
-            <p className="mt-6 text-xs font-extrabold uppercase tracking-[0.2em] text-brand-700">Payment confirmed</p>
+            <p className="mt-6 text-xs font-extrabold uppercase tracking-[0.2em] text-brand-700">Service fee verified</p>
             <h1 className="font-display mt-3 text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">
-              Payment verified — loan connect links unlocked
+              Report service fee confirmed — booster unlocked
             </h1>
             <p className="mt-3 text-sm leading-7 text-slate-600">
-              Aapka {formatInr(Number(report.order.totalAmount))} payment Credit Profile Booster ke liye hai. Yeh loan sanction, lender fee ya interest nahi hai.
+              Your {formatInr(Number(report.order.totalAmount))} payment is a Credit Profile Booster report / service fee only. It is not a loan repayment, disbursement, lender processing fee, or payment for guaranteed loan approval.
             </p>
             <div className="mt-7 grid gap-4 sm:grid-cols-2">
               <Info icon={ReceiptText} label="Order reference" value={report.order.orderReference} />

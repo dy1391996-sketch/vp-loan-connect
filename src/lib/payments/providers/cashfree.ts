@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { z } from "zod";
 import type { ServerEnv } from "@/lib/env";
 import { getPublicAppUrl } from "@/lib/env";
 import {
@@ -12,10 +13,21 @@ import {
   type WebhookParseResult,
 } from "@/lib/payments/types";
 
+/** Cashfree adapter — import only from server routes / server modules (never from client components). */
+export const CASHFREE_API_VERSION_DEFAULT = "2025-01-01";
+
+function cashfreeAppId(env: ServerEnv) {
+  return env.CASHFREE_APP_ID;
+}
+
+function cashfreeSecret(env: ServerEnv) {
+  return env.CASHFREE_SECRET_KEY;
+}
+
 function cashfreeMissing(env: ServerEnv) {
   const missing: string[] = [];
-  if (!env.CASHFREE_APP_ID) missing.push("CASHFREE_APP_ID");
-  if (!env.CASHFREE_SECRET_KEY) missing.push("CASHFREE_SECRET_KEY");
+  if (!cashfreeAppId(env)) missing.push("CASHFREE_APP_ID");
+  if (!cashfreeSecret(env)) missing.push("CASHFREE_SECRET_KEY");
   return missing;
 }
 
@@ -23,12 +35,16 @@ function cashfreeBaseUrl(env: ServerEnv) {
   return env.CASHFREE_ENV === "production" ? "https://api.cashfree.com/pg" : "https://sandbox.cashfree.com/pg";
 }
 
+function cashfreeApiVersion(env: ServerEnv) {
+  return env.CASHFREE_API_VERSION || CASHFREE_API_VERSION_DEFAULT;
+}
+
 function cashfreeHeaders(env: ServerEnv) {
   return {
     "content-type": "application/json",
-    "x-client-id": env.CASHFREE_APP_ID,
-    "x-client-secret": env.CASHFREE_SECRET_KEY,
-    "x-api-version": "2023-08-01",
+    "x-client-id": cashfreeAppId(env),
+    "x-client-secret": cashfreeSecret(env),
+    "x-api-version": cashfreeApiVersion(env),
   };
 }
 
@@ -67,6 +83,32 @@ function amountsMatchRupees(paid: number | undefined, expectedPaise: number | un
   return Math.abs(paidPaise - expectedPaise) <= 1;
 }
 
+const cashfreeOrderSchema = z.object({
+  order_id: z.string().min(1),
+  cf_order_id: z.union([z.string(), z.number()]).optional(),
+  order_amount: z.number().optional(),
+  order_currency: z.string().optional(),
+  order_status: z.string().optional(),
+  payment_session_id: z.string().optional(),
+});
+
+export type CashfreeOrderSnapshot = z.infer<typeof cashfreeOrderSchema>;
+
+/** GET /orders/{order_id} — used by return/verify to confirm PAID + amount/currency. */
+export async function fetchCashfreeOrder(providerOrderId: string, env: ServerEnv): Promise<CashfreeOrderSnapshot> {
+  const response = await fetch(`${cashfreeBaseUrl(env)}/orders/${encodeURIComponent(providerOrderId)}`, {
+    headers: cashfreeHeaders(env),
+    signal: AbortSignal.timeout(12_000),
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new PaymentProviderError(`Cashfree order lookup failed (${response.status}): ${await readCashfreeError(response)}`, 502);
+  }
+  const parsed = cashfreeOrderSchema.safeParse(await response.json());
+  if (!parsed.success) throw new PaymentProviderError("Cashfree order response was invalid.", 502);
+  return parsed.data;
+}
+
 export const cashfreePaymentProvider: PaymentProvider = {
   id: "cashfree",
   displayName: "Cashfree Payments",
@@ -95,11 +137,10 @@ export const cashfreePaymentProvider: PaymentProvider = {
       throw new PaymentProviderError("A verified customer email is required for Cashfree checkout.", 400);
     }
     const orderAmount = (amountPaise / 100).toFixed(2);
+    // Cashfree allows alphanumeric + underscore + hyphen (UUID is valid).
     const orderId = (input.notes.internal_order_id || input.receipt).slice(0, 45);
-    // Cashfree replaces `{order_id}` in return_url after payment; keep internalOrderId for recovery.
     const returnUrl =
-      input.returnUrl ||
-      `${getPublicAppUrl()}/api/payments/return?order_id={order_id}`;
+      input.returnUrl || `${getPublicAppUrl()}/api/payments/return?order_id={order_id}`;
 
     const response = await fetch(`${cashfreeBaseUrl(env)}/orders`, {
       method: "POST",
@@ -108,9 +149,9 @@ export const cashfreePaymentProvider: PaymentProvider = {
         order_id: orderId,
         order_amount: Number(orderAmount),
         order_currency: "INR",
-        order_note: input.receipt,
+        order_note: input.receipt.slice(0, 200),
         customer_details: {
-          customer_id: (input.notes.internal_order_id || orderId).slice(0, 50),
+          customer_id: (input.notes.internal_order_id || orderId).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 50) || orderId.slice(0, 50),
           customer_phone: customerPhone,
           customer_name: input.customer?.name || "VP Loan Connect Customer",
           customer_email: customerEmail,
@@ -118,6 +159,10 @@ export const cashfreePaymentProvider: PaymentProvider = {
         order_meta: {
           return_url: returnUrl,
           notify_url: input.notifyUrl,
+        },
+        order_tags: {
+          product: (input.notes.product || "service").slice(0, 50),
+          service_type: "report_fee",
         },
       }),
       signal: AbortSignal.timeout(15_000),
@@ -129,23 +174,19 @@ export const cashfreePaymentProvider: PaymentProvider = {
       throw new PaymentProviderError(`Cashfree order creation failed (${response.status}): ${detail}`, 502);
     }
 
-    const data = (await response.json()) as {
-      order_id?: string;
-      payment_session_id?: string;
-      cf_order_id?: string | number;
-    };
-    if (!data.payment_session_id || !data.order_id) {
+    const parsed = cashfreeOrderSchema.safeParse(await response.json());
+    if (!parsed.success || !parsed.data.payment_session_id || !parsed.data.order_id) {
       throw new PaymentProviderError("Cashfree did not return payment_session_id.", 502);
     }
 
     return {
       provider: "cashfree" as const,
-      providerOrderId: data.order_id,
+      providerOrderId: parsed.data.order_id,
       amountPaise,
       currency: "INR" as const,
       checkout: {
         mode: "cashfree_checkout" as const,
-        paymentSessionId: data.payment_session_id,
+        paymentSessionId: parsed.data.payment_session_id,
         env: env.CASHFREE_ENV === "production" ? ("production" as const) : ("sandbox" as const),
       },
     };
@@ -163,15 +204,40 @@ export const cashfreePaymentProvider: PaymentProvider = {
       return { ok: false as const, reason: "Payment order mismatch." };
     }
 
-    const response = await fetch(`${cashfreeBaseUrl(env)}/orders/${encodeURIComponent(providerOrderId)}/payments`, {
+    // Primary invariant source: GET /orders/{order_id}
+    let orderSnapshot: CashfreeOrderSnapshot;
+    try {
+      orderSnapshot = await fetchCashfreeOrder(providerOrderId, env);
+    } catch {
+      return { ok: false as const, reason: "Unable to confirm Cashfree order status." };
+    }
+
+    const orderStatus = String(orderSnapshot.order_status || "").toUpperCase();
+    if (orderStatus !== "PAID") {
+      return { ok: false as const, reason: `Cashfree order is not paid yet (${orderStatus || "UNKNOWN"}).` };
+    }
+    if (orderSnapshot.order_currency && String(orderSnapshot.order_currency).toUpperCase() !== "INR") {
+      return { ok: false as const, reason: "Payment currency mismatch." };
+    }
+    if (!amountsMatchRupees(orderSnapshot.order_amount, payload.expectedAmountPaise)) {
+      console.error("cashfree_order_amount_mismatch", {
+        orderId: providerOrderId,
+        expectedPaise: payload.expectedAmountPaise,
+        paid: orderSnapshot.order_amount,
+      });
+      return { ok: false as const, reason: "Payment amount mismatch." };
+    }
+
+    // Resolve cf_payment_id from payment list for local Payment.providerPaymentId uniqueness.
+    const paymentsResponse = await fetch(`${cashfreeBaseUrl(env)}/orders/${encodeURIComponent(providerOrderId)}/payments`, {
       headers: cashfreeHeaders(env),
       signal: AbortSignal.timeout(12_000),
       cache: "no-store",
     });
-    if (!response.ok) {
+    if (!paymentsResponse.ok) {
       return { ok: false as const, reason: "Unable to confirm Cashfree payment status." };
     }
-    const payments = (await response.json()) as Array<{
+    const payments = (await paymentsResponse.json()) as Array<{
       cf_payment_id?: string | number;
       payment_status?: string;
       payment_amount?: number;
@@ -181,17 +247,20 @@ export const cashfreePaymentProvider: PaymentProvider = {
       ["SUCCESS", "PAID"].includes(String(item.payment_status || "").toUpperCase()),
     );
     if (!success?.cf_payment_id) {
+      // Order is PAID — fall back to deterministic id from cf_order_id if payment list is empty.
+      if (orderSnapshot.cf_order_id) {
+        return {
+          ok: true as const,
+          providerOrderId,
+          providerPaymentId: `cf_order_${orderSnapshot.cf_order_id}`,
+        };
+      }
       return { ok: false as const, reason: "Cashfree payment is not successful yet." };
     }
     if (success.payment_currency && String(success.payment_currency).toUpperCase() !== "INR") {
       return { ok: false as const, reason: "Payment currency mismatch." };
     }
     if (!amountsMatchRupees(success.payment_amount, payload.expectedAmountPaise)) {
-      console.error("cashfree_amount_mismatch", {
-        orderId: providerOrderId,
-        expectedPaise: payload.expectedAmountPaise,
-        paid: success.payment_amount,
-      });
       return { ok: false as const, reason: "Payment amount mismatch." };
     }
     return {
@@ -202,8 +271,7 @@ export const cashfreePaymentProvider: PaymentProvider = {
   },
 
   verifyWebhookSignature(rawBody, headers, env) {
-    // Cashfree PG webhooks are signed with the client secret (x-client-secret).
-    const secret = env.CASHFREE_WEBHOOK_SECRET || env.CASHFREE_SECRET_KEY;
+    const secret = env.CASHFREE_WEBHOOK_SECRET || cashfreeSecret(env);
     if (!secret) return false;
     const signature = headers.get("x-webhook-signature") || headers.get("x-cashfree-signature") || "";
     const timestamp = headers.get("x-webhook-timestamp") || headers.get("x-cashfree-timestamp") || "";
@@ -228,6 +296,12 @@ export const cashfreePaymentProvider: PaymentProvider = {
           payment_amount?: number;
           payment_currency?: string;
         };
+        refund?: {
+          cf_refund_id?: string | number;
+          refund_id?: string;
+          refund_status?: string;
+          refund_amount?: number;
+        };
       };
     };
     try {
@@ -240,7 +314,30 @@ export const cashfreePaymentProvider: PaymentProvider = {
     const paymentId = body.data?.payment?.cf_payment_id;
     const status = String(body.data?.payment?.payment_status || "").toUpperCase();
     const eventType = String(body.type || "");
-    const providerEventId = headers.get("x-webhook-id") || `${eventType || "cashfree"}:${paymentId || orderId || "na"}`;
+    const providerEventId =
+      headers.get("x-webhook-id") ||
+      headers.get("x-idempotency-key") ||
+      `${eventType || "cashfree"}:${body.data?.refund?.cf_refund_id || paymentId || orderId || "na"}`;
+
+    if (orderId && eventType.toUpperCase().includes("REFUND")) {
+      const refundStatus = String(body.data?.refund?.refund_status || "").toUpperCase();
+      const providerRefundId = String(body.data?.refund?.cf_refund_id || body.data?.refund?.refund_id || "");
+      if (!providerRefundId) return { kind: "ignored", reason: "refund_missing_id" };
+      const mapped =
+        refundStatus === "SUCCESS" || refundStatus === "COMPLETED"
+          ? "COMPLETED"
+          : refundStatus === "FAILED" || refundStatus === "CANCELLED"
+            ? "FAILED"
+            : "PROCESSING";
+      return {
+        kind: "refund_update",
+        providerEventId,
+        providerOrderId: orderId,
+        providerRefundId,
+        status: mapped,
+        amountRupees: body.data?.refund?.refund_amount,
+      };
+    }
 
     const successEvent =
       eventType === "PAYMENT_SUCCESS_WEBHOOK" ||
@@ -249,6 +346,7 @@ export const cashfreePaymentProvider: PaymentProvider = {
       status === "PAID";
     const failedEvent =
       eventType === "PAYMENT_FAILED_WEBHOOK" ||
+      eventType === "PAYMENT_USER_DROPPED_WEBHOOK" ||
       eventType.includes("PAYMENT_FAILED") ||
       eventType.includes("USER_DROPPED") ||
       status === "FAILED" ||
@@ -273,7 +371,7 @@ export const cashfreePaymentProvider: PaymentProvider = {
         providerEventId,
         providerOrderId: orderId,
         providerPaymentId: paymentId ? String(paymentId) : undefined,
-        failureDescription: body.data?.payment?.payment_message || status,
+        failureDescription: body.data?.payment?.payment_message || status || eventType,
       };
     }
     return { kind: "ignored", reason: eventType || "unhandled_event" };
@@ -314,17 +412,19 @@ export const cashfreePaymentProvider: PaymentProvider = {
     if (!input.providerOrderId) {
       throw new PaymentProviderError("Cashfree refund requires the merchant order_id (providerOrderId).", 400);
     }
-    // Cashfree refund_id must be alphanumeric (no UUID hyphens).
     const refundId = input.refundReference.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
     if (!refundId) throw new PaymentProviderError("Invalid refund reference for Cashfree.", 400);
 
     const response = await fetch(`${cashfreeBaseUrl(env)}/orders/${encodeURIComponent(input.providerOrderId)}/refunds`, {
       method: "POST",
-      headers: cashfreeHeaders(env),
+      headers: {
+        ...cashfreeHeaders(env),
+        "x-idempotency-key": refundId,
+      },
       body: JSON.stringify({
         refund_amount: Number((input.amountPaise / 100).toFixed(2)),
         refund_id: refundId,
-        refund_note: "VP Loan Connect admin refund",
+        refund_note: "VP Loan Connect service fee refund",
       }),
       signal: AbortSignal.timeout(12_000),
     });

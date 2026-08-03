@@ -57,6 +57,34 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       refundReference: refund.id,
     });
     const full = Math.abs(parsed.data.amount - refundable) < 0.01;
+
+    // Cashfree refund completion is webhook/reconciliation driven — do not unlock "REFUNDED" on accept alone.
+    if (payment.provider === "cashfree") {
+      await prisma.$transaction([
+        prisma.refund.update({
+          where: { id: refund.id },
+          data: { providerRefundId: provider.refundId, status: "PROCESSING" },
+        }),
+        prisma.auditLog.create({
+          data: {
+            adminId: admin.id,
+            action: "PAYMENT_REFUND_REQUESTED",
+            entityType: "Order",
+            entityId: order.id,
+            metadata: { refundId: refund.id, amount: parsed.data.amount, reason: parsed.data.reason, paymentProvider: payment.provider, providerRefundId: provider.refundId },
+            ipHash: requestIpHash(request),
+            userAgent: request.headers.get("user-agent")?.slice(0, 500),
+          },
+        }),
+      ]);
+      return NextResponse.json({
+        refunded: false,
+        pending: true,
+        providerRefundId: provider.refundId,
+        message: "Cashfree refund accepted and pending provider confirmation.",
+      });
+    }
+
     await prisma.$transaction([
       prisma.refund.update({ where: { id: refund.id }, data: { providerRefundId: provider.refundId, status: "COMPLETED", processedAt: new Date() } }),
       prisma.order.update({ where: { id: order.id }, data: { status: full ? "REFUNDED" : "PARTIALLY_REFUNDED" } }),

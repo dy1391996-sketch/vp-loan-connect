@@ -74,6 +74,14 @@ export type WebhookParseResult =
       providerPaymentId?: string;
       failureCode?: string;
       failureDescription?: string;
+    }
+  | {
+      kind: "refund_update";
+      providerEventId: string;
+      providerOrderId: string;
+      providerRefundId: string;
+      status: "PROCESSING" | "COMPLETED" | "FAILED";
+      amountRupees?: number;
     };
 
 export type RefundInput = {

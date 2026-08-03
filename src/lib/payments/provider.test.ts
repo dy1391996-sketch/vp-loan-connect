@@ -21,6 +21,7 @@ function baseEnv(overrides: Partial<ServerEnv> = {}): ServerEnv {
     CASHFREE_APP_ID: "",
     CASHFREE_SECRET_KEY: "",
     CASHFREE_WEBHOOK_SECRET: "",
+    CASHFREE_API_VERSION: "",
     CASHFREE_ENV: "sandbox",
     PHONEPE_MERCHANT_ID: "",
     PHONEPE_SALT_KEY: "",
@@ -213,5 +214,203 @@ describe("Cashfree webhook and verify helpers", () => {
       () => cashfreePaymentProvider.assertConfigured(baseEnv({ PAYMENT_PROVIDER: "cashfree" })),
       /CASHFREE_APP_ID/,
     );
+  });
+
+  it("creates Cashfree orders with API 2025-01-01 headers, INR amount, and {order_id} return URL", async () => {
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ url: String(input), init });
+      return new Response(
+        JSON.stringify({
+          order_id: "cf-order-1",
+          payment_session_id: "session_abc",
+          order_status: "ACTIVE",
+          order_amount: 116.82,
+          order_currency: "INR",
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    }) as typeof fetch;
+
+    try {
+      const result = await cashfreePaymentProvider.createOrder(
+        {
+          amountPaise: 11682,
+          receipt: "VPLC-ORD-TEST",
+          notes: { internal_order_id: "11111111-1111-1111-1111-111111111111", product: "credit-health-action-plan" },
+          customer: { name: "Rahul", email: "rahul@example.com", mobile: "9876543210" },
+          returnUrl: "https://www.vploanconnect.in/api/payments/return?order_id={order_id}&internalOrderId=11111111-1111-1111-1111-111111111111",
+          notifyUrl: "https://www.vploanconnect.in/api/webhooks/payments/cashfree",
+        },
+        baseEnv({
+          PAYMENT_PROVIDER: "cashfree",
+          CASHFREE_APP_ID: "test_app",
+          CASHFREE_SECRET_KEY: "test_secret",
+          CASHFREE_ENV: "sandbox",
+          CASHFREE_API_VERSION: "2025-01-01",
+        }),
+      );
+
+      assert.equal(result.provider, "cashfree");
+      assert.equal(result.checkout.mode, "cashfree_checkout");
+      if (result.checkout.mode === "cashfree_checkout") {
+        assert.equal(result.checkout.paymentSessionId, "session_abc");
+        assert.equal(result.checkout.env, "sandbox");
+      }
+      assert.equal(calls.length, 1);
+      assert.match(calls[0]!.url, /sandbox\.cashfree\.com\/pg\/orders$/);
+      const headers = new Headers(calls[0]!.init?.headers);
+      assert.equal(headers.get("x-client-id"), "test_app");
+      assert.equal(headers.get("x-client-secret"), "test_secret");
+      assert.equal(headers.get("x-api-version"), "2025-01-01");
+      const body = JSON.parse(String(calls[0]!.init?.body)) as {
+        order_amount: number;
+        order_currency: string;
+        order_meta: { return_url: string };
+      };
+      assert.equal(body.order_amount, 116.82);
+      assert.equal(body.order_currency, "INR");
+      assert.match(body.order_meta.return_url, /order_id=\{order_id\}/);
+      assert.doesNotMatch(JSON.stringify(result), /test_secret|CASHFREE_SECRET/);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("rejects verify when Cashfree order amount or currency mismatches", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/orders/") && !url.includes("/payments")) {
+        return new Response(
+          JSON.stringify({
+            order_id: "ord_1",
+            order_status: "PAID",
+            order_amount: 999.0,
+            order_currency: "INR",
+            cf_order_id: 1,
+          }),
+          { status: 200 },
+        );
+      }
+      return new Response(JSON.stringify([]), { status: 200 });
+    }) as typeof fetch;
+
+    try {
+      const env = baseEnv({
+        PAYMENT_PROVIDER: "cashfree",
+        CASHFREE_APP_ID: "app",
+        CASHFREE_SECRET_KEY: "secret",
+        CASHFREE_ENV: "sandbox",
+      });
+      const amountMismatch = await cashfreePaymentProvider.verifyClientPayment(
+        { internalOrderId: "x", providerOrderId: "ord_1", expectedAmountPaise: 11682, raw: { order_id: "ord_1" } },
+        "ord_1",
+        env,
+      );
+      assert.equal(amountMismatch.ok, false);
+      if (!amountMismatch.ok) assert.match(amountMismatch.reason, /amount mismatch/i);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          order_id: "ord_1",
+          order_status: "PAID",
+          order_amount: 116.82,
+          order_currency: "USD",
+          cf_order_id: 1,
+        }),
+        { status: 200 },
+      )) as typeof fetch;
+    try {
+      const env = baseEnv({
+        PAYMENT_PROVIDER: "cashfree",
+        CASHFREE_APP_ID: "app",
+        CASHFREE_SECRET_KEY: "secret",
+        CASHFREE_ENV: "sandbox",
+      });
+      const currencyMismatch = await cashfreePaymentProvider.verifyClientPayment(
+        { internalOrderId: "x", providerOrderId: "ord_1", expectedAmountPaise: 11682, raw: { order_id: "ord_1" } },
+        "ord_1",
+        env,
+      );
+      assert.equal(currencyMismatch.ok, false);
+      if (!currencyMismatch.ok) assert.match(currencyMismatch.reason, /currency mismatch/i);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("does not finalize unpaid Cashfree orders on verify", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          order_id: "ord_pending",
+          order_status: "ACTIVE",
+          order_amount: 116.82,
+          order_currency: "INR",
+        }),
+        { status: 200 },
+      )) as typeof fetch;
+    try {
+      const verified = await cashfreePaymentProvider.verifyClientPayment(
+        {
+          internalOrderId: "x",
+          providerOrderId: "ord_pending",
+          expectedAmountPaise: 11682,
+          raw: { order_id: "ord_pending" },
+        },
+        "ord_pending",
+        baseEnv({ PAYMENT_PROVIDER: "cashfree", CASHFREE_APP_ID: "a", CASHFREE_SECRET_KEY: "b", CASHFREE_ENV: "sandbox" }),
+      );
+      assert.equal(verified.ok, false);
+      if (!verified.ok) assert.match(verified.reason, /not paid yet/i);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("rejects unpaid currency on success webhook payloads", () => {
+    const ignored = cashfreePaymentProvider.parseWebhook(
+      JSON.stringify({
+        type: "PAYMENT_SUCCESS_WEBHOOK",
+        data: {
+          order: { order_id: "ord_fx", order_currency: "USD" },
+          payment: { cf_payment_id: "pay_fx", payment_status: "SUCCESS", payment_currency: "USD" },
+        },
+      }),
+      new Headers(),
+      baseEnv({ PAYMENT_PROVIDER: "cashfree", CASHFREE_APP_ID: "x", CASHFREE_SECRET_KEY: "y", CASHFREE_ENV: "production" }),
+    );
+    assert.equal(ignored.kind, "ignored");
+  });
+
+  it("uses original providerOrderId path for Cashfree refunds", async () => {
+    const calls: string[] = [];
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      calls.push(String(input));
+      return new Response(JSON.stringify({ cf_refund_id: "rf_1", refund_status: "PENDING" }), { status: 200 });
+    }) as typeof fetch;
+    try {
+      const refund = await cashfreePaymentProvider.createRefund(
+        {
+          paymentId: "pay_1",
+          providerOrderId: "merchant_order_99",
+          amountPaise: 11682,
+          refundReference: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+        },
+        baseEnv({ PAYMENT_PROVIDER: "cashfree", CASHFREE_APP_ID: "a", CASHFREE_SECRET_KEY: "b", CASHFREE_ENV: "sandbox" }),
+      );
+      assert.equal(refund.refundId, "rf_1");
+      assert.match(calls[0]!, /\/orders\/merchant_order_99\/refunds$/);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });

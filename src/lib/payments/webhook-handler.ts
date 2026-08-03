@@ -3,10 +3,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getPublicAppUrl, getServerEnv } from "@/lib/env";
 import { getPaymentProvider, type PaymentProviderId } from "@/lib/payments";
+import { fetchCashfreeOrder } from "@/lib/payments/providers/cashfree";
 import { processSuccessfulPayment } from "@/lib/payments/order-service";
 import { sendWhatsAppTemplate } from "@/lib/providers/whatsapp";
 import { signAccessToken } from "@/lib/security/tokens";
 import { sha256 } from "@/lib/utils";
+
+function amountsMatchRupees(paid: number | undefined, expectedPaise: number) {
+  if (paid == null || !Number.isFinite(paid)) return false;
+  const paidPaise = Math.round(Number(paid) * 100);
+  return Math.abs(paidPaise - expectedPaise) <= 1;
+}
 
 export async function handlePaymentWebhook(providerId: PaymentProviderId, request: NextRequest) {
   const rawBody = await request.text();
@@ -51,7 +58,11 @@ export async function handlePaymentWebhook(providerId: PaymentProviderId, reques
   try {
     const order = await prisma.order.findUnique({
       where: { providerOrderId: parsed.providerOrderId },
-      include: { payments: { orderBy: { createdAt: "desc" }, take: 1 } },
+      include: {
+        payments: { orderBy: { createdAt: "desc" }, take: 1 },
+        refunds: true,
+        referralReward: true,
+      },
     });
 
     // Prefer the recorded payment provider if present (supports gateway switches without breaking history).
@@ -59,6 +70,29 @@ export async function handlePaymentWebhook(providerId: PaymentProviderId, reques
     const unlockProvider = recordedProvider && recordedProvider === providerId ? recordedProvider : providerId;
 
     if (parsed.kind === "payment_captured" && order) {
+      // Fail closed on amount/currency mismatches for Cashfree before unlocking.
+      if (providerId === "cashfree") {
+        const snapshot = await fetchCashfreeOrder(parsed.providerOrderId, env);
+        const expectedPaise = Math.round(Number(order.totalAmount) * 100);
+        if (String(snapshot.order_status || "").toUpperCase() !== "PAID") {
+          throw new Error("Cashfree order is not PAID during webhook finalization.");
+        }
+        if (snapshot.order_currency && String(snapshot.order_currency).toUpperCase() !== "INR") {
+          throw new Error("Cashfree webhook currency mismatch.");
+        }
+        if (order.currency.toUpperCase() !== "INR") {
+          throw new Error("Stored order currency is not INR.");
+        }
+        if (!amountsMatchRupees(snapshot.order_amount, expectedPaise)) {
+          console.error("cashfree_webhook_amount_mismatch", {
+            orderId: order.id,
+            expectedPaise,
+            paid: snapshot.order_amount,
+          });
+          throw new Error("Cashfree webhook amount mismatch.");
+        }
+      }
+
       const processed = await processSuccessfulPayment({
         orderId: order.id,
         providerPaymentId: parsed.providerPaymentId,
@@ -85,8 +119,53 @@ export async function handlePaymentWebhook(providerId: PaymentProviderId, reques
           },
         });
       }
+      // Never overwrite a successfully paid order.
       if (order.status !== "PAID" && order.status !== "REFUNDED" && order.status !== "PARTIALLY_REFUNDED") {
         await prisma.order.update({ where: { id: order.id }, data: { status: "FAILED" } });
+      }
+    } else if (parsed.kind === "refund_update" && order) {
+      const refund =
+        (await prisma.refund.findFirst({ where: { providerRefundId: parsed.providerRefundId } })) ||
+        (await prisma.refund.findFirst({
+          where: { orderId: order.id, status: { in: ["REQUESTED", "PROCESSING", "APPROVED"] } },
+          orderBy: { createdAt: "desc" },
+        }));
+      if (refund) {
+        if (parsed.status === "COMPLETED") {
+          const completedSum =
+            order.refunds
+              ?.filter((item) => item.status === "COMPLETED" && item.id !== refund.id)
+              .reduce((sum, item) => sum + Number(item.amount), 0) ?? 0;
+          const totalRefunded = completedSum + Number(refund.amount);
+          const full = totalRefunded + 0.009 >= Number(order.totalAmount);
+          const payment = await prisma.payment.findFirst({
+            where: { orderId: order.id, status: { in: ["CAPTURED", "PARTIALLY_REFUNDED"] } },
+            orderBy: { capturedAt: "desc" },
+          });
+          await prisma.$transaction([
+            prisma.refund.update({
+              where: { id: refund.id },
+              data: { providerRefundId: parsed.providerRefundId, status: "COMPLETED", processedAt: new Date() },
+            }),
+            prisma.order.update({ where: { id: order.id }, data: { status: full ? "REFUNDED" : "PARTIALLY_REFUNDED" } }),
+            ...(payment
+              ? [prisma.payment.update({ where: { id: payment.id }, data: { status: full ? "REFUNDED" : "PARTIALLY_REFUNDED" } })]
+              : []),
+            ...(order.referralReward
+              ? [prisma.referralReward.update({ where: { id: order.referralReward.id }, data: { status: "REVERSED" } })]
+              : []),
+          ]);
+        } else if (parsed.status === "FAILED") {
+          await prisma.refund.update({
+            where: { id: refund.id },
+            data: { providerRefundId: parsed.providerRefundId, status: "FAILED" },
+          });
+        } else {
+          await prisma.refund.update({
+            where: { id: refund.id },
+            data: { providerRefundId: parsed.providerRefundId, status: "PROCESSING" },
+          });
+        }
       }
     }
 

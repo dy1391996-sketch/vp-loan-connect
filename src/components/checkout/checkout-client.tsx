@@ -238,7 +238,7 @@ export function CheckoutClient(props: Props) {
         </div>
 
         <div className="mt-6 grid gap-3 rounded-3xl bg-surface p-5 text-sm sm:p-6">
-          <Price label="Plan fee" value={props.subtotal} />
+          <Price label="Report / service fee" value={props.subtotal} />
           <Price label="GST (18%)" value={props.gst} />
           <div className="border-t border-line pt-4">
             <Price label="Total payable" value={props.total} strong />

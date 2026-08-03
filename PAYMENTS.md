@@ -27,10 +27,13 @@ Switch gateways with `PAYMENT_PROVIDER` only. Business unlock logic (`processSuc
 2. `CASHFREE_SECRET_KEY` — same page (also used to verify webhooks if webhook secret unset)
 3. `CASHFREE_WEBHOOK_SECRET` — optional; leave empty to use `CASHFREE_SECRET_KEY` (official PG signing secret)
 4. `CASHFREE_ENV=production` — required when `PAYMENT_PROVIDER=cashfree` on Vercel Production  
+5. `CASHFREE_API_VERSION=2025-01-01` (optional; this is the code default)  
    **Notify URL:** `https://www.vploanconnect.in/api/webhooks/payments/cashfree`  
+   **Alias:** `https://www.vploanconnect.in/api/payments/webhooks/cashfree`  
    **Return URL:** generated as `/api/payments/return?order_id={order_id}&internalOrderId=…`  
-   Suggested webhook events: `PAYMENT_SUCCESS_WEBHOOK`, `PAYMENT_FAILED_WEBHOOK`  
-   **Do not** switch `PAYMENT_PROVIDER=cashfree` until Production App ID + Secret Key are set.
+   Suggested webhook events: `PAYMENT_SUCCESS_WEBHOOK`, `PAYMENT_FAILED_WEBHOOK`, `PAYMENT_USER_DROPPED_WEBHOOK`  
+   **Do not** switch `PAYMENT_PROVIDER=cashfree` until Production App ID + Secret Key are set.  
+   Full steps: [`docs/CASHFREE_SETUP.md`](./docs/CASHFREE_SETUP.md)
 
 ### PhonePe Payment Gateway
 1. `PHONEPE_MERCHANT_ID`
@@ -65,8 +68,10 @@ Switch gateways with `PAYMENT_PROVIDER` only. Business unlock logic (`processSuc
 - Factory: `src/lib/payments/index.ts` → `getPaymentProvider()`
 - Adapters: `src/lib/payments/providers/{razorpay,cashfree,phonepe,payu,mock}.ts`
 - Shared webhook processor: `src/lib/payments/webhook-handler.ts`
-- Return/reconcile: `/api/payments/return`, `/api/payments/reconcile`
+- Return/reconcile/status: `/api/payments/return`, `/api/payments/reconcile`, `/api/payments/status`
+- Cashfree webhook alias: `/api/payments/webhooks/cashfree`
 - Checkout UI reads `checkout.mode` and launches the correct UX (modal / SDK / redirect / hosted form)
+- Detailed Cashfree dashboard steps: [`docs/CASHFREE_SETUP.md`](./docs/CASHFREE_SETUP.md)
 
 ## Safety rules
 
@@ -74,3 +79,4 @@ Switch gateways with `PAYMENT_PROVIDER` only. Business unlock logic (`processSuc
 - Historical orders always verify/refund through the **recorded** payment provider.
 - Mock provider is blocked in Vercel Production.
 - Amount and unlock are always server-side.
+- Payment success pages never unlock without a verified paid order + signed report token.

@@ -25,6 +25,13 @@ const serverEnvSchema = z.object({
   CASHFREE_APP_ID: trimSecret,
   CASHFREE_SECRET_KEY: trimSecret,
   CASHFREE_WEBHOOK_SECRET: trimSecret,
+  /** Optional override; Cashfree PG default is 2025-01-01. */
+  CASHFREE_API_VERSION: z
+    .string()
+    .trim()
+    .optional()
+    .default("")
+    .transform((value) => value.trim().replace(/^['"]|['"]$/g, "").trim()),
   CASHFREE_ENV: z
     .string()
     .trim()
@@ -130,8 +137,32 @@ export function missingCheckoutPaymentCredentialKeys(config: ServerEnv): string[
   return missingPaymentCredentialKeys(config).filter((key) => key !== "RAZORPAY_WEBHOOK_SECRET" && key !== "CASHFREE_WEBHOOK_SECRET");
 }
 
+/** Cashfree docs also use CLIENT_ID / CLIENT_SECRET; map them onto APP_ID / SECRET_KEY without exposing secrets. */
+export function normalizePaymentEnvironmentAliases(environment: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const next = { ...environment };
+  const appId = String(next.CASHFREE_APP_ID ?? "").trim();
+  const clientId = String(next.CASHFREE_CLIENT_ID ?? "").trim();
+  if (!appId && clientId) next.CASHFREE_APP_ID = clientId;
+
+  const secret = String(next.CASHFREE_SECRET_KEY ?? "").trim();
+  const clientSecret = String(next.CASHFREE_CLIENT_SECRET ?? "").trim();
+  if (!secret && clientSecret) next.CASHFREE_SECRET_KEY = clientSecret;
+
+  return next;
+}
+
+const PLACEHOLDER_SECRET_PATTERN =
+  /^(changeme|replace_me|your[_-]?secret|xxx+|placeholder|sample|test[_-]?key|dummy)$/i;
+
+export function looksLikePlaceholderCredential(value: string | undefined) {
+  const trimmed = String(value ?? "").trim();
+  if (!trimmed) return false;
+  return PLACEHOLDER_SECRET_PATTERN.test(trimmed) || trimmed.includes("YOUR_") || trimmed.includes("<<<");
+}
+
 export function validateBuildEnvironment(environment: NodeJS.ProcessEnv): ServerEnv {
-  const parsed = serverEnvSchema.safeParse({ ...environment, NODE_ENV: "production" });
+  const normalized = normalizePaymentEnvironmentAliases(environment);
+  const parsed = serverEnvSchema.safeParse({ ...normalized, NODE_ENV: "production" });
   if (!parsed.success) {
     const issues = parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join(", ");
     throw new Error(`Invalid build environment: ${issues}`);
@@ -168,14 +199,22 @@ export function validateCriticalProductionEnvironment(environment: NodeJS.Proces
   if (paymentMissing.length) {
     throw new Error(`Missing ${config.PAYMENT_PROVIDER} payment credentials: ${paymentMissing.join(", ")}`);
   }
-  if (config.PAYMENT_PROVIDER === "razorpay" && !config.RAZORPAY_WEBHOOK_SECRET) {
-    console.warn(
-      "[env] RAZORPAY_WEBHOOK_SECRET is not set. Checkout can still verify client signatures; configure the webhook secret in Vercel so /api/webhooks/razorpay can accept events.",
-    );
+  if (config.PAYMENT_PROVIDER === "razorpay") {
+    if (looksLikePlaceholderCredential(config.RAZORPAY_KEY_ID) || looksLikePlaceholderCredential(config.RAZORPAY_KEY_SECRET)) {
+      throw new Error("RAZORPAY credentials look like placeholders. Set real live keys in Vercel Production.");
+    }
+    if (!config.RAZORPAY_WEBHOOK_SECRET) {
+      console.warn(
+        "[env] RAZORPAY_WEBHOOK_SECRET is not set. Checkout can still verify client signatures; configure the webhook secret in Vercel so /api/webhooks/razorpay can accept events.",
+      );
+    }
   }
   if (config.PAYMENT_PROVIDER === "cashfree") {
     if (config.CASHFREE_ENV !== "production") {
       throw new Error("CASHFREE_ENV must be production when PAYMENT_PROVIDER=cashfree in production.");
+    }
+    if (looksLikePlaceholderCredential(config.CASHFREE_APP_ID) || looksLikePlaceholderCredential(config.CASHFREE_SECRET_KEY)) {
+      throw new Error("CASHFREE credentials look like placeholders. Set real production App ID and Secret Key in Vercel.");
     }
     if (!config.CASHFREE_WEBHOOK_SECRET) {
       console.warn(
@@ -211,7 +250,8 @@ export function validateProductionEnvironment(environment: NodeJS.ProcessEnv): S
 }
 
 export function validateRuntimeEnvironment(environment: NodeJS.ProcessEnv): ServerEnv {
-  const parsed = serverEnvSchema.safeParse(environment);
+  const normalized = normalizePaymentEnvironmentAliases(environment);
+  const parsed = serverEnvSchema.safeParse(normalized);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join(", ");
     throw new Error(`Invalid server environment: ${issues}`);
@@ -221,10 +261,10 @@ export function validateRuntimeEnvironment(environment: NodeJS.ProcessEnv): Serv
 
   // Enforce live payment + OTP on Vercel Production (and when VALIDATE_PRODUCTION_ENV=true).
   // Local `next build` stays on soft build checks so incomplete local env does not break CI tooling.
-  if (environment.VERCEL_ENV === "production" || environment.VALIDATE_PRODUCTION_ENV === "true") {
-    return validateCriticalProductionEnvironment(environment);
+  if (normalized.VERCEL_ENV === "production" || normalized.VALIDATE_PRODUCTION_ENV === "true") {
+    return validateCriticalProductionEnvironment(normalized);
   }
-  return validateBuildEnvironment(environment);
+  return validateBuildEnvironment(normalized);
 }
 
 let cached: ServerEnv | undefined;
