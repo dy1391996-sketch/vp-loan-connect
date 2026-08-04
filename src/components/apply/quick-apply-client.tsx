@@ -202,6 +202,12 @@ export function QuickApplyClient() {
   }
 
   async function goNext() {
+    // Step 4 verifies OTP; do not gate on otpVerified (that only becomes true after verify).
+    if (step === 4) {
+      await verifyOtpAndContinue();
+      return;
+    }
+
     const issue = validateQuickApplyStep(step, form, { otpVerified });
     if (issue) {
       setError(issue);
@@ -217,11 +223,6 @@ export function QuickApplyClient() {
       } catch {
         /* error already set */
       }
-      return;
-    }
-
-    if (step === 4) {
-      await verifyOtpAndContinue();
       return;
     }
 

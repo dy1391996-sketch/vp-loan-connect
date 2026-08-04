@@ -44,7 +44,7 @@ export function validateQuickApplyStep(step: number, form: QuickApplyFormState, 
   }
 
   if (step === 4) {
-    if (!opts?.otpVerified) return "Verify the email OTP to continue.";
+    // OTP code length / MSG91 verify happen in the client verify handler.
     return "";
   }
 
