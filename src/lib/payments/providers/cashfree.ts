@@ -213,7 +213,13 @@ export const cashfreePaymentProvider: PaymentProvider = {
     }
 
     const orderStatus = String(orderSnapshot.order_status || "").toUpperCase();
-    if (orderStatus !== "PAID") {
+    if (orderStatus === "PAID") {
+      // continue verification below
+    } else if (["ACTIVE", "PENDING", "NOT_ATTEMPTED", ""].includes(orderStatus)) {
+      return { ok: false as const, reason: `Cashfree order is not paid yet (${orderStatus || "ACTIVE"}).` };
+    } else if (["FAILED", "EXPIRED", "TERMINATED", "USER_DROPPED", "CANCELLED"].includes(orderStatus)) {
+      return { ok: false as const, reason: `Cashfree order ended without payment (${orderStatus}).` };
+    } else {
       return { ok: false as const, reason: `Cashfree order is not paid yet (${orderStatus || "UNKNOWN"}).` };
     }
     if (orderSnapshot.order_currency && String(orderSnapshot.order_currency).toUpperCase() !== "INR") {

@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { createCashfreeSdk, isCashfreeCheckoutDescriptor, buildCashfreeReturnUrl } from "@/lib/payments/cashfree-browser";
+import {
+  buildCashfreeReturnUrl,
+  classifyCashfreeOrderStatus,
+  createCashfreeSdk,
+  interpretCashfreeCheckoutResult,
+  isCashfreeCheckoutDescriptor,
+  isReusableCashfreeOrderStatus,
+  isTerminalUnpaidCashfreeOrderStatus,
+} from "@/lib/payments/cashfree-browser";
 
 describe("Cashfree browser SDK helpers", () => {
   it("uses functional Cashfree initializer (not new) when available", () => {
@@ -13,6 +21,25 @@ describe("Cashfree browser SDK helpers", () => {
     const sdk = createCashfreeSdk(Cashfree as unknown as Parameters<typeof createCashfreeSdk>[0], "production");
     assert.equal(typeof sdk.checkout, "function");
     assert.equal(usedNew, false);
+  });
+
+  it("treats redirect result as redirecting, not cancellation", () => {
+    assert.deepEqual(interpretCashfreeCheckoutResult({ redirect: true }), { kind: "redirecting" });
+    assert.equal(interpretCashfreeCheckoutResult({ redirect: true }).kind !== "error", true);
+  });
+
+  it("only marks explicit SDK errors as cancellation when message says so", () => {
+    const cancelled = interpretCashfreeCheckoutResult({ error: { message: "User cancelled payment" } });
+    assert.equal(cancelled.kind, "error");
+    if (cancelled.kind === "error") assert.equal(cancelled.cancelled, true);
+
+    const hardFail = interpretCashfreeCheckoutResult({ error: { message: "Invalid payment session" } });
+    assert.equal(hardFail.kind, "error");
+    if (hardFail.kind === "error") assert.equal(hardFail.cancelled, false);
+
+    // Generic resolve must NOT become the old “checkout was closed” path
+    assert.equal(interpretCashfreeCheckoutResult(undefined).kind, "unknown");
+    assert.equal(interpretCashfreeCheckoutResult({}).kind, "unknown");
   });
 
   it("validates cashfree checkout descriptor and return URL shape", () => {
@@ -30,6 +57,18 @@ describe("Cashfree browser SDK helpers", () => {
     assert.match(returnUrl, /\/api\/payments\/return\?/);
     assert.match(returnUrl, /order_id=\{order_id\}/);
     assert.match(returnUrl, /internalOrderId=11111111-1111-1111-1111-111111111111/);
+  });
+
+  it("classifies Cashfree order statuses for reuse vs recreate", () => {
+    assert.equal(isReusableCashfreeOrderStatus("ACTIVE"), true);
+    assert.equal(isReusableCashfreeOrderStatus("PAID"), false);
+    assert.equal(isTerminalUnpaidCashfreeOrderStatus("EXPIRED"), true);
+    assert.equal(isTerminalUnpaidCashfreeOrderStatus("USER_DROPPED"), true);
+    assert.equal(isTerminalUnpaidCashfreeOrderStatus("TERMINATED"), true);
+    assert.equal(isTerminalUnpaidCashfreeOrderStatus("ACTIVE"), false);
+    assert.equal(classifyCashfreeOrderStatus("PAID"), "paid");
+    assert.equal(classifyCashfreeOrderStatus("ACTIVE"), "pending");
+    assert.equal(classifyCashfreeOrderStatus("USER_DROPPED"), "failed");
   });
 
   it("does not export auto-checkout helpers", async () => {

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { StatusNotice } from "@/components/ui/status-notice";
 import { PAYMENT_DESCRIPTION, PLATFORM_DISCLAIMER } from "@/lib/constants";
 import { trackEvent } from "@/lib/analytics-client";
-import { createCashfreeSdk, type CashfreeCheckoutInstance } from "@/lib/payments/cashfree-browser";
+import { createCashfreeSdk, interpretCashfreeCheckoutResult, type CashfreeCheckoutInstance } from "@/lib/payments/cashfree-browser";
 
 declare global {
   interface Window {
@@ -176,26 +176,33 @@ export function CheckoutClient(props: Props) {
         if (!checkout.paymentSessionId) throw new Error("Payment session is missing. Please try again.");
         const cashfree = createCashfreeSdk(window.Cashfree, checkout.env);
         try {
+          // Do not await navigation away — redirect checkout may resolve with `{ redirect: true }`.
           const checkoutResult = await cashfree.checkout({
             paymentSessionId: checkout.paymentSessionId,
             redirectTarget: "_self",
           });
-          // Full-page redirect should navigate away. If SDK resolves without navigation, show recover path.
-          if (checkoutResult && typeof checkoutResult === "object" && "error" in checkoutResult) {
-            const message = String((checkoutResult as { error?: { message?: string } }).error?.message || "Checkout cancelled");
-            if (/cancel|closed|dismiss|abort/i.test(message)) {
+          const outcome = interpretCashfreeCheckoutResult(checkoutResult);
+          if (outcome.kind === "redirecting") {
+            // Browser is navigating to Cashfree / return URL. Keep busy; do not show cancellation.
+            return;
+          }
+          if (outcome.kind === "error") {
+            if (outcome.cancelled) {
               router.push(
                 `/payment/failed?assessment=${props.assessmentId}&product=${props.productSlug}&token=${encodeURIComponent(props.resultToken)}&reason=${encodeURIComponent("Payment was cancelled")}`,
               );
               return;
             }
+            throw new Error(outcome.message || "Cashfree checkout could not be completed. Please try again.");
           }
-          setError("Checkout was closed before payment completed. If money was deducted, tap retry — we will re-check securely.");
+          // Unknown resolve without explicit cancel/error — stay on page and let the user retry or status recover.
+          // Do NOT claim the checkout was closed.
           setBusy(false);
           payInFlight.current = false;
+          setError("If the payment page did not open, tap unlock again. If money was deducted, we will verify before unlocking.");
         } catch (cashfreeError) {
           const message = cashfreeError instanceof Error ? cashfreeError.message : "Cashfree checkout failed.";
-          if (/cancel|closed|dismiss|abort/i.test(message)) {
+          if (/cancel|closed|dismiss|abort|user.?drop/i.test(message)) {
             router.push(
               `/payment/failed?assessment=${props.assessmentId}&product=${props.productSlug}&token=${encodeURIComponent(props.resultToken)}&reason=${encodeURIComponent("Payment was cancelled")}`,
             );

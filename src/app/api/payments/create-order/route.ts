@@ -100,8 +100,19 @@ export async function POST(request: NextRequest) {
     if (existingPending?.providerOrderId && env.PAYMENT_PROVIDER === "cashfree") {
       try {
         const { fetchCashfreeOrder } = await import("@/lib/payments/providers/cashfree");
+        const { classifyCashfreeOrderStatus, isReusableCashfreeOrderStatus, isTerminalUnpaidCashfreeOrderStatus } = await import(
+          "@/lib/payments/cashfree-browser"
+        );
         const snapshot = await fetchCashfreeOrder(existingPending.providerOrderId, env);
-        if (snapshot.payment_session_id && String(snapshot.order_status || "").toUpperCase() !== "PAID") {
+        const status = String(snapshot.order_status || "").toUpperCase();
+        const classification = classifyCashfreeOrderStatus(status);
+
+        if (classification === "paid") {
+          // Payment already captured at Cashfree — leave reuse path so the client can hit return/status unlock.
+          return NextResponse.json({ error: "Payment already completed for this order. Refresh your result page." }, { status: 409 });
+        }
+
+        if (snapshot.payment_session_id && isReusableCashfreeOrderStatus(status)) {
           return NextResponse.json({
             internalOrderId: existingPending.id,
             orderReference: existingPending.orderReference,
@@ -118,6 +129,10 @@ export async function POST(request: NextRequest) {
               env: env.CASHFREE_ENV === "production" ? ("production" as const) : ("sandbox" as const),
             },
           });
+        }
+
+        if (isTerminalUnpaidCashfreeOrderStatus(status) || !snapshot.payment_session_id) {
+          await prisma.order.update({ where: { id: existingPending.id }, data: { status: "FAILED" } });
         }
       } catch {
         await prisma.order.update({ where: { id: existingPending.id }, data: { status: "FAILED" } });

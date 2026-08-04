@@ -94,6 +94,11 @@ export async function POST(request: NextRequest) {
           reconciled: true,
         });
       }
+
+      if (/ended without payment|USER_DROPPED|EXPIRED|TERMINATED|FAILED|CANCELLED/i.test(verified.reason)) {
+        await prisma.order.update({ where: { id: order.id }, data: { status: "FAILED" } }).catch(() => undefined);
+        return NextResponse.json({ status: "failed", orderReference: order.orderReference, reason: verified.reason });
+      }
     }
 
     return NextResponse.json({ status: "pending", orderReference: order.orderReference });

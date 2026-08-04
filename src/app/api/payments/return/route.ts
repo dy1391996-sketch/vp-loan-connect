@@ -23,7 +23,12 @@ function publicRedirect(path: `/payment/${"success" | "pending" | "failed"}`, qu
 }
 
 function isPendingReason(reason: string) {
-  return /not paid yet|not successful yet|PENDING|NOT_ATTEMPTED|unable to confirm cashfree payment status/i.test(reason);
+  if (/ended without payment|FAILED|EXPIRED|TERMINATED|USER_DROPPED|CANCELLED/i.test(reason)) return false;
+  return /not paid yet|not successful yet|PENDING|NOT_ATTEMPTED|ACTIVE|unable to confirm cashfree payment status/i.test(reason);
+}
+
+function isFailedReason(reason: string) {
+  return /ended without payment|FAILED|EXPIRED|TERMINATED|USER_DROPPED|CANCELLED|mismatch|not found/i.test(reason);
 }
 
 async function finalizeOrder(orderId: string, providerOrderId: string, raw: Record<string, unknown>) {
@@ -70,6 +75,9 @@ async function finalizeOrder(orderId: string, providerOrderId: string, raw: Reco
         token: pendingToken,
         reason: verified.reason,
       });
+    }
+    if (isFailedReason(verified.reason) && (order.status === "PENDING" || order.status === "CREATED")) {
+      await prisma.order.update({ where: { id: order.id }, data: { status: "FAILED" } }).catch(() => undefined);
     }
     return publicRedirect("/payment/failed", {
       assessment: order.assessmentId || "",
