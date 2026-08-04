@@ -344,17 +344,47 @@ async function loadScript(src: string, ready: () => boolean) {
   if (ready()) return;
   await new Promise<void>((resolve, reject) => {
     const existing = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`);
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+    const fail = () => {
+      if (settled) return;
+      settled = true;
+      reject(new Error("Payment checkout could not be loaded."));
+    };
+
     if (existing) {
-      existing.addEventListener("load", () => resolve(), { once: true });
-      existing.addEventListener("error", () => reject(new Error("Payment checkout could not be loaded.")), { once: true });
-      if (ready()) resolve();
+      if (ready()) {
+        done();
+        return;
+      }
+      existing.addEventListener("load", () => done(), { once: true });
+      existing.addEventListener("error", () => fail(), { once: true });
+      const started = Date.now();
+      const poll = window.setInterval(() => {
+        if (ready()) {
+          window.clearInterval(poll);
+          done();
+        } else if (Date.now() - started > 10_000) {
+          window.clearInterval(poll);
+          fail();
+        }
+      }, 50);
       return;
     }
+
     const script = document.createElement("script");
     script.src = src;
     script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Payment checkout could not be loaded."));
+    script.onload = () => done();
+    script.onerror = () => fail();
     document.head.appendChild(script);
+    window.setTimeout(() => {
+      if (ready()) done();
+      else if (!settled) fail();
+    }, 10_000);
   });
 }

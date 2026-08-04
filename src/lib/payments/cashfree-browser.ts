@@ -64,8 +64,8 @@ export type CashfreeLaunchOutcome =
 
 /**
  * Start Cashfree redirect checkout with a hard launch timeout.
- * If the page begins unloading, treat that as success (do not show an error).
- * Never await the SDK indefinitely — redirect flows can hang in some browsers.
+ * Register the timeout first, then invoke the SDK on the next macrotask so a
+ * hanging/blocking checkout cannot prevent the timeout from being scheduled.
  */
 export async function launchCashfreeCheckoutWithTimeout(
   cashfree: CashfreeCheckoutInstance,
@@ -82,30 +82,58 @@ export async function launchCashfreeCheckoutWithTimeout(
   }
 
   try {
-    const checkoutPromise = Promise.resolve(
-      cashfree.checkout({
-        paymentSessionId: options.paymentSessionId,
-        redirectTarget: options.redirectTarget ?? "_self",
-      }),
-    ).then((result) => ({ source: "sdk" as const, result }));
+    let sdkSettled = false;
+    let sdkResult: unknown;
+    let sdkError: unknown;
 
-    const timeoutPromise = new Promise<{ source: "timeout" }>((resolve) => {
-      setTimeout(() => resolve({ source: "timeout" }), timeoutMs);
+    await new Promise<void>((resolve) => {
+      const finish = () => resolve();
+      const timer =
+        typeof window !== "undefined"
+          ? window.setTimeout(finish, timeoutMs)
+          : setTimeout(finish, timeoutMs);
+
+      const startCheckout = () => {
+        Promise.resolve(
+          cashfree.checkout({
+            paymentSessionId: options.paymentSessionId,
+            redirectTarget: options.redirectTarget ?? "_self",
+          }),
+        )
+          .then((result) => {
+            sdkSettled = true;
+            sdkResult = result;
+            const outcome = interpretCashfreeCheckoutResult(result);
+            if (navigated || outcome.kind === "redirecting" || outcome.kind === "error") {
+              clearTimeout(timer);
+              finish();
+            }
+          })
+          .catch((error) => {
+            sdkSettled = true;
+            sdkError = error;
+            clearTimeout(timer);
+            finish();
+          });
+      };
+
+      // Schedule after the timeout timer so the event loop always has an exit.
+      if (typeof window !== "undefined") window.setTimeout(startCheckout, 0);
+      else setTimeout(startCheckout, 0);
     });
 
-    const raced = await Promise.race([checkoutPromise, timeoutPromise]);
     if (navigated) return { kind: "navigating" };
-    if (raced.source === "timeout") return { kind: "timeout" };
-
-    const outcome = interpretCashfreeCheckoutResult(raced.result);
-    if (navigated || outcome.kind === "redirecting") return { kind: "redirecting" };
-    if (outcome.kind === "error") return outcome;
+    if (sdkError) {
+      const message = sdkError instanceof Error ? sdkError.message : "Cashfree checkout failed.";
+      const cancelled = /cancel|closed|dismiss|abort|user.?drop/i.test(message);
+      return { kind: "error", message, cancelled };
+    }
+    if (sdkSettled) {
+      const outcome = interpretCashfreeCheckoutResult(sdkResult);
+      if (outcome.kind === "redirecting") return { kind: "redirecting" };
+      if (outcome.kind === "error") return outcome;
+    }
     return { kind: "timeout" };
-  } catch (error) {
-    if (navigated) return { kind: "navigating" };
-    const message = error instanceof Error ? error.message : "Cashfree checkout failed.";
-    const cancelled = /cancel|closed|dismiss|abort|user.?drop/i.test(message);
-    return { kind: "error", message, cancelled };
   } finally {
     if (typeof window !== "undefined") {
       window.removeEventListener("pagehide", onLeaving);
