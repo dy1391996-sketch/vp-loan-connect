@@ -9,7 +9,7 @@ import {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function validateQuickApplyStep(step: number, form: QuickApplyFormState, opts?: { otpVerified?: boolean }): string {
+export function validateQuickApplyStep(step: number, form: QuickApplyFormState): string {
   if (step === 1) {
     if (!Number.isFinite(form.loanAmount) || form.loanAmount < MIN_LOAN_AMOUNT) {
       return `Enter an amount of at least ₹${MIN_LOAN_AMOUNT.toLocaleString("en-IN")}.`;

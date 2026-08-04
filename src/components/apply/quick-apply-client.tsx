@@ -208,7 +208,7 @@ export function QuickApplyClient() {
       return;
     }
 
-    const issue = validateQuickApplyStep(step, form, { otpVerified });
+    const issue = validateQuickApplyStep(step, form);
     if (issue) {
       setError(issue);
       return;
@@ -307,7 +307,7 @@ export function QuickApplyClient() {
   }
 
   async function submitAssessment() {
-    const issue = validateQuickApplyStep(8, form, { otpVerified });
+    const issue = validateQuickApplyStep(8, form);
     if (issue) {
       setError(issue);
       return;
