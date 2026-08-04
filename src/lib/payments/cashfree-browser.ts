@@ -54,6 +54,66 @@ export function interpretCashfreeCheckoutResult(result: unknown): CashfreeChecko
   return { kind: "unknown" };
 }
 
+export const CASHFREE_CHECKOUT_LAUNCH_TIMEOUT_MS = 10_000;
+
+export type CashfreeLaunchOutcome =
+  | { kind: "navigating" }
+  | { kind: "redirecting" }
+  | { kind: "error"; message: string; cancelled: boolean }
+  | { kind: "timeout" };
+
+/**
+ * Start Cashfree redirect checkout with a hard launch timeout.
+ * If the page begins unloading, treat that as success (do not show an error).
+ * Never await the SDK indefinitely — redirect flows can hang in some browsers.
+ */
+export async function launchCashfreeCheckoutWithTimeout(
+  cashfree: CashfreeCheckoutInstance,
+  options: { paymentSessionId: string; redirectTarget?: string },
+  timeoutMs = CASHFREE_CHECKOUT_LAUNCH_TIMEOUT_MS,
+): Promise<CashfreeLaunchOutcome> {
+  let navigated = false;
+  const onLeaving = () => {
+    navigated = true;
+  };
+  if (typeof window !== "undefined") {
+    window.addEventListener("pagehide", onLeaving);
+    window.addEventListener("beforeunload", onLeaving);
+  }
+
+  try {
+    const checkoutPromise = Promise.resolve(
+      cashfree.checkout({
+        paymentSessionId: options.paymentSessionId,
+        redirectTarget: options.redirectTarget ?? "_self",
+      }),
+    ).then((result) => ({ source: "sdk" as const, result }));
+
+    const timeoutPromise = new Promise<{ source: "timeout" }>((resolve) => {
+      setTimeout(() => resolve({ source: "timeout" }), timeoutMs);
+    });
+
+    const raced = await Promise.race([checkoutPromise, timeoutPromise]);
+    if (navigated) return { kind: "navigating" };
+    if (raced.source === "timeout") return { kind: "timeout" };
+
+    const outcome = interpretCashfreeCheckoutResult(raced.result);
+    if (navigated || outcome.kind === "redirecting") return { kind: "redirecting" };
+    if (outcome.kind === "error") return outcome;
+    return { kind: "timeout" };
+  } catch (error) {
+    if (navigated) return { kind: "navigating" };
+    const message = error instanceof Error ? error.message : "Cashfree checkout failed.";
+    const cancelled = /cancel|closed|dismiss|abort|user.?drop/i.test(message);
+    return { kind: "error", message, cancelled };
+  } finally {
+    if (typeof window !== "undefined") {
+      window.removeEventListener("pagehide", onLeaving);
+      window.removeEventListener("beforeunload", onLeaving);
+    }
+  }
+}
+
 export function isCashfreeCheckoutDescriptor(value: unknown): value is {
   mode: "cashfree_checkout";
   paymentSessionId: string;

@@ -71,6 +71,26 @@ describe("Cashfree browser SDK helpers", () => {
     assert.equal(classifyCashfreeOrderStatus("USER_DROPPED"), "failed");
   });
 
+  it("times out Cashfree launch when SDK never resolves and page stays put", async () => {
+    const { launchCashfreeCheckoutWithTimeout } = await import("@/lib/payments/cashfree-browser");
+    const cashfree = {
+      checkout: () => new Promise(() => undefined),
+    };
+    const started = Date.now();
+    const outcome = await launchCashfreeCheckoutWithTimeout(cashfree, { paymentSessionId: "session_test_1234567890" }, 50);
+    assert.equal(outcome.kind, "timeout");
+    assert.ok(Date.now() - started < 500);
+  });
+
+  it("treats SDK redirect resolve as redirecting", async () => {
+    const { launchCashfreeCheckoutWithTimeout } = await import("@/lib/payments/cashfree-browser");
+    const cashfree = {
+      checkout: async () => ({ redirect: true }),
+    };
+    const outcome = await launchCashfreeCheckoutWithTimeout(cashfree, { paymentSessionId: "session_test_1234567890" }, 1000);
+    assert.equal(outcome.kind, "redirecting");
+  });
+
   it("does not export auto-checkout helpers", async () => {
     const mod = await import("@/lib/payments/cashfree-browser");
     assert.equal("autoStartCheckout" in mod, false);

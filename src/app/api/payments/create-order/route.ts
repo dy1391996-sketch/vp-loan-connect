@@ -61,16 +61,19 @@ export async function POST(request: NextRequest) {
     });
     const customerEmail = typeof emailAnswer?.value === "string" ? emailAnswer.value : undefined;
 
-    // Expire stale unpaid checkouts for the same assessment+product so users cannot stack active orders.
-    await prisma.order.updateMany({
-      where: {
-        assessmentId: assessment.id,
-        productId: product.id,
-        status: { in: ["CREATED", "PENDING"] },
-        createdAt: { lt: new Date(Date.now() - 10 * 60 * 1000) },
-      },
-      data: { status: "FAILED" },
-    });
+    // Expire stale unpaid checkouts for non-Cashfree providers so users cannot stack active orders.
+    // Cashfree PENDING/ACTIVE must be confirmed via Cashfree before retiring — never force-fail ACTIVE locally.
+    if (env.PAYMENT_PROVIDER !== "cashfree") {
+      await prisma.order.updateMany({
+        where: {
+          assessmentId: assessment.id,
+          productId: product.id,
+          status: { in: ["CREATED", "PENDING"] },
+          createdAt: { lt: new Date(Date.now() - 10 * 60 * 1000) },
+        },
+        data: { status: "FAILED" },
+      });
+    }
 
     const alreadyPaid = await prisma.order.findFirst({
       where: { assessmentId: assessment.id, productId: product.id, status: "PAID" },
@@ -85,14 +88,18 @@ export async function POST(request: NextRequest) {
     const totalAmount = Math.round((subtotal + gstAmount) * 100) / 100;
     const amountPaise = Math.round(totalAmount * 100);
 
-    // Reuse a recent pending order to avoid duplicate Cashfree sessions on repeated Pay clicks.
+    // Reuse unpaid Cashfree/local orders so Resume does not spawn duplicates.
     const existingPending = await prisma.order.findFirst({
       where: {
         assessmentId: assessment.id,
         productId: product.id,
         status: { in: ["CREATED", "PENDING"] },
-        createdAt: { gte: new Date(Date.now() - 10 * 60 * 1000) },
-        providerOrderId: { not: null },
+        ...(env.PAYMENT_PROVIDER === "cashfree"
+          ? { providerOrderId: { not: null } }
+          : {
+              createdAt: { gte: new Date(Date.now() - 10 * 60 * 1000) },
+              providerOrderId: { not: null },
+            }),
       },
       orderBy: { createdAt: "desc" },
     });
@@ -131,11 +138,22 @@ export async function POST(request: NextRequest) {
           });
         }
 
+        // Session expired/unusable or Cashfree terminal unpaid — retire only this order, then create one replacement below.
         if (isTerminalUnpaidCashfreeOrderStatus(status) || !snapshot.payment_session_id) {
           await prisma.order.update({ where: { id: existingPending.id }, data: { status: "FAILED" } });
         }
       } catch {
-        await prisma.order.update({ where: { id: existingPending.id }, data: { status: "FAILED" } });
+        // Never mark ACTIVE/PENDING as FAILED on a transient Cashfree API error — resume must reuse the same order.
+        return NextResponse.json(
+          {
+            error: "Unable to resume the active Cashfree payment session. Tap Resume payment to try again.",
+            provider: "cashfree",
+            orderReference: existingPending.orderReference,
+            internalOrderId: existingPending.id,
+            resumable: true,
+          },
+          { status: 503 },
+        );
       }
     } else if (existingPending && env.PAYMENT_PROVIDER !== "cashfree") {
       // Non-Cashfree: mark previous unfinished order failed before creating a fresh session.
