@@ -1,0 +1,13 @@
+{
+  "name": "VP Loan Connect",
+  "user": "ubuntu",
+  "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh",
+  "terminals": [
+    {
+      "name": "next-dev",
+      "command": "pnpm dev"
+    }
+  ],
+  "ports": [{ "name": "web", "port": 3000 }]
+}
