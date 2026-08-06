@@ -14,17 +14,84 @@ const schema = z.object({
   accessToken: z.string().min(10).max(8192),
 });
 
+const VERIFY_ACCESS_TOKEN_URLS = [
+  "https://control.msg91.com/api/v5/widget/verifyAccessToken",
+  "https://api.msg91.com/api/v5/widget/verifyAccessToken",
+] as const;
+
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return null;
+    const normalized = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+    const json = Buffer.from(padded, "base64").toString("utf8");
+    const parsed = JSON.parse(json) as unknown;
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+function collectIdentifierCandidates(value: unknown, into: string[], depth = 0): void {
+  if (depth > 6 || value == null) return;
+  if (typeof value === "string") {
+    const trimmed = value.trim().toLowerCase();
+    if (trimmed) into.push(trimmed);
+    if (trimmed.split(".").length === 3) {
+      const payload = decodeJwtPayload(trimmed);
+      if (payload) collectIdentifierCandidates(payload, into, depth + 1);
+    }
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) collectIdentifierCandidates(item, into, depth + 1);
+    return;
+  }
+  if (typeof value === "object") {
+    for (const item of Object.values(value as Record<string, unknown>)) {
+      collectIdentifierCandidates(item, into, depth + 1);
+    }
+  }
+}
+
 function containsVerifiedIdentifier(value: unknown, expectedEmail: string): boolean {
-  if (typeof value === "string") return value.trim().toLowerCase() === expectedEmail;
-  if (Array.isArray(value)) return value.some((item) => containsVerifiedIdentifier(item, expectedEmail));
-  if (value && typeof value === "object") return Object.values(value as Record<string, unknown>).some((item) => containsVerifiedIdentifier(item, expectedEmail));
-  return false;
+  const expected = expectedEmail.trim().toLowerCase();
+  const candidates: string[] = [];
+  collectIdentifierCandidates(value, candidates);
+  return candidates.some((item) => item === expected || item.includes(expected));
 }
 
 function providerError(value: unknown) {
   if (!value || typeof value !== "object") return "MSG91 could not verify this OTP.";
   const record = value as Record<string, unknown>;
   return typeof record.message === "string" && record.message.trim() ? record.message : "MSG91 could not verify this OTP.";
+}
+
+async function verifyMsg91AccessToken(accessToken: string, authkey: string) {
+  let lastStatus = 0;
+  let lastData: unknown = {};
+  for (const url of VERIFY_ACCESS_TOKEN_URLS) {
+    const providerResponse = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", authkey },
+      body: JSON.stringify({ "access-token": accessToken }),
+      cache: "no-store",
+    });
+    let providerData: unknown = {};
+    try {
+      providerData = await providerResponse.json();
+    } catch {
+      providerData = {};
+    }
+    lastStatus = providerResponse.status;
+    lastData = providerData;
+    const isError =
+      !providerResponse.ok ||
+      (providerData && typeof providerData === "object" && (providerData as Record<string, unknown>).type === "error");
+    if (!isError) return { ok: true as const, status: providerResponse.status, data: providerData };
+  }
+  return { ok: false as const, status: lastStatus, data: lastData };
 }
 
 export async function POST(request: NextRequest) {
@@ -41,23 +108,15 @@ export async function POST(request: NextRequest) {
     const env = getServerEnv();
     if (!env.OTP_API_KEY) return NextResponse.json({ error: "OTP verification is not configured." }, { status: 503 });
 
-    const providerResponse = await fetch("https://api.msg91.com/api/v5/widget/verifyAccessToken", {
-      method: "POST",
-      headers: { "content-type": "application/json", authkey: env.OTP_API_KEY },
-      body: JSON.stringify({ "access-token": parsed.data.accessToken }),
-      cache: "no-store",
-    });
-
-    let providerData: unknown = {};
-    try { providerData = await providerResponse.json(); } catch { providerData = {}; }
-
-    if (!providerResponse.ok || (providerData && typeof providerData === "object" && (providerData as Record<string, unknown>).type === "error")) {
-      console.error("msg91_widget_access_token_rejected", { status: providerResponse.status, message: providerError(providerData) });
+    const provider = await verifyMsg91AccessToken(parsed.data.accessToken, env.OTP_API_KEY);
+    if (!provider.ok) {
+      console.error("msg91_widget_access_token_rejected", { status: provider.status, message: providerError(provider.data) });
       return NextResponse.json({ error: "OTP verification failed or expired. Please try again." }, { status: 400 });
     }
 
-    if (!containsVerifiedIdentifier(providerData, parsed.data.email.toLowerCase())) {
-      console.error("msg91_widget_identifier_mismatch", { status: providerResponse.status });
+    const email = parsed.data.email.toLowerCase();
+    if (!containsVerifiedIdentifier(provider.data, email) && !containsVerifiedIdentifier(parsed.data.accessToken, email)) {
+      console.error("msg91_widget_identifier_mismatch", { status: provider.status });
       return NextResponse.json({ error: "Verified email address did not match. Please try again." }, { status: 400 });
     }
 
@@ -99,7 +158,7 @@ export async function POST(request: NextRequest) {
     const verificationToken = await signAccessToken(
       "otp_verified",
       mobile,
-      { leadId: lead.id, provider: "msg91_email_widget", email: parsed.data.email.toLowerCase() },
+      { leadId: lead.id, provider: "msg91_email_widget", email },
       "20m",
     );
     return NextResponse.json({ verified: true, verificationToken, channel: "email" });

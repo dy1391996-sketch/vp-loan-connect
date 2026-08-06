@@ -19,7 +19,13 @@ import {
   type QuickApplyFormState,
 } from "@/lib/apply/quick-apply-state";
 import { validateQuickApplyStep } from "@/lib/apply/quick-apply-validation";
-import { prepareMsg91EmailOtp, retryMsg91EmailOtp, sendMsg91EmailOtp, verifyMsg91EmailOtp } from "@/lib/apply/msg91-email-otp";
+import {
+  prepareMsg91EmailOtp,
+  resetMsg91EmailOtpClient,
+  retryMsg91EmailOtp,
+  sendMsg91EmailOtp,
+  verifyMsg91EmailOtp,
+} from "@/lib/apply/msg91-email-otp";
 import { trackEvent } from "@/lib/analytics-client";
 import { RESULT_DISCLAIMER, USP_PRICE_LABEL } from "@/lib/constants";
 import { isIndividualPan, isValidPanFormat, normalizePan } from "@/lib/domain/identity";
@@ -66,6 +72,7 @@ export function QuickApplyClient() {
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpToken, setOtpToken] = useState("");
   const [otpCode, setOtpCode] = useState("");
+  const [otpReqId, setOtpReqId] = useState("");
   const [resendIn, setResendIn] = useState(0);
   const [otpReady, setOtpReady] = useState(false);
   const [phase, setPhase] = useState<"form" | "result">("form");
@@ -134,13 +141,16 @@ export function QuickApplyClient() {
     setError("");
     try {
       await ensureOtpPrepared();
-      await sendMsg91EmailOtp(form.email.trim().toLowerCase());
+      const sent = await sendMsg91EmailOtp(form.email.trim().toLowerCase());
+      setOtpReqId(sent.reqId || "");
       setResendIn(45);
       setOtpCode("");
       setOtpVerified(false);
       setOtpToken("");
       trackEvent("email_otp_sent");
     } catch (err) {
+      resetMsg91EmailOtpClient();
+      setOtpReady(false);
       setError(err instanceof Error ? err.message : "Could not send verification code.");
       throw err;
     } finally {
@@ -154,12 +164,17 @@ export function QuickApplyClient() {
     try {
       if (!otpReady) await ensureOtpPrepared();
       try {
-        await retryMsg91EmailOtp();
+        const retried = await retryMsg91EmailOtp(otpReqId || undefined);
+        if (retried.reqId) setOtpReqId(retried.reqId);
       } catch {
-        await sendMsg91EmailOtp(form.email.trim().toLowerCase());
+        const sent = await sendMsg91EmailOtp(form.email.trim().toLowerCase());
+        setOtpReqId(sent.reqId || "");
       }
       setResendIn(45);
+      setOtpCode("");
     } catch (err) {
+      resetMsg91EmailOtpClient();
+      setOtpReady(false);
       setError(err instanceof Error ? err.message : "Could not resend code.");
     } finally {
       setBusy(false);
@@ -175,7 +190,7 @@ export function QuickApplyClient() {
     setError("");
     try {
       if (!otpReady) await ensureOtpPrepared();
-      const accessToken = await verifyMsg91EmailOtp(otpCode);
+      const accessToken = await verifyMsg91EmailOtp(otpCode, otpReqId || undefined);
       const response = await fetch("/api/otp/verify", {
         method: "POST",
         headers: { "content-type": "application/json" },
