@@ -2,10 +2,11 @@ import { prisma } from "@/lib/db";
 import { upsertCustomerFromChannel, createOrUpdateLead } from "@/lib/domain/leads";
 import { handleInboundCustomerMessage } from "@/lib/ai/orchestrator";
 import { normalizeIndianMobile } from "@/lib/utils";
+import { consumeHandoff, extractHandoffRefFromText } from "@/lib/domain/handoff";
 
 export type ParsedWhatsAppMessage = {
   waMessageId: string;
-  from: string; // digits
+  from: string;
   profileName?: string;
   timestamp?: string;
   type: string;
@@ -101,6 +102,7 @@ export async function processWhatsAppInboundMessage(msg: ParsedWhatsAppMessage) 
         externalThreadId: msg.from.replace(/\D/g, ""),
         status: "AI_ACTIVE",
         lastMessageAt: new Date(),
+        attributionPath: "WHATSAPP",
       },
       include: { customer: true },
     });
@@ -137,6 +139,28 @@ export async function processWhatsAppInboundMessage(msg: ParsedWhatsAppMessage) 
     },
   });
 
+  let handoffAttribution: { ok: boolean; reason?: string; publicRef?: string } | undefined;
+  const ref = extractHandoffRefFromText(body);
+  if (ref) {
+    const consumed = await consumeHandoff({
+      publicRef: ref,
+      destinationConversationId: conversation.id,
+      destinationCustomerId: customerId,
+      destinationPhoneE164: phone,
+    });
+    handoffAttribution = {
+      ok: consumed.ok,
+      reason: consumed.ok ? undefined : consumed.reason,
+      publicRef: ref,
+    };
+    if (consumed.ok) {
+      conversation = await prisma.conversation.findUniqueOrThrow({
+        where: { id: conversation.id },
+        include: { customer: true },
+      });
+    }
+  }
+
   const lead = await createOrUpdateLead({
     customerId,
     source: "WHATSAPP",
@@ -145,6 +169,17 @@ export async function processWhatsAppInboundMessage(msg: ParsedWhatsAppMessage) 
     aiDetectedIntent: undefined,
   });
 
+  if (handoffAttribution?.ok && ref) {
+    await prisma.leadActivity.create({
+      data: {
+        leadId: lead.id,
+        type: "handoff_consumed",
+        summary: `Consumed Instagram handoff Ref ${ref}`,
+        metadata: handoffAttribution,
+      },
+    });
+  }
+
   const result = await handleInboundCustomerMessage({
     conversation,
     lead,
@@ -152,5 +187,11 @@ export async function processWhatsAppInboundMessage(msg: ParsedWhatsAppMessage) 
     mediaType: msg.mediaMime ?? msg.type,
   });
 
-  return { duplicate: false as const, conversationId: conversation.id, leadId: lead.id, ...result };
+  return {
+    duplicate: false as const,
+    conversationId: conversation.id,
+    leadId: lead.id,
+    handoffAttribution,
+    ...result,
+  };
 }

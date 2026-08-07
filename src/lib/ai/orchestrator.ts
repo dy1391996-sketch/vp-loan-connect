@@ -324,22 +324,35 @@ async function finalizeReply(input: {
   }
 
   let externalMessageId: string | undefined;
+  let providerSendStatus: "SENT" | "SKIPPED_PROVIDER_UNAVAILABLE" | "FAILED" | undefined;
   if (input.conversation.channel === "WHATSAPP" && input.conversation.customer.phone) {
     const sent = await sendWhatsAppText(input.conversation.customer.phone, input.reply);
     externalMessageId = sent.messageId;
+    providerSendStatus = "SENT";
+  } else if (input.conversation.channel === "INSTAGRAM_DM") {
+    const { sendInstagramText } = await import("@/lib/integrations/instagram/client");
+    const threadId = input.conversation.externalThreadId;
+    if (threadId) {
+      const sent = await sendInstagramText(threadId, input.reply.slice(0, 1000));
+      externalMessageId = sent.messageId;
+      providerSendStatus = sent.status;
+    } else {
+      providerSendStatus = "SKIPPED_PROVIDER_UNAVAILABLE";
+    }
   }
 
   await prisma.message.create({
     data: {
       conversationId: input.conversation.id,
       direction: "OUTBOUND",
-      status: "SENT",
+      status: providerSendStatus === "FAILED" ? "FAILED" : "SENT",
       body: input.reply,
       intent: input.intent,
       language: input.lang,
       aiGenerated: true,
       aiConfidence: input.confidence,
       externalMessageId,
+      providerSendStatus,
     },
   });
 
