@@ -27,10 +27,12 @@ jobs:
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       NEXTAUTH_SECRET: ci-nextauth-secret-at-least-32-characters-long
       REPORT_SIGNING_SECRET: ci-report-signing-secret-at-least-32-characters
-      SUPPORT_EMAIL: support@vploanconnect.in
+      SUPPORT_EMAIL: support@vpnest.local
       OTP_PROVIDER: mock
       PAYMENT_PROVIDER: mock
       WHATSAPP_PROVIDER: mock
+      INSTAGRAM_PROVIDER: mock
+      OPENAI_PROVIDER: mock
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -44,8 +46,9 @@ jobs:
       - run: pnpm db:generate
       - run: pnpm exec prisma validate
       - run: pnpm verify:migration
-      - run: pnpm verify:readiness
       - run: pnpm db:deploy
+      - run: pnpm db:seed
+      - run: pnpm verify:readiness
       - run: pnpm audit --prod --audit-level moderate
       - run: pnpm lint
       - run: pnpm typecheck
