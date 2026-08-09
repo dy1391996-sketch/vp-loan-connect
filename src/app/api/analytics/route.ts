@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { assertSameOrigin, rateLimit, requestIpHash } from "@/lib/security/request";
 
-const allowed = ["homepage_visit", "assessment_started", "mobile_otp_sent", "mobile_verified", "email_verified", "assessment_completed", "free_result_viewed", "checkout_opened", "payment_completed", "report_downloaded", "referral_link_copied", "whatsapp_share_clicked", "consultation_requested"] as const;
+const allowed = ["homepage_visit", "assessment_started", "mobile_otp_sent", "mobile_verified", "email_otp_sent", "email_verified", "assessment_completed", "free_result_viewed", "checkout_opened", "payment_completed", "report_downloaded", "referral_link_copied", "whatsapp_share_clicked", "consultation_requested"] as const;
 const schema = z.object({
   eventName: z.enum(allowed),
   leadId: z.string().uuid().optional(),

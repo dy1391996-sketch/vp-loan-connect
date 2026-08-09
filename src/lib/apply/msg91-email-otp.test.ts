@@ -29,4 +29,13 @@ describe("msg91 email otp helpers", () => {
   it("uses email retry channel 3", () => {
     assert.equal(MSG91_EMAIL_RETRY_CHANNEL, "3");
   });
+
+  it("documents that prepareMsg91EmailOtp must poll instead of a fixed 50ms race", async () => {
+    const source = await import("node:fs/promises").then((fs) =>
+      fs.readFile(new URL("./msg91-email-otp.ts", import.meta.url), "utf8"),
+    );
+    assert.match(source, /maxWaitMs = 4000/);
+    assert.match(source, /setTimeout\(tick, 100\)/);
+    assert.match(source, /exposeMethods: true/);
+  });
 });

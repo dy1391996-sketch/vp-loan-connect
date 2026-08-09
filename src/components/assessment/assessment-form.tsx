@@ -30,6 +30,13 @@ import { isIndividualPan, isValidPanFormat, maskPan, normalizePan } from "@/lib/
 import { isImpossibleMobile, looksLikeFakePersonName, looksLikeWeakAddress } from "@/lib/domain/risk-signals";
 import { incomeRangeMidpoints } from "@/lib/domain/scoring";
 import { getPanProvider } from "@/lib/providers/pan";
+import {
+  prepareMsg91EmailOtp,
+  resetMsg91EmailOtpClient,
+  retryMsg91EmailOtp,
+  sendMsg91EmailOtp,
+  verifyMsg91EmailOtp,
+} from "@/lib/apply/msg91-email-otp";
 import { cn } from "@/lib/utils";
 
 type ResidenceType = "OWNED" | "RENTED" | "PARENTAL" | "OTHER";
@@ -109,20 +116,6 @@ const initialState: FormState = {
   marketingConsent: false,
 };
 
-function getMsg91AccessToken(value: unknown): string {
-  if (typeof value === "string" && value.trim()) return value.trim();
-  if (!value || typeof value !== "object") return "";
-  const record = value as Record<string, unknown>;
-  for (const key of ["accessToken", "access-token", "token"]) {
-    if (typeof record[key] === "string" && record[key].trim()) return record[key].trim();
-  }
-  for (const child of Object.values(record)) {
-    const token = getMsg91AccessToken(child);
-    if (token) return token;
-  }
-  return "";
-}
-
 function firstFieldError(fields: unknown): string {
   if (!fields || typeof fields !== "object") return "";
   for (const value of Object.values(fields as Record<string, unknown>)) {
@@ -142,6 +135,10 @@ export function AssessmentForm() {
   const [otpStarted, setOtpStarted] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpToken, setOtpToken] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpReqId, setOtpReqId] = useState("");
+  const [otpReady, setOtpReady] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
   const [pinLookupBusy, setPinLookupBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -149,6 +146,12 @@ export function AssessmentForm() {
   useEffect(() => {
     trackEvent("assessment_started");
   }, []);
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const timer = window.setTimeout(() => setResendIn((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [resendIn]);
 
   useEffect(() => {
     captureAttributionFromSearch(searchParams);
@@ -199,6 +202,11 @@ export function AssessmentForm() {
       setOtpVerified(false);
       setOtpToken("");
       setOtpStarted(false);
+      setOtpCode("");
+      setOtpReqId("");
+      setResendIn(0);
+      resetMsg91EmailOtpClient();
+      setOtpReady(false);
     }
   }
 
@@ -223,7 +231,12 @@ export function AssessmentForm() {
     }
   }
 
-  async function requestOtp() {
+  async function ensureOtpPrepared() {
+    await prepareMsg91EmailOtp(MSG91_WIDGET_ID, MSG91_WIDGET_TOKEN);
+    setOtpReady(true);
+  }
+
+  async function sendEmailOtp() {
     if (looksLikeFakePersonName(form.fullName)) {
       setError("Enter your full name as on PAN (not a test or dummy value).");
       return;
@@ -243,80 +256,81 @@ export function AssessmentForm() {
 
     setBusy(true);
     setError("");
-    setOtpStarted(true);
-
-    const completeVerification = async (widgetResponse: unknown) => {
-      try {
-        const accessToken = getMsg91AccessToken(widgetResponse);
-        if (!accessToken) throw new Error("Email verification token was not received. Please try again.");
-        const response = await fetch("/api/otp/verify", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ fullName: form.fullName, mobile: form.mobile, email: form.email, source, accessToken }),
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Email verification could not be completed.");
-        setOtpVerified(true);
-        setOtpToken(data.verificationToken);
-        trackEvent("email_verified");
-      } catch (err) {
-        setOtpStarted(false);
-        setError(err instanceof Error ? err.message : "Email verification could not be completed.");
-      } finally {
-        setBusy(false);
-      }
-    };
-
-    const failVerification = (reason: unknown) => {
-      console.error("msg91_widget_failed", reason);
-      setOtpStarted(false);
-      setBusy(false);
-      setError("Email OTP verification was not completed. Please try again.");
-    };
-
-    const configuration = {
-      widgetId: MSG91_WIDGET_ID,
-      tokenAuth: MSG91_WIDGET_TOKEN,
-      identifier: form.email,
-      success: (data: unknown) => {
-        void completeVerification(data);
-      },
-      failure: failVerification,
-    };
-
     try {
-      const widgetWindow = window as Window & { initSendOTP?: (config: typeof configuration) => void };
-      const launch = () => {
-        if (typeof widgetWindow.initSendOTP !== "function") throw new Error("Email OTP service did not start.");
-        widgetWindow.initSendOTP(configuration);
-      };
-      if (typeof widgetWindow.initSendOTP === "function") {
-        launch();
-        return;
-      }
-      const urls = ["https://verify.msg91.com/otp-provider.js", "https://verify.phone91.com/otp-provider.js"];
-      let index = 0;
-      const loadNext = () => {
-        const script = document.createElement("script");
-        script.src = urls[index];
-        script.async = true;
-        script.onload = () => {
-          try {
-            launch();
-          } catch (err) {
-            failVerification(err);
-          }
-        };
-        script.onerror = () => {
-          index += 1;
-          if (index < urls.length) loadNext();
-          else failVerification(new Error("Email OTP service unavailable"));
-        };
-        document.head.appendChild(script);
-      };
-      loadNext();
+      await ensureOtpPrepared();
+      const sent = await sendMsg91EmailOtp(form.email.trim().toLowerCase());
+      setOtpReqId(sent.reqId || "");
+      setOtpStarted(true);
+      setOtpCode("");
+      setOtpVerified(false);
+      setOtpToken("");
+      setResendIn(45);
+      trackEvent("email_otp_sent");
     } catch (err) {
-      failVerification(err);
+      resetMsg91EmailOtpClient();
+      setOtpReady(false);
+      setOtpStarted(false);
+      setError(err instanceof Error ? err.message : "Could not send verification code.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resendEmailOtp() {
+    if (resendIn > 0) return;
+    setBusy(true);
+    setError("");
+    try {
+      if (!otpReady) await ensureOtpPrepared();
+      try {
+        const retried = await retryMsg91EmailOtp(otpReqId || undefined);
+        if (retried.reqId) setOtpReqId(retried.reqId);
+      } catch {
+        const sent = await sendMsg91EmailOtp(form.email.trim().toLowerCase());
+        setOtpReqId(sent.reqId || "");
+      }
+      setResendIn(45);
+      setOtpCode("");
+      setOtpStarted(true);
+    } catch (err) {
+      resetMsg91EmailOtpClient();
+      setOtpReady(false);
+      setError(err instanceof Error ? err.message : "Could not resend code.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function verifyEmailOtp() {
+    if (otpCode.length !== 6) {
+      setError("Enter the 6-digit verification code from your email.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      if (!otpReady) await ensureOtpPrepared();
+      const accessToken = await verifyMsg91EmailOtp(otpCode, otpReqId || undefined);
+      const response = await fetch("/api/otp/verify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          fullName: form.fullName,
+          mobile: form.mobile,
+          email: form.email.trim().toLowerCase(),
+          source,
+          accessToken,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Email verification could not be completed.");
+      setOtpVerified(true);
+      setOtpToken(data.verificationToken);
+      trackEvent("email_verified");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Email verification could not be completed.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -555,7 +569,12 @@ export function AssessmentForm() {
             otpStarted={otpStarted}
             otpVerified={otpVerified || Boolean(otpToken)}
             busy={busy}
-            requestOtp={requestOtp}
+            otpCode={otpCode}
+            setOtpCode={setOtpCode}
+            resendIn={resendIn}
+            sendEmailOtp={sendEmailOtp}
+            resendEmailOtp={resendEmailOtp}
+            verifyEmailOtp={verifyEmailOtp}
           />
         ) : null}
         {step === 2 ? <EligibilityStep form={form} update={update} /> : null}
@@ -599,12 +618,22 @@ function VerifyStep({
   otpStarted,
   otpVerified,
   busy,
-  requestOtp,
+  otpCode,
+  setOtpCode,
+  resendIn,
+  sendEmailOtp,
+  resendEmailOtp,
+  verifyEmailOtp,
 }: StepProps & {
   otpStarted: boolean;
   otpVerified: boolean;
   busy: boolean;
-  requestOtp: () => void;
+  otpCode: string;
+  setOtpCode: (value: string) => void;
+  resendIn: number;
+  sendEmailOtp: () => void;
+  resendEmailOtp: () => void;
+  verifyEmailOtp: () => void;
 }) {
   return (
     <div>
@@ -649,20 +678,26 @@ function VerifyStep({
           />
         </Field>
 
-        <Field label="Email" required hint="OTP arrives from VP Loan Connect — verify this inbox to continue">
+        <Field label="Email" required hint="OTP arrives from VP Loan Connect — check inbox and spam">
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               type="email"
               autoComplete="email"
               value={form.email}
-              disabled={otpVerified}
+              disabled={otpVerified || otpStarted}
               onChange={(e) => update("email", e.target.value.trim())}
               placeholder="Enter your email"
             />
             {!otpVerified ? (
-              <Button type="button" variant="secondary" className="shrink-0 sm:min-w-40" disabled={busy} onClick={requestOtp}>
+              <Button
+                type="button"
+                variant="secondary"
+                className="shrink-0 sm:min-w-40"
+                disabled={busy || (otpStarted && resendIn > 0)}
+                onClick={otpStarted ? resendEmailOtp : sendEmailOtp}
+              >
                 {busy ? <Loader2 className="animate-spin" size={17} /> : null}
-                {otpStarted ? "Resend email OTP" : "Get email code"}
+                {!otpStarted ? "Get email code" : resendIn > 0 ? `Resend in ${resendIn}s` : "Resend email OTP"}
               </Button>
             ) : (
               <span className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-100 px-4 py-3 text-sm font-bold text-brand-800">
@@ -671,6 +706,26 @@ function VerifyStep({
             )}
           </div>
         </Field>
+
+        {otpStarted && !otpVerified ? (
+          <Field label="6-digit email OTP" required hint="Enter the code from your email. Expires quickly — do not share it.">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input
+                className="number-field tracking-[0.35em]"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="••••••"
+              />
+              <Button type="button" className="shrink-0 sm:min-w-40" disabled={busy || otpCode.length !== 6} onClick={verifyEmailOtp}>
+                {busy ? <Loader2 className="animate-spin" size={17} /> : null}
+                Verify email
+              </Button>
+            </div>
+          </Field>
+        ) : null}
       </div>
 
       <p className="mt-6 rounded-2xl border border-brand-100 bg-brand-100/40 px-4 py-3 text-xs leading-6 text-brand-900">

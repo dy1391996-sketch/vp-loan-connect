@@ -121,13 +121,22 @@ export async function prepareMsg91EmailOtp(widgetId: string, tokenAuth: string):
           success: () => undefined,
           failure: () => undefined,
         });
-        window.setTimeout(() => {
-          if (typeof getWin().sendOtp === "function") resolve();
-          else {
-            methodsReady = null;
-            reject(new Error("Email OTP methods are unavailable."));
+        // MSG91 methods can appear after script init; poll instead of a fixed 50ms race.
+        const started = Date.now();
+        const maxWaitMs = 4000;
+        const tick = () => {
+          if (typeof getWin().sendOtp === "function" && typeof getWin().verifyOtp === "function") {
+            resolve();
+            return;
           }
-        }, 50);
+          if (Date.now() - started >= maxWaitMs) {
+            methodsReady = null;
+            reject(new Error("Email OTP methods are unavailable. Disable popup blockers and try again."));
+            return;
+          }
+          window.setTimeout(tick, 100);
+        };
+        window.setTimeout(tick, 50);
       } catch (error) {
         methodsReady = null;
         reject(error instanceof Error ? error : new Error("Email OTP could not start."));

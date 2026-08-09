@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/form";
 import { StatusNotice } from "@/components/ui/status-notice";
+import {
+  prepareMsg91EmailOtp,
+  resetMsg91EmailOtpClient,
+  retryMsg91EmailOtp,
+  sendMsg91EmailOtp,
+  verifyMsg91EmailOtp,
+} from "@/lib/apply/msg91-email-otp";
 
 type Feedback = { tone: "success" | "error" | "info"; message: string } | null;
 
@@ -12,31 +19,42 @@ const MSG91_WIDGET_ID = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID ?? "";
 const MSG91_WIDGET_TOKEN = process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ?? "";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function getMsg91AccessToken(value: unknown): string {
-  if (typeof value === "string" && value.trim()) return value.trim();
-  if (!value || typeof value !== "object") return "";
-  const record = value as Record<string, unknown>;
-  for (const key of ["accessToken", "access-token", "token"]) {
-    if (typeof record[key] === "string" && record[key].trim()) return record[key].trim();
-  }
-  for (const child of Object.values(record)) {
-    const token = getMsg91AccessToken(child);
-    if (token) return token;
-  }
-  return "";
-}
-
 export function DataDeletionForm() {
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
-  const [token, setToken] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpReqId, setOtpReqId] = useState("");
+  const [otpReady, setOtpReady] = useState(false);
   const [otpStarted, setOtpStarted] = useState(false);
+  const [token, setToken] = useState("");
+  const [resendIn, setResendIn] = useState(0);
   const [reason, setReason] = useState("");
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [busy, setBusy] = useState(false);
 
-  async function requestEmailOtp() {
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const timer = window.setTimeout(() => setResendIn((current) => Math.max(0, current - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [resendIn]);
+
+  function resetOtpState() {
+    setToken("");
+    setOtpStarted(false);
+    setOtpCode("");
+    setOtpReqId("");
+    setResendIn(0);
+    resetMsg91EmailOtpClient();
+    setOtpReady(false);
+  }
+
+  async function ensurePrepared() {
+    await prepareMsg91EmailOtp(MSG91_WIDGET_ID, MSG91_WIDGET_TOKEN);
+    setOtpReady(true);
+  }
+
+  async function sendEmailOtp() {
     if (name.trim().length < 2) {
       setFeedback({ tone: "error", message: "Enter your full name." });
       return;
@@ -56,85 +74,79 @@ export function DataDeletionForm() {
 
     setBusy(true);
     setFeedback(null);
-    setOtpStarted(true);
-
-    const completeVerification = async (widgetResponse: unknown) => {
-      try {
-        const accessToken = getMsg91AccessToken(widgetResponse);
-        if (!accessToken) throw new Error("Email verification token was not received. Please try again.");
-        const response = await fetch("/api/otp/verify", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            fullName: name,
-            mobile,
-            email,
-            source: "data_deletion",
-            accessToken,
-          }),
-        });
-        const data = (await response.json()) as { error?: string; verificationToken?: string };
-        if (!response.ok) throw new Error(data.error || "Unable to verify email.");
-        setToken(data.verificationToken || "");
-        setFeedback({ tone: "success", message: "Email verified. You can now submit the deletion request." });
-      } catch (error) {
-        setOtpStarted(false);
-        setFeedback({ tone: "error", message: error instanceof Error ? error.message : "Unable to verify email." });
-      } finally {
-        setBusy(false);
-      }
-    };
-
-    const failVerification = (reason: unknown) => {
-      console.error("msg91_widget_failed", reason);
-      setOtpStarted(false);
-      setBusy(false);
-      setFeedback({ tone: "error", message: "Email OTP verification was not completed. Please try again." });
-    };
-
-    const configuration = {
-      widgetId: MSG91_WIDGET_ID,
-      tokenAuth: MSG91_WIDGET_TOKEN,
-      identifier: email,
-      success: (data: unknown) => {
-        void completeVerification(data);
-      },
-      failure: failVerification,
-    };
-
     try {
-      const widgetWindow = window as Window & { initSendOTP?: (config: typeof configuration) => void };
-      const launch = () => {
-        if (typeof widgetWindow.initSendOTP !== "function") throw new Error("Email OTP service did not start.");
-        widgetWindow.initSendOTP(configuration);
-      };
-      if (typeof widgetWindow.initSendOTP === "function") {
-        launch();
-        return;
+      await ensurePrepared();
+      const sent = await sendMsg91EmailOtp(email.trim().toLowerCase());
+      setOtpReqId(sent.reqId || "");
+      setOtpStarted(true);
+      setOtpCode("");
+      setToken("");
+      setResendIn(45);
+      setFeedback({ tone: "info", message: "Email OTP sent. Check inbox and spam for VP Loan Connect." });
+    } catch (error) {
+      resetMsg91EmailOtpClient();
+      setOtpReady(false);
+      setOtpStarted(false);
+      setFeedback({ tone: "error", message: error instanceof Error ? error.message : "Unable to send email OTP." });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resendEmailOtp() {
+    if (resendIn > 0) return;
+    setBusy(true);
+    setFeedback(null);
+    try {
+      if (!otpReady) await ensurePrepared();
+      try {
+        const retried = await retryMsg91EmailOtp(otpReqId || undefined);
+        if (retried.reqId) setOtpReqId(retried.reqId);
+      } catch {
+        const sent = await sendMsg91EmailOtp(email.trim().toLowerCase());
+        setOtpReqId(sent.reqId || "");
       }
-      const urls = ["https://verify.msg91.com/otp-provider.js", "https://verify.phone91.com/otp-provider.js"];
-      let index = 0;
-      const loadNext = () => {
-        const script = document.createElement("script");
-        script.src = urls[index];
-        script.async = true;
-        script.onload = () => {
-          try {
-            launch();
-          } catch (err) {
-            failVerification(err);
-          }
-        };
-        script.onerror = () => {
-          index += 1;
-          if (index < urls.length) loadNext();
-          else failVerification(new Error("Email OTP service unavailable"));
-        };
-        document.head.appendChild(script);
-      };
-      loadNext();
-    } catch (err) {
-      failVerification(err);
+      setResendIn(45);
+      setOtpCode("");
+      setFeedback({ tone: "info", message: "Email OTP resent. Check inbox and spam." });
+    } catch (error) {
+      resetMsg91EmailOtpClient();
+      setOtpReady(false);
+      setFeedback({ tone: "error", message: error instanceof Error ? error.message : "Unable to resend email OTP." });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function verifyEmailOtp() {
+    if (otpCode.length !== 6) {
+      setFeedback({ tone: "error", message: "Enter the 6-digit email OTP." });
+      return;
+    }
+    setBusy(true);
+    setFeedback(null);
+    try {
+      if (!otpReady) await ensurePrepared();
+      const accessToken = await verifyMsg91EmailOtp(otpCode, otpReqId || undefined);
+      const response = await fetch("/api/otp/verify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          fullName: name,
+          mobile,
+          email: email.trim().toLowerCase(),
+          source: "data_deletion",
+          accessToken,
+        }),
+      });
+      const data = (await response.json()) as { error?: string; verificationToken?: string };
+      if (!response.ok) throw new Error(data.error || "Unable to verify email.");
+      setToken(data.verificationToken || "");
+      setFeedback({ tone: "success", message: "Email verified. You can now submit the deletion request." });
+    } catch (error) {
+      setFeedback({ tone: "error", message: error instanceof Error ? error.message : "Unable to verify email." });
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -146,7 +158,7 @@ export function DataDeletionForm() {
       const response = await fetch("/api/data-deletion", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ verificationToken: token, mobile, email, reason }),
+        body: JSON.stringify({ verificationToken: token, mobile, email: email.trim().toLowerCase(), reason }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Unable to record your request.");
@@ -181,8 +193,7 @@ export function DataDeletionForm() {
             value={mobile}
             onChange={(event) => {
               setMobile(event.target.value.replace(/\D/g, "").slice(0, 10));
-              setToken("");
-              setOtpStarted(false);
+              resetOtpState();
             }}
             maxLength={10}
             required
@@ -198,19 +209,42 @@ export function DataDeletionForm() {
               value={email}
               onChange={(event) => {
                 setEmail(event.target.value.trim());
-                setToken("");
-                setOtpStarted(false);
+                resetOtpState();
               }}
               required
-              disabled={Boolean(token)}
+              disabled={Boolean(token) || otpStarted}
               aria-label="Email address"
             />
-            <Button type="button" variant="secondary" className="shrink-0" onClick={requestEmailOtp} disabled={busy || Boolean(token)}>
+            <Button
+              type="button"
+              variant="secondary"
+              className="shrink-0"
+              onClick={otpStarted ? resendEmailOtp : sendEmailOtp}
+              disabled={busy || Boolean(token) || (otpStarted && resendIn > 0)}
+            >
               {token ? <Check size={17} /> : null}
-              {token ? "Verified" : otpStarted ? "Resend email OTP" : "Get email code"}
+              {token ? "Verified" : !otpStarted ? "Get email code" : resendIn > 0 ? `Resend in ${resendIn}s` : "Resend email OTP"}
             </Button>
           </div>
         </Field>
+        {otpStarted && !token ? (
+          <Field label="6-digit email OTP" required>
+            <div className="flex flex-col gap-2 min-[420px]:flex-row">
+              <Input
+                className="number-field"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={otpCode}
+                onChange={(event) => setOtpCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                maxLength={6}
+                aria-label="Email OTP code"
+              />
+              <Button type="button" className="shrink-0" onClick={verifyEmailOtp} disabled={busy || otpCode.length !== 6}>
+                {busy ? <Loader2 className="animate-spin" size={17} /> : null}Verify
+              </Button>
+            </div>
+          </Field>
+        ) : null}
         <div className="sm:col-span-2">
           <Field label="Reason (optional)" hint={`${reason.length}/1000 characters`}>
             <Textarea value={reason} onChange={(event) => setReason(event.target.value)} maxLength={1000} placeholder="Add any context that may help us process your request." />
