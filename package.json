@@ -41,15 +41,11 @@
     "@types/react-dom": "^19.1.2",
     "eslint": "^9.36.0",
     "eslint-config-next": "15.5.21",
-    "postcss": "8.5.22",
+    "postcss": "8.5.23",
     "prisma": "^6.19.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.20.6",
     "typescript": "^5.9.2"
-  },
-  "overrides": {
-    "postcss": "$postcss",
-    "sharp": "0.35.3"
   },
   "packageManager": "pnpm@11.9.0"
 }
