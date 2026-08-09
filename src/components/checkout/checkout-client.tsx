@@ -197,8 +197,9 @@ export function CheckoutClient(props: Props) {
           redirectTarget: "_self",
         });
 
-        if (launch.kind === "navigating" || launch.kind === "redirecting") {
-          // Browser is leaving for Cashfree / return URL. Keep busy; do not treat as cancellation.
+        if (launch.kind === "navigating" || launch.kind === "redirecting" || launch.kind === "modal_open") {
+          // Browser is leaving for Cashfree, or the Cashfree modal iframe is already open.
+          // Keep busy; do not treat a visible modal as launch failure/timeout.
           return;
         }
 

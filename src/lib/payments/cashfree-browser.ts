@@ -59,13 +59,31 @@ export const CASHFREE_CHECKOUT_LAUNCH_TIMEOUT_MS = 10_000;
 export type CashfreeLaunchOutcome =
   | { kind: "navigating" }
   | { kind: "redirecting" }
+  | { kind: "modal_open" }
   | { kind: "error"; message: string; cancelled: boolean }
   | { kind: "timeout" };
 
+/** Cashfree PG Web SDK often mounts a modal iframe instead of navigating the page. */
+export function isCashfreeCheckoutModalOpen(doc: Document = document): boolean {
+  return [...doc.querySelectorAll("iframe")].some((frame) => {
+    if (frame.offsetWidth < 100 || frame.offsetHeight < 100) return false;
+    const name = frame.getAttribute("name") || "";
+    if (/cashfree-modal/i.test(name)) return true;
+    try {
+      if (name && /cashfree-modal/i.test(atob(name))) return true;
+    } catch {
+      /* ignore non-base64 names */
+    }
+    const src = frame.getAttribute("src") || "";
+    return /cashfree\.com|cashfree\.js/i.test(src);
+  });
+}
+
 /**
- * Start Cashfree redirect checkout with a hard launch timeout.
+ * Start Cashfree checkout with a hard launch timeout.
  * Register the timeout first, then invoke the SDK on the next macrotask so a
  * hanging/blocking checkout cannot prevent the timeout from being scheduled.
+ * Treats a visible Cashfree modal iframe as a successful launch (not a timeout).
  */
 export async function launchCashfreeCheckoutWithTimeout(
   cashfree: CashfreeCheckoutInstance,
@@ -73,6 +91,7 @@ export async function launchCashfreeCheckoutWithTimeout(
   timeoutMs = CASHFREE_CHECKOUT_LAUNCH_TIMEOUT_MS,
 ): Promise<CashfreeLaunchOutcome> {
   let navigated = false;
+  let modalOpen = false;
   const onLeaving = () => {
     navigated = true;
   };
@@ -81,6 +100,7 @@ export async function launchCashfreeCheckoutWithTimeout(
     window.addEventListener("beforeunload", onLeaving);
   }
 
+  let observer: MutationObserver | undefined;
   try {
     let sdkSettled = false;
     let sdkResult: unknown;
@@ -93,6 +113,19 @@ export async function launchCashfreeCheckoutWithTimeout(
           ? window.setTimeout(finish, timeoutMs)
           : setTimeout(finish, timeoutMs);
 
+      const markModalOpen = () => {
+        if (typeof document === "undefined" || !isCashfreeCheckoutModalOpen(document)) return;
+        modalOpen = true;
+        clearTimeout(timer);
+        finish();
+      };
+
+      if (typeof document !== "undefined" && typeof MutationObserver !== "undefined") {
+        observer = new MutationObserver(markModalOpen);
+        observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true });
+        markModalOpen();
+      }
+
       const startCheckout = () => {
         Promise.resolve(
           cashfree.checkout({
@@ -104,7 +137,8 @@ export async function launchCashfreeCheckoutWithTimeout(
             sdkSettled = true;
             sdkResult = result;
             const outcome = interpretCashfreeCheckoutResult(result);
-            if (navigated || outcome.kind === "redirecting" || outcome.kind === "error") {
+            markModalOpen();
+            if (navigated || modalOpen || outcome.kind === "redirecting" || outcome.kind === "error") {
               clearTimeout(timer);
               finish();
             }
@@ -123,6 +157,9 @@ export async function launchCashfreeCheckoutWithTimeout(
     });
 
     if (navigated) return { kind: "navigating" };
+    if (modalOpen || (typeof document !== "undefined" && isCashfreeCheckoutModalOpen(document))) {
+      return { kind: "modal_open" };
+    }
     if (sdkError) {
       const message = sdkError instanceof Error ? sdkError.message : "Cashfree checkout failed.";
       const cancelled = /cancel|closed|dismiss|abort|user.?drop/i.test(message);
@@ -135,6 +172,7 @@ export async function launchCashfreeCheckoutWithTimeout(
     }
     return { kind: "timeout" };
   } finally {
+    observer?.disconnect();
     if (typeof window !== "undefined") {
       window.removeEventListener("pagehide", onLeaving);
       window.removeEventListener("beforeunload", onLeaving);

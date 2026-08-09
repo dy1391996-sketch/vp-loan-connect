@@ -6,6 +6,7 @@ import {
   createCashfreeSdk,
   interpretCashfreeCheckoutResult,
   isCashfreeCheckoutDescriptor,
+  isCashfreeCheckoutModalOpen,
   isReusableCashfreeOrderStatus,
   isTerminalUnpaidCashfreeOrderStatus,
 } from "@/lib/payments/cashfree-browser";
@@ -89,6 +90,52 @@ describe("Cashfree browser SDK helpers", () => {
     };
     const outcome = await launchCashfreeCheckoutWithTimeout(cashfree, { paymentSessionId: "session_test_1234567890" }, 1000);
     assert.equal(outcome.kind, "redirecting");
+  });
+
+  it("detects Cashfree modal iframe as open checkout", () => {
+    const doc = {
+      querySelectorAll: () => [
+        {
+          offsetWidth: 510,
+          offsetHeight: 720,
+          getAttribute: (key: string) =>
+            key === "name" ? Buffer.from(JSON.stringify({ parentName: "cashfree-modal-iframe" })).toString("base64") : "",
+        },
+      ],
+    } as unknown as Document;
+    assert.equal(isCashfreeCheckoutModalOpen(doc), true);
+  });
+
+  it("treats visible Cashfree modal as successful launch, not timeout", async () => {
+    const { launchCashfreeCheckoutWithTimeout } = await import("@/lib/payments/cashfree-browser");
+    const originalDocument = globalThis.document;
+    const originalMutationObserver = globalThis.MutationObserver;
+    const frame = {
+      offsetWidth: 510,
+      offsetHeight: 720,
+      getAttribute: (key: string) => (key === "name" ? "cashfree-modal-iframe" : ""),
+    };
+    // jsdom-less stub: modal already in DOM when launch starts.
+    (globalThis as { document?: unknown }).document = {
+      documentElement: {},
+      querySelectorAll: () => [frame],
+    };
+    (globalThis as { MutationObserver?: unknown }).MutationObserver = class {
+      observe() {}
+      disconnect() {}
+    };
+    try {
+      const cashfree = {
+        checkout: () => new Promise(() => undefined),
+      };
+      const outcome = await launchCashfreeCheckoutWithTimeout(cashfree, { paymentSessionId: "session_test_1234567890" }, 200);
+      assert.equal(outcome.kind, "modal_open");
+    } finally {
+      if (originalDocument === undefined) delete (globalThis as { document?: unknown }).document;
+      else (globalThis as { document?: unknown }).document = originalDocument;
+      if (originalMutationObserver === undefined) delete (globalThis as { MutationObserver?: unknown }).MutationObserver;
+      else (globalThis as { MutationObserver?: unknown }).MutationObserver = originalMutationObserver;
+    }
   });
 
   it("does not export auto-checkout helpers", async () => {
