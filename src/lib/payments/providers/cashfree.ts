@@ -94,6 +94,13 @@ const cashfreeOrderSchema = z.object({
 
 export type CashfreeOrderSnapshot = z.infer<typeof cashfreeOrderSchema>;
 
+export type CashfreePaymentSnapshot = {
+  cf_payment_id?: string | number;
+  payment_status?: string;
+  payment_amount?: number;
+  payment_currency?: string;
+};
+
 /** GET /orders/{order_id} — used by return/verify to confirm PAID + amount/currency. */
 export async function fetchCashfreeOrder(providerOrderId: string, env: ServerEnv): Promise<CashfreeOrderSnapshot> {
   const response = await fetch(`${cashfreeBaseUrl(env)}/orders/${encodeURIComponent(providerOrderId)}`, {
@@ -106,6 +113,41 @@ export async function fetchCashfreeOrder(providerOrderId: string, env: ServerEnv
   }
   const parsed = cashfreeOrderSchema.safeParse(await response.json());
   if (!parsed.success) throw new PaymentProviderError("Cashfree order response was invalid.", 502);
+  return parsed.data;
+}
+
+/** GET /orders/{order_id}/payments — all attempts, including pending/user-dropped. */
+export async function fetchCashfreePayments(providerOrderId: string, env: ServerEnv): Promise<CashfreePaymentSnapshot[]> {
+  const response = await fetch(`${cashfreeBaseUrl(env)}/orders/${encodeURIComponent(providerOrderId)}/payments`, {
+    headers: cashfreeHeaders(env),
+    signal: AbortSignal.timeout(12_000),
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new PaymentProviderError(`Cashfree payment lookup failed (${response.status}): ${await readCashfreeError(response)}`, 502);
+  }
+  const data = (await response.json()) as unknown;
+  if (!Array.isArray(data)) throw new PaymentProviderError("Cashfree payment response was invalid.", 502);
+  return data as CashfreePaymentSnapshot[];
+}
+
+/** Legitimately close an unpaid duplicate so it can no longer be charged. */
+export async function terminateCashfreeOrder(providerOrderId: string, env: ServerEnv): Promise<CashfreeOrderSnapshot> {
+  const response = await fetch(`${cashfreeBaseUrl(env)}/orders/${encodeURIComponent(providerOrderId)}`, {
+    method: "PATCH",
+    headers: {
+      ...cashfreeHeaders(env),
+      ...(z.string().uuid().safeParse(providerOrderId).success ? { "x-idempotency-key": providerOrderId } : {}),
+    },
+    body: JSON.stringify({ order_status: "TERMINATED" }),
+    signal: AbortSignal.timeout(12_000),
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new PaymentProviderError(`Cashfree order termination failed (${response.status}): ${await readCashfreeError(response)}`, 502);
+  }
+  const parsed = cashfreeOrderSchema.safeParse(await response.json());
+  if (!parsed.success) throw new PaymentProviderError("Cashfree termination response was invalid.", 502);
   return parsed.data;
 }
 
@@ -141,10 +183,14 @@ export const cashfreePaymentProvider: PaymentProvider = {
     const orderId = (input.notes.internal_order_id || input.receipt).slice(0, 45);
     const returnUrl =
       input.returnUrl || `${getPublicAppUrl()}/api/payments/return?order_id={order_id}`;
+    const idempotencyKey = input.notes.internal_order_id;
 
     const response = await fetch(`${cashfreeBaseUrl(env)}/orders`, {
       method: "POST",
-      headers: cashfreeHeaders(env),
+      headers: {
+        ...cashfreeHeaders(env),
+        ...(idempotencyKey ? { "x-idempotency-key": idempotencyKey, "x-request-id": idempotencyKey } : {}),
+      },
       body: JSON.stringify({
         order_id: orderId,
         order_amount: Number(orderAmount),
@@ -160,6 +206,9 @@ export const cashfreePaymentProvider: PaymentProvider = {
           return_url: returnUrl,
           notify_url: input.notifyUrl,
         },
+        // Limit stale chargeable sessions. A terminal expired order can be
+        // safely replaced only after provider-side reconciliation.
+        order_expiry_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
         order_tags: {
           product: (input.notes.product || "service").slice(0, 50),
           service_type: "report_fee",
@@ -235,21 +284,13 @@ export const cashfreePaymentProvider: PaymentProvider = {
     }
 
     // Resolve cf_payment_id from payment list for local Payment.providerPaymentId uniqueness.
-    const paymentsResponse = await fetch(`${cashfreeBaseUrl(env)}/orders/${encodeURIComponent(providerOrderId)}/payments`, {
-      headers: cashfreeHeaders(env),
-      signal: AbortSignal.timeout(12_000),
-      cache: "no-store",
-    });
-    if (!paymentsResponse.ok) {
+    let payments: CashfreePaymentSnapshot[];
+    try {
+      payments = await fetchCashfreePayments(providerOrderId, env);
+    } catch {
       return { ok: false as const, reason: "Unable to confirm Cashfree payment status." };
     }
-    const payments = (await paymentsResponse.json()) as Array<{
-      cf_payment_id?: string | number;
-      payment_status?: string;
-      payment_amount?: number;
-      payment_currency?: string;
-    }>;
-    const success = (Array.isArray(payments) ? payments : []).find((item) =>
+    const success = payments.find((item) =>
       ["SUCCESS", "PAID"].includes(String(item.payment_status || "").toUpperCase()),
     );
     if (!success?.cf_payment_id) {

@@ -85,7 +85,7 @@ with `x-webhook-signature` + `x-webhook-timestamp`.
 2. Copy sandbox Client ID / Client Secret into local or Vercel Preview env as `CASHFREE_APP_ID` / `CASHFREE_SECRET_KEY`.
 3. Set `PAYMENT_PROVIDER=cashfree` and `CASHFREE_ENV=sandbox` for that environment only.
 4. Configure the test webhook URL above and subscribe to payment + refund events.
-5. Complete an assessment → checkout → Cashfree hosted checkout (JS v3).
+5. Complete an assessment → checkout → `/checkout/cashfree` launch page → Cashfree hosted redirect (JS v3, `redirectTarget: "_top"`).
 6. Confirm:
    - Order moves to `PAID` only after server verification (return handler and/or webhook).
    - Exactly one report entitlement is created for the order.
