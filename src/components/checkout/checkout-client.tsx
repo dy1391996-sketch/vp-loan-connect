@@ -2,14 +2,13 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, CircleAlert, Loader2, LockKeyhole, RefreshCw, ReceiptText, ShieldCheck } from "lucide-react";
+import { Check, CircleAlert, Loader2, LockKeyhole, ReceiptText, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusNotice } from "@/components/ui/status-notice";
 import { PAYMENT_DESCRIPTION, PLATFORM_DISCLAIMER } from "@/lib/constants";
 import { trackEvent } from "@/lib/analytics-client";
 import {
   createCashfreeSdk,
-  isCashfreeCheckoutModalOpen,
   launchCashfreeCheckoutWithTimeout,
   type CashfreeCheckoutInstance,
 } from "@/lib/payments/cashfree-browser";
@@ -48,6 +47,9 @@ type CreateOrderResponse = {
   name: string;
   description: string;
   checkout?: CheckoutDescriptor;
+  completed?: boolean;
+  reportId?: string;
+  reportToken?: string;
 };
 
 type Props = {
@@ -65,7 +67,7 @@ type Props = {
   autoStart?: boolean;
 };
 
-const DID_NOT_OPEN_MESSAGE = "Payment page did not open. Retry this payment.";
+const DID_NOT_OPEN_MESSAGE = "Payment not completed — Try again";
 
 export function CheckoutClient(props: Props) {
   const router = useRouter();
@@ -128,6 +130,17 @@ export function CheckoutClient(props: Props) {
 
       if (order.orderReference) setActiveOrderReference(order.orderReference);
       if (order.reused || order.provider === "cashfree") setResumeAvailable(true);
+      if (order.completed && order.reportId && order.reportToken) {
+        await completeVerified(
+          {
+            orderReference: order.orderReference,
+            reportId: order.reportId,
+            reportToken: order.reportToken,
+          },
+          order.provider || "cashfree",
+        );
+        return;
+      }
 
       const checkout =
         order.checkout ||
@@ -195,24 +208,11 @@ export function CheckoutClient(props: Props) {
         const cashfree = createCashfreeSdk(window.Cashfree, checkout.env);
         const launch = await launchCashfreeCheckoutWithTimeout(cashfree, {
           paymentSessionId: checkout.paymentSessionId,
-          redirectTarget: "_self",
+          redirectTarget: "_top",
         });
 
         if (launch.kind === "navigating" || launch.kind === "redirecting") {
           // Browser is leaving for Cashfree / return URL. Keep busy; do not treat as cancellation.
-          return;
-        }
-
-        if (launch.kind === "modal_open") {
-          // Modal is open — keep busy while visible, then unlock Resume if the user closes it unpaid.
-          const watchModal = window.setInterval(() => {
-            if (isCashfreeCheckoutModalOpen()) return;
-            window.clearInterval(watchModal);
-            setResumeAvailable(true);
-            setBusy(false);
-            payInFlight.current = false;
-          }, 700);
-          window.setTimeout(() => window.clearInterval(watchModal), 30 * 60 * 1000);
           return;
         }
 
@@ -225,19 +225,6 @@ export function CheckoutClient(props: Props) {
             return;
           }
           throw new Error(launch.message || "Cashfree checkout could not be completed. Please try again.");
-        }
-
-        // Final guard: modal may have mounted just after the launch timeout window.
-        if (isCashfreeCheckoutModalOpen()) {
-          setResumeAvailable(true);
-          const watchModal = window.setInterval(() => {
-            if (isCashfreeCheckoutModalOpen()) return;
-            window.clearInterval(watchModal);
-            setBusy(false);
-            payInFlight.current = false;
-          }, 700);
-          window.setTimeout(() => window.clearInterval(watchModal), 30 * 60 * 1000);
-          return;
         }
 
         setResumeAvailable(true);
@@ -312,26 +299,19 @@ export function CheckoutClient(props: Props) {
           </p>
         ) : null}
 
-        <Button size="lg" className="mt-6 w-full" onClick={() => void pay()} disabled={busy} aria-busy={busy}>
+        <Button
+          size="lg"
+          className="mt-6 w-full"
+          onClick={() => void pay({ resume: resumeAvailable })}
+          disabled={busy}
+          aria-busy={busy}
+        >
           {busy ? <Loader2 className="animate-spin" size={18} /> : <LockKeyhole size={18} />}
-          {busy ? "Opening secure payment…" : `Unlock full report for ${props.total}`}
+          {busy ? "Preparing secure payment…" : resumeAvailable ? "Resume secure payment" : "Proceed to secure payment"}
         </Button>
-        {resumeAvailable ? (
-          <Button
-            size="lg"
-            variant="secondary"
-            className="mt-3 w-full"
-            onClick={() => void pay({ resume: true })}
-            disabled={busy}
-            aria-busy={busy}
-          >
-            {busy ? <Loader2 className="animate-spin" size={18} /> : <RefreshCw size={18} />}
-            Resume payment
-          </Button>
-        ) : null}
         <p className="mt-4 flex items-center justify-center gap-2 text-center text-xs leading-5 text-slate-500">
           <ShieldCheck className="shrink-0 text-brand-700" size={15} />
-          Secure checkout opens only when you tap a payment button. Resume reuses your active Cashfree order.
+          Secure Cashfree checkout opens only when you tap the payment button. An active order is safely reused.
         </p>
       </div>
 
