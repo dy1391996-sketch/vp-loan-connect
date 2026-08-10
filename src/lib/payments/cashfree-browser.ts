@@ -54,13 +54,12 @@ export function interpretCashfreeCheckoutResult(result: unknown): CashfreeChecko
   return { kind: "unknown" };
 }
 
-/** Cashfree modal can take >10s on mobile; do not treat a late mount as launch failure. */
-export const CASHFREE_CHECKOUT_LAUNCH_TIMEOUT_MS = 25_000;
+/** A hosted redirect should start promptly; always release the UI if the SDK hangs. */
+export const CASHFREE_CHECKOUT_LAUNCH_TIMEOUT_MS = 12_000;
 
 export type CashfreeLaunchOutcome =
   | { kind: "navigating" }
   | { kind: "redirecting" }
-  | { kind: "modal_open" }
   | { kind: "error"; message: string; cancelled: boolean }
   | { kind: "timeout" };
 
@@ -89,7 +88,8 @@ export function isCashfreeCheckoutModalOpen(doc: Document = document): boolean {
  * Start Cashfree checkout with a hard launch timeout.
  * Register the timeout first, then invoke the SDK on the next macrotask so a
  * hanging/blocking checkout cannot prevent the timeout from being scheduled.
- * Treats a visible Cashfree modal iframe as a successful launch (not a timeout).
+ * The product uses only top-level hosted redirect. Modal/inline checkout is not
+ * considered a successful launch because it caused unrecoverable loading UI.
  */
 export async function launchCashfreeCheckoutWithTimeout(
   cashfree: CashfreeCheckoutInstance,
@@ -97,7 +97,6 @@ export async function launchCashfreeCheckoutWithTimeout(
   timeoutMs = CASHFREE_CHECKOUT_LAUNCH_TIMEOUT_MS,
 ): Promise<CashfreeLaunchOutcome> {
   let navigated = false;
-  let modalOpen = false;
   const onLeaving = () => {
     navigated = true;
   };
@@ -106,7 +105,6 @@ export async function launchCashfreeCheckoutWithTimeout(
     window.addEventListener("beforeunload", onLeaving);
   }
 
-  let observer: MutationObserver | undefined;
   try {
     let sdkSettled = false;
     let sdkResult: unknown;
@@ -119,32 +117,18 @@ export async function launchCashfreeCheckoutWithTimeout(
           ? window.setTimeout(finish, timeoutMs)
           : setTimeout(finish, timeoutMs);
 
-      const markModalOpen = () => {
-        if (typeof document === "undefined" || !isCashfreeCheckoutModalOpen(document)) return;
-        modalOpen = true;
-        clearTimeout(timer);
-        finish();
-      };
-
-      if (typeof document !== "undefined" && typeof MutationObserver !== "undefined") {
-        observer = new MutationObserver(markModalOpen);
-        observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true });
-        markModalOpen();
-      }
-
       const startCheckout = () => {
         Promise.resolve(
           cashfree.checkout({
             paymentSessionId: options.paymentSessionId,
-            redirectTarget: options.redirectTarget ?? "_self",
+            redirectTarget: options.redirectTarget ?? "_top",
           }),
         )
           .then((result) => {
             sdkSettled = true;
             sdkResult = result;
             const outcome = interpretCashfreeCheckoutResult(result);
-            markModalOpen();
-            if (navigated || modalOpen || outcome.kind === "redirecting" || outcome.kind === "error") {
+            if (navigated || outcome.kind === "redirecting" || outcome.kind === "error") {
               clearTimeout(timer);
               finish();
             }
@@ -163,9 +147,6 @@ export async function launchCashfreeCheckoutWithTimeout(
     });
 
     if (navigated) return { kind: "navigating" };
-    if (modalOpen || (typeof document !== "undefined" && isCashfreeCheckoutModalOpen(document))) {
-      return { kind: "modal_open" };
-    }
     if (sdkError) {
       const message = sdkError instanceof Error ? sdkError.message : "Cashfree checkout failed.";
       const cancelled = /cancel|closed|dismiss|abort|user.?drop/i.test(message);
@@ -178,7 +159,6 @@ export async function launchCashfreeCheckoutWithTimeout(
     }
     return { kind: "timeout" };
   } finally {
-    observer?.disconnect();
     if (typeof window !== "undefined") {
       window.removeEventListener("pagehide", onLeaving);
       window.removeEventListener("beforeunload", onLeaving);
