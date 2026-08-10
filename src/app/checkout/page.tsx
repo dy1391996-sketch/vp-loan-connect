@@ -45,7 +45,7 @@ export default async function CheckoutPage({
               Review your {USP_PRICE_LABEL} {USP_PRODUCT_NAME}
             </h1>
             <p className="mt-3 text-sm leading-7 text-slate-600">
-              Review the fee and GST, then tap Proceed to secure payment to open the Cashfree payment page. Checkout never starts automatically.
+              Review pricing below, then tap Proceed to secure payment. You will be redirected to Cashfree&apos;s hosted payment page for ₹116.82.
             </p>
           </div>
           <CheckoutClient

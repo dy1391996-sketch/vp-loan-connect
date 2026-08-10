@@ -1,18 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, CircleAlert, Loader2, LockKeyhole, RefreshCw, ReceiptText, ShieldCheck } from "lucide-react";
+import { Check, CircleAlert, Loader2, LockKeyhole, ReceiptText, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusNotice } from "@/components/ui/status-notice";
 import { PAYMENT_DESCRIPTION, PLATFORM_DISCLAIMER } from "@/lib/constants";
 import { trackEvent } from "@/lib/analytics-client";
-import {
-  createCashfreeSdk,
-  isCashfreeCheckoutModalOpen,
-  launchCashfreeCheckoutWithTimeout,
-  type CashfreeCheckoutInstance,
-} from "@/lib/payments/cashfree-browser";
+import { buildCashfreeLaunchPath } from "@/lib/payments/cashfree-browser";
 
 declare global {
   interface Window {
@@ -20,8 +15,6 @@ declare global {
       open: () => void;
       on: (event: string, callback: (response: { error?: { description?: string } }) => void) => void;
     };
-    Cashfree?: ((options: { mode: "sandbox" | "production" }) => CashfreeCheckoutInstance) &
-      (new (options: { mode: "sandbox" | "production" }) => CashfreeCheckoutInstance);
   }
 }
 
@@ -65,8 +58,6 @@ type Props = {
   autoStart?: boolean;
 };
 
-const DID_NOT_OPEN_MESSAGE = "Payment page did not open. Retry this payment.";
-
 export function CheckoutClient(props: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -74,19 +65,6 @@ export function CheckoutClient(props: Props) {
   const [resumeAvailable, setResumeAvailable] = useState(false);
   const [activeOrderReference, setActiveOrderReference] = useState("");
   const payInFlight = useRef(false);
-
-  // If the user comes back from the hosted payment page via the back button,
-  // the page can be restored from bfcache with a stale "Preparing…" state.
-  useEffect(() => {
-    const onPageShow = (event: PageTransitionEvent) => {
-      if (!event.persisted) return;
-      payInFlight.current = false;
-      setBusy(false);
-      setResumeAvailable(true);
-    };
-    window.addEventListener("pageshow", onPageShow);
-    return () => window.removeEventListener("pageshow", onPageShow);
-  }, []);
 
   async function completeVerified(verified: { orderReference: string; reportId: string; reportToken: string }, provider: string) {
     trackEvent("payment_completed", { product: props.productSlug, provider });
@@ -110,12 +88,12 @@ export function CheckoutClient(props: Props) {
     await completeVerified(verified, provider);
   }
 
-  async function pay(options?: { resume?: boolean }) {
+  async function pay() {
     if (payInFlight.current || busy) return;
     payInFlight.current = true;
     setBusy(true);
     setError("");
-    trackEvent(options?.resume ? "checkout_resumed" : "checkout_opened", { product: props.productSlug });
+    trackEvent(resumeAvailable ? "checkout_resumed" : "checkout_opened", { product: props.productSlug });
 
     try {
       const orderResponse = await fetch("/api/payments/create-order", {
@@ -160,6 +138,11 @@ export function CheckoutClient(props: Props) {
         return;
       }
 
+      if (checkout.mode === "cashfree_checkout" || order.provider === "cashfree") {
+        router.push(buildCashfreeLaunchPath(order.internalOrderId, props.resultToken));
+        return;
+      }
+
       if (checkout.mode === "razorpay_modal") {
         await loadScript("https://checkout.razorpay.com/v1/checkout.js", () => Boolean(window.Razorpay));
         if (!window.Razorpay) throw new Error("The secure payment window could not be opened. Disable blockers and try again.");
@@ -201,75 +184,6 @@ export function CheckoutClient(props: Props) {
         return;
       }
 
-      if (checkout.mode === "cashfree_checkout") {
-        await loadScript("https://sdk.cashfree.com/js/v3/cashfree.js", () => Boolean(window.Cashfree));
-        if (!window.Cashfree) throw new Error("Cashfree checkout could not be loaded. Disable blockers and try again.");
-        if (!checkout.paymentSessionId) throw new Error("Payment session is missing. Please try again.");
-        const cashfree = createCashfreeSdk(window.Cashfree, checkout.env);
-        const launch = await launchCashfreeCheckoutWithTimeout(cashfree, {
-          paymentSessionId: checkout.paymentSessionId,
-          redirectTarget: "_self",
-        });
-
-        if (launch.kind === "navigating" || launch.kind === "redirecting") {
-          // Browser is leaving for Cashfree / return URL. Keep busy; do not treat as cancellation.
-          return;
-        }
-
-        if (launch.kind === "redirect_blocked") {
-          // The SDK submitted its checkout form but the browser never left the
-          // page (blocked navigation). Recover instead of spinning forever.
-          setResumeAvailable(true);
-          setBusy(false);
-          payInFlight.current = false;
-          setError(DID_NOT_OPEN_MESSAGE);
-          return;
-        }
-
-        if (launch.kind === "modal_open") {
-          // Modal is open — keep busy while visible, then unlock Resume if the user closes it unpaid.
-          const watchModal = window.setInterval(() => {
-            if (isCashfreeCheckoutModalOpen()) return;
-            window.clearInterval(watchModal);
-            setResumeAvailable(true);
-            setBusy(false);
-            payInFlight.current = false;
-          }, 700);
-          window.setTimeout(() => window.clearInterval(watchModal), 30 * 60 * 1000);
-          return;
-        }
-
-        if (launch.kind === "error") {
-          setResumeAvailable(true);
-          if (launch.cancelled) {
-            router.push(
-              `/payment/failed?assessment=${props.assessmentId}&product=${props.productSlug}&token=${encodeURIComponent(props.resultToken)}&reason=${encodeURIComponent("Payment was cancelled")}`,
-            );
-            return;
-          }
-          throw new Error(launch.message || "Cashfree checkout could not be completed. Please try again.");
-        }
-
-        // Final guard: modal may have mounted just after the launch timeout window.
-        if (isCashfreeCheckoutModalOpen()) {
-          setResumeAvailable(true);
-          const watchModal = window.setInterval(() => {
-            if (isCashfreeCheckoutModalOpen()) return;
-            window.clearInterval(watchModal);
-            setBusy(false);
-            payInFlight.current = false;
-          }, 700);
-          window.setTimeout(() => window.clearInterval(watchModal), 30 * 60 * 1000);
-          return;
-        }
-
-        setResumeAvailable(true);
-        setBusy(false);
-        payInFlight.current = false;
-        setError(DID_NOT_OPEN_MESSAGE);
-        return;
-      }
-
       if (checkout.mode === "phonepe_redirect") {
         window.location.assign(checkout.redirectUrl);
         return;
@@ -299,12 +213,14 @@ export function CheckoutClient(props: Props) {
     }
   }
 
+  const primaryLabel = busy ? "Preparing secure payment…" : resumeAvailable ? "Resume secure payment" : "Proceed to secure payment";
+
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_0.75fr]">
       <div className="rounded-[2rem] border border-line/80 bg-white p-6 shadow-soft sm:p-8">
         <div className="flex items-start justify-between gap-5 border-b border-line pb-6">
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-700">Selected ₹99 Credit Profile Booster</p>
+            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-700">Credit Profile Booster</p>
             <h2 className="mt-3 text-2xl font-extrabold tracking-[-0.035em] text-navy-950">{props.productName}</h2>
           </div>
           <span className="grid h-11 w-11 place-items-center rounded-2xl bg-brand-100 text-brand-700">
@@ -313,7 +229,7 @@ export function CheckoutClient(props: Props) {
         </div>
 
         <div className="mt-6 grid gap-3 rounded-3xl bg-surface p-5 text-sm sm:p-6">
-          <Price label="Report / service fee" value={props.subtotal} />
+          <Price label="Credit Profile Booster" value={props.subtotal} />
           <Price label="GST (18%)" value={props.gst} />
           <div className="border-t border-line pt-4">
             <Price label="Total payable" value={props.total} strong />
@@ -337,24 +253,11 @@ export function CheckoutClient(props: Props) {
 
         <Button size="lg" className="mt-6 w-full" onClick={() => void pay()} disabled={busy} aria-busy={busy}>
           {busy ? <Loader2 className="animate-spin" size={18} /> : <LockKeyhole size={18} />}
-          {busy ? "Preparing secure payment…" : "Proceed to secure payment"}
+          {primaryLabel}
         </Button>
-        {resumeAvailable ? (
-          <Button
-            size="lg"
-            variant="secondary"
-            className="mt-3 w-full"
-            onClick={() => void pay({ resume: true })}
-            disabled={busy}
-            aria-busy={busy}
-          >
-            {busy ? <Loader2 className="animate-spin" size={18} /> : <RefreshCw size={18} />}
-            Resume secure payment
-          </Button>
-        ) : null}
         <p className="mt-4 flex items-center justify-center gap-2 text-center text-xs leading-5 text-slate-500">
           <ShieldCheck className="shrink-0 text-brand-700" size={15} />
-          Secure checkout opens only when you tap a payment button. Resume reuses your active Cashfree order.
+          Hosted Cashfree checkout opens only when you tap the button. Resume reuses your active order when safe.
         </p>
       </div>
 
