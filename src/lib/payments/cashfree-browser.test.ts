@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  buildCashfreeLaunchPath,
   buildCashfreeReturnUrl,
   classifyCashfreeOrderStatus,
   createCashfreeSdk,
@@ -58,6 +59,11 @@ describe("Cashfree browser SDK helpers", () => {
     assert.match(returnUrl, /\/api\/payments\/return\?/);
     assert.match(returnUrl, /order_id=\{order_id\}/);
     assert.match(returnUrl, /internalOrderId=11111111-1111-1111-1111-111111111111/);
+
+    const launchPath = buildCashfreeLaunchPath("11111111-1111-1111-1111-111111111111", "result_token_example_abcdefghijklmnopqrstuvwxyz");
+    assert.match(launchPath, /^\/payment\/launch\?/);
+    assert.match(launchPath, /internalOrderId=11111111-1111-1111-1111-111111111111/);
+    assert.match(launchPath, /token=result_token/);
   });
 
   it("classifies Cashfree order statuses for reuse vs recreate", () => {

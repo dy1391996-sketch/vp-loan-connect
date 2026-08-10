@@ -206,6 +206,12 @@ export function buildCashfreeReturnUrl(appUrl: string, internalOrderId: string):
   return `${base}/api/payments/return?order_id={order_id}&internalOrderId=${internalOrderId}`;
 }
 
+/** User-initiated launch page after create-order (hosted redirect, not modal). */
+export function buildCashfreeLaunchPath(internalOrderId: string, resultToken: string): string {
+  const params = new URLSearchParams({ internalOrderId, token: resultToken });
+  return `/payment/launch?${params.toString()}`;
+}
+
 /** Cashfree order statuses that can be reused for another checkout attempt. */
 export function isReusableCashfreeOrderStatus(status: string | undefined | null): boolean {
   const normalized = String(status || "").toUpperCase();
