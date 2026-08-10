@@ -54,8 +54,9 @@
 
 ## PR and CI links
 
-- PR: *(filled after open)*
-- CI: pending after push
+- PR: https://github.com/dy1391996-sketch/vp-loan-connect/pull/15
+- Issue comment on #13: **blocked** (GitHub Issues write 403 for this token)
+- CI: pending / check PR Actions
 
 ## Missing variable names (no values)
 
