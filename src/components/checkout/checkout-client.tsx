@@ -7,11 +7,8 @@ import { Button } from "@/components/ui/button";
 import { StatusNotice } from "@/components/ui/status-notice";
 import { PAYMENT_DESCRIPTION, PLATFORM_DISCLAIMER } from "@/lib/constants";
 import { trackEvent } from "@/lib/analytics-client";
-import {
-  createCashfreeSdk,
-  launchCashfreeCheckoutWithTimeout,
-  type CashfreeCheckoutInstance,
-} from "@/lib/payments/cashfree-browser";
+import { writeCashfreeLaunchPayload } from "@/components/checkout/cashfree-launch-client";
+import type { CashfreeCheckoutInstance } from "@/lib/payments/cashfree-browser";
 
 declare global {
   interface Window {
@@ -66,8 +63,6 @@ type Props = {
   /** @deprecated Checkout must start from an explicit user click. Ignored. */
   autoStart?: boolean;
 };
-
-const DID_NOT_OPEN_MESSAGE = "Payment not completed — Try again";
 
 export function CheckoutClient(props: Props) {
   const router = useRouter();
@@ -202,35 +197,16 @@ export function CheckoutClient(props: Props) {
       }
 
       if (checkout.mode === "cashfree_checkout") {
-        await loadScript("https://sdk.cashfree.com/js/v3/cashfree.js", () => Boolean(window.Cashfree));
-        if (!window.Cashfree) throw new Error("Cashfree checkout could not be loaded. Disable blockers and try again.");
         if (!checkout.paymentSessionId) throw new Error("Payment session is missing. Please try again.");
-        const cashfree = createCashfreeSdk(window.Cashfree, checkout.env);
-        const launch = await launchCashfreeCheckoutWithTimeout(cashfree, {
+        // Hand off to a dedicated top-level launch page so Cashfree opens as
+        // hosted redirect — never as an embedded/modal checkout inside React UI.
+        writeCashfreeLaunchPayload({
           paymentSessionId: checkout.paymentSessionId,
-          redirectTarget: "_top",
+          env: checkout.env,
+          orderReference: order.orderReference,
+          returnTo: window.location.href,
         });
-
-        if (launch.kind === "navigating" || launch.kind === "redirecting") {
-          // Browser is leaving for Cashfree / return URL. Keep busy; do not treat as cancellation.
-          return;
-        }
-
-        if (launch.kind === "error") {
-          setResumeAvailable(true);
-          if (launch.cancelled) {
-            router.push(
-              `/payment/failed?assessment=${props.assessmentId}&product=${props.productSlug}&token=${encodeURIComponent(props.resultToken)}&reason=${encodeURIComponent("Payment was cancelled")}`,
-            );
-            return;
-          }
-          throw new Error(launch.message || "Cashfree checkout could not be completed. Please try again.");
-        }
-
-        setResumeAvailable(true);
-        setBusy(false);
-        payInFlight.current = false;
-        setError(DID_NOT_OPEN_MESSAGE);
+        window.location.assign("/checkout/cashfree");
         return;
       }
 
@@ -277,7 +253,7 @@ export function CheckoutClient(props: Props) {
         </div>
 
         <div className="mt-6 grid gap-3 rounded-3xl bg-surface p-5 text-sm sm:p-6">
-          <Price label="Report / service fee" value={props.subtotal} />
+          <Price label="Credit Profile Booster" value={props.subtotal} />
           <Price label="GST (18%)" value={props.gst} />
           <div className="border-t border-line pt-4">
             <Price label="Total payable" value={props.total} strong />
@@ -311,7 +287,7 @@ export function CheckoutClient(props: Props) {
         </Button>
         <p className="mt-4 flex items-center justify-center gap-2 text-center text-xs leading-5 text-slate-500">
           <ShieldCheck className="shrink-0 text-brand-700" size={15} />
-          Secure Cashfree checkout opens only when you tap the payment button. An active order is safely reused.
+          Secure Cashfree hosted checkout opens only after you tap this button. An active unpaid order is safely reused.
         </p>
       </div>
 

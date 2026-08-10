@@ -106,6 +106,33 @@ describe("Cashfree browser SDK helpers", () => {
     assert.equal(redirectTarget, "_top");
   });
 
+  it("rejects Cashfree modal iframe as a launch failure for hosted redirect", async () => {
+    const { launchCashfreeCheckoutWithTimeout } = await import("@/lib/payments/cashfree-browser");
+    const originalDocument = globalThis.document;
+    const frame = {
+      offsetWidth: 510,
+      offsetHeight: 720,
+      getAttribute: (key: string) => (key === "name" ? "cashfree-modal-iframe" : ""),
+    };
+    (globalThis as { document?: unknown }).document = {
+      documentElement: {},
+      querySelectorAll: () => [frame],
+    };
+    try {
+      const cashfree = {
+        checkout: async () => ({}),
+      };
+      const outcome = await launchCashfreeCheckoutWithTimeout(cashfree, { paymentSessionId: "session_test_1234567890" }, 200);
+      assert.equal(outcome.kind, "error");
+      if (outcome.kind === "error") {
+        assert.match(outcome.message, /Hosted payment page did not open/i);
+      }
+    } finally {
+      if (originalDocument === undefined) delete (globalThis as { document?: unknown }).document;
+      else (globalThis as { document?: unknown }).document = originalDocument;
+    }
+  });
+
   it("detects Cashfree modal iframe as open checkout", () => {
     const doc = {
       querySelectorAll: () => [

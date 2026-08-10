@@ -85,11 +85,11 @@ export function isCashfreeCheckoutModalOpen(doc: Document = document): boolean {
 }
 
 /**
- * Start Cashfree checkout with a hard launch timeout.
+ * Start Cashfree hosted redirect with a hard launch timeout.
  * Register the timeout first, then invoke the SDK on the next macrotask so a
  * hanging/blocking checkout cannot prevent the timeout from being scheduled.
- * The product uses only top-level hosted redirect. Modal/inline checkout is not
- * considered a successful launch because it caused unrecoverable loading UI.
+ * Only top-level hosted redirect counts as success. Modal/inline mounts are
+ * treated as launch failures so the UI never spins indefinitely.
  */
 export async function launchCashfreeCheckoutWithTimeout(
   cashfree: CashfreeCheckoutInstance,
@@ -156,6 +156,13 @@ export async function launchCashfreeCheckoutWithTimeout(
       const outcome = interpretCashfreeCheckoutResult(sdkResult);
       if (outcome.kind === "redirecting") return { kind: "redirecting" };
       if (outcome.kind === "error") return outcome;
+    }
+    if (typeof document !== "undefined" && isCashfreeCheckoutModalOpen(document)) {
+      return {
+        kind: "error",
+        message: "Hosted payment page did not open. Try again.",
+        cancelled: false,
+      };
     }
     return { kind: "timeout" };
   } finally {

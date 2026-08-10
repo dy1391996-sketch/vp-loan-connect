@@ -70,7 +70,8 @@ Switch gateways with `PAYMENT_PROVIDER` only. Business unlock logic (`processSuc
 - Shared webhook processor: `src/lib/payments/webhook-handler.ts`
 - Return/reconcile/status: `/api/payments/return`, `/api/payments/reconcile`, `/api/payments/status`
 - Cashfree webhook alias: `/api/payments/webhooks/cashfree`
-- Checkout UI reads `checkout.mode` and launches the correct UX (modal / SDK / redirect / hosted form)
+- **Cashfree UX:** create-order → dedicated `/checkout/cashfree` launch page → Cashfree hosted redirect (`redirectTarget: "_top"`). Modal/inline checkout is rejected.
+- Checkout UI reads `checkout.mode` and launches the correct UX (hosted redirect / SDK / redirect / hosted form)
 - Detailed Cashfree dashboard steps: [`docs/CASHFREE_SETUP.md`](./docs/CASHFREE_SETUP.md)
 
 ## Safety rules
