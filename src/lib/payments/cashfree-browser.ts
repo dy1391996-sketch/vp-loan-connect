@@ -57,9 +57,18 @@ export function interpretCashfreeCheckoutResult(result: unknown): CashfreeChecko
 /** Cashfree modal can take >10s on mobile; do not treat a late mount as launch failure. */
 export const CASHFREE_CHECKOUT_LAUNCH_TIMEOUT_MS = 25_000;
 
+/**
+ * After the SDK reports `{ redirect: true }` it has submitted a form to the
+ * Cashfree hosted checkout. If the browser blocks that navigation (CSP
+ * form-action, extensions, popup blockers) the page silently stays put — wait
+ * this long for a real `pagehide` before declaring the redirect blocked.
+ */
+export const CASHFREE_REDIRECT_GRACE_MS = 12_000;
+
 export type CashfreeLaunchOutcome =
   | { kind: "navigating" }
   | { kind: "redirecting" }
+  | { kind: "redirect_blocked" }
   | { kind: "modal_open" }
   | { kind: "error"; message: string; cancelled: boolean }
   | { kind: "timeout" };
@@ -95,6 +104,7 @@ export async function launchCashfreeCheckoutWithTimeout(
   cashfree: CashfreeCheckoutInstance,
   options: { paymentSessionId: string; redirectTarget?: string },
   timeoutMs = CASHFREE_CHECKOUT_LAUNCH_TIMEOUT_MS,
+  redirectGraceMs = CASHFREE_REDIRECT_GRACE_MS,
 ): Promise<CashfreeLaunchOutcome> {
   let navigated = false;
   let modalOpen = false;
@@ -173,7 +183,18 @@ export async function launchCashfreeCheckoutWithTimeout(
     }
     if (sdkSettled) {
       const outcome = interpretCashfreeCheckoutResult(sdkResult);
-      if (outcome.kind === "redirecting") return { kind: "redirecting" };
+      if (outcome.kind === "redirecting") {
+        // The SDK submitted its checkout form. Confirm the browser actually
+        // leaves the page — a silently blocked navigation must not spin forever.
+        if (redirectGraceMs <= 0) return { kind: "redirecting" };
+        const deadline = Date.now() + redirectGraceMs;
+        while (Date.now() < deadline) {
+          if (navigated) return { kind: "navigating" };
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        }
+        if (navigated) return { kind: "navigating" };
+        return { kind: "redirect_blocked" };
+      }
       if (outcome.kind === "error") return outcome;
     }
     return { kind: "timeout" };

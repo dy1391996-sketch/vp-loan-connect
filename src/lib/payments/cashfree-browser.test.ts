@@ -83,13 +83,24 @@ describe("Cashfree browser SDK helpers", () => {
     assert.ok(Date.now() - started < 500);
   });
 
-  it("treats SDK redirect resolve as redirecting", async () => {
+  it("treats SDK redirect resolve as redirecting when no grace confirmation is requested", async () => {
     const { launchCashfreeCheckoutWithTimeout } = await import("@/lib/payments/cashfree-browser");
     const cashfree = {
       checkout: async () => ({ redirect: true }),
     };
-    const outcome = await launchCashfreeCheckoutWithTimeout(cashfree, { paymentSessionId: "session_test_1234567890" }, 1000);
+    const outcome = await launchCashfreeCheckoutWithTimeout(cashfree, { paymentSessionId: "session_test_1234567890" }, 1000, 0);
     assert.equal(outcome.kind, "redirecting");
+  });
+
+  it("reports redirect_blocked when SDK claims redirect but the page never navigates", async () => {
+    const { launchCashfreeCheckoutWithTimeout } = await import("@/lib/payments/cashfree-browser");
+    const cashfree = {
+      checkout: async () => ({ redirect: true }),
+    };
+    const started = Date.now();
+    const outcome = await launchCashfreeCheckoutWithTimeout(cashfree, { paymentSessionId: "session_test_1234567890" }, 1000, 250);
+    assert.equal(outcome.kind, "redirect_blocked");
+    assert.ok(Date.now() - started >= 250);
   });
 
   it("detects Cashfree modal iframe as open checkout", () => {

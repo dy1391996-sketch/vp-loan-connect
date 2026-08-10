@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json(
             {
               error:
-                "Your Cashfree payment session is still active but could not be resumed yet. Tap Resume payment — do not start a new checkout.",
+                "Your Cashfree payment session is still active but could not be resumed yet. Tap Resume secure payment — do not start a new checkout.",
               provider: "cashfree",
               orderReference: existingPending.orderReference,
               internalOrderId: existingPending.id,
@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
         // Never mark ACTIVE/PENDING as FAILED on a transient Cashfree API error — resume must reuse the same order.
         return NextResponse.json(
           {
-            error: "Unable to resume the active Cashfree payment session. Tap Resume payment to try again.",
+            error: "Unable to resume the active Cashfree payment session. Tap Resume secure payment to try again.",
             provider: "cashfree",
             orderReference: existingPending.orderReference,
             internalOrderId: existingPending.id,

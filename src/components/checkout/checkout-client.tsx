@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, CircleAlert, Loader2, LockKeyhole, RefreshCw, ReceiptText, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -74,6 +74,19 @@ export function CheckoutClient(props: Props) {
   const [resumeAvailable, setResumeAvailable] = useState(false);
   const [activeOrderReference, setActiveOrderReference] = useState("");
   const payInFlight = useRef(false);
+
+  // If the user comes back from the hosted payment page via the back button,
+  // the page can be restored from bfcache with a stale "Preparing…" state.
+  useEffect(() => {
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      payInFlight.current = false;
+      setBusy(false);
+      setResumeAvailable(true);
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
 
   async function completeVerified(verified: { orderReference: string; reportId: string; reportToken: string }, provider: string) {
     trackEvent("payment_completed", { product: props.productSlug, provider });
@@ -203,6 +216,16 @@ export function CheckoutClient(props: Props) {
           return;
         }
 
+        if (launch.kind === "redirect_blocked") {
+          // The SDK submitted its checkout form but the browser never left the
+          // page (blocked navigation). Recover instead of spinning forever.
+          setResumeAvailable(true);
+          setBusy(false);
+          payInFlight.current = false;
+          setError(DID_NOT_OPEN_MESSAGE);
+          return;
+        }
+
         if (launch.kind === "modal_open") {
           // Modal is open — keep busy while visible, then unlock Resume if the user closes it unpaid.
           const watchModal = window.setInterval(() => {
@@ -314,7 +337,7 @@ export function CheckoutClient(props: Props) {
 
         <Button size="lg" className="mt-6 w-full" onClick={() => void pay()} disabled={busy} aria-busy={busy}>
           {busy ? <Loader2 className="animate-spin" size={18} /> : <LockKeyhole size={18} />}
-          {busy ? "Opening secure payment…" : `Unlock full report for ${props.total}`}
+          {busy ? "Preparing secure payment…" : "Proceed to secure payment"}
         </Button>
         {resumeAvailable ? (
           <Button
@@ -326,7 +349,7 @@ export function CheckoutClient(props: Props) {
             aria-busy={busy}
           >
             {busy ? <Loader2 className="animate-spin" size={18} /> : <RefreshCw size={18} />}
-            Resume payment
+            Resume secure payment
           </Button>
         ) : null}
         <p className="mt-4 flex items-center justify-center gap-2 text-center text-xs leading-5 text-slate-500">

@@ -111,6 +111,15 @@ Generated server-side (do not hardcode secrets):
 
 Cashfree requires the literal `{order_id}` placeholder.
 
+## Content-Security-Policy requirement (hosted checkout)
+
+The Cashfree v3 JS SDK opens the hosted checkout page by **submitting an HTML form**
+to `https://api.cashfree.com/pg/view/sessions/checkout` (or `https://sandbox.cashfree.com/...`).
+The site CSP `form-action` directive must therefore allow the Cashfree API hosts —
+see `src/lib/security/csp.ts`. If `form-action` omits them, the browser silently
+blocks the navigation and checkout appears to "hang" with a spinner forever.
+`src/lib/security/csp.test.ts` guards this as a regression test.
+
 ## Safety reminders
 
 - Amounts and products are resolved on the server from product configuration — never trust browser amounts.
