@@ -73,8 +73,8 @@ This automation also has **no Issues write tool** configured (only PR open / PR 
 
 ## PR and CI links
 
-- PR for this handoff: *(filled after open)*
-- CI: N/A for product work; handoff PR CI will validate docs-only change
+- PR for this handoff: https://github.com/dy1391996-sketch/vp-loan-connect/pull/14
+- CI: check PR #14 Actions after push (`docs` only)
 
 ## Missing variable names (no values)
 
