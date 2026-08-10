@@ -74,7 +74,8 @@ This automation also has **no Issues write tool** configured (only PR open / PR 
 ## PR and CI links
 
 - PR for this handoff: https://github.com/dy1391996-sketch/vp-loan-connect/pull/14
-- CI: check PR #14 Actions after push (`docs` only)
+- CI latest: **success** — https://github.com/dy1391996-sketch/vp-loan-connect/actions/runs/31427349103
+- CI earlier flake (same PR, docs-only): failure on `pnpm build` resolving `@vercel/turbopack-next/internal/font/google/font` — https://github.com/dy1391996-sketch/vp-loan-connect/actions/runs/31427335241 (re-run succeeded; not introduced by this docs change)
 
 ## Missing variable names (no values)
 
