@@ -85,7 +85,7 @@ export default async function ResultPage({ params, searchParams }: { params: Pro
                 <p className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-slate-300">One-time access</p>
                 <p className="mt-2 text-5xl font-black text-brand-500">₹99 <span className="text-base text-slate-300">+ GST</span></p>
                 <p className="mt-2 text-sm font-bold">GST ₹17.82 · Total payable: ₹116.82</p>
-                <ButtonLink href={checkoutUrl} size="lg" className="mt-7 w-full">Unlock full report for ₹116.82 <ArrowRight size={18} /></ButtonLink>
+                <ButtonLink href={checkoutUrl} size="lg" className="mt-7 w-full">Proceed to secure payment <ArrowRight size={18} /></ButtonLink>
                 <p className="mt-4 text-xs leading-6 text-slate-400">Fee is for profile analysis and matched options—not a lender fee or loan approval fee.</p>
               </div>
             </div>

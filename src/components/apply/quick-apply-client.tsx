@@ -469,7 +469,7 @@ export function QuickApplyClient() {
                   <p className="text-sm text-slate-300">GST (18%) ₹17.82</p>
                   <p className="mt-2 text-3xl font-black text-brand-500">₹116.82</p>
                   <ButtonLink href={checkoutUrl} size="lg" className="mt-6 w-full">
-                    Unlock full report for ₹116.82 <ArrowRight size={18} />
+                    Proceed to secure payment <ArrowRight size={18} />
                   </ButtonLink>
                   <p className="mt-3 text-xs leading-6 text-slate-400">Fee is for profile analysis and matched options — not a lender processing fee.</p>
                 </div>

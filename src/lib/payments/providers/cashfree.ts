@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import type { ServerEnv } from "@/lib/env";
 import { getPublicAppUrl } from "@/lib/env";
+import { buildCashfreeHostedCheckout, type CashfreeMode } from "@/lib/payments/cashfree-checkout";
 import {
   PaymentConfigurationError,
   PaymentProviderError,
@@ -29,6 +30,10 @@ function cashfreeMissing(env: ServerEnv) {
   if (!cashfreeAppId(env)) missing.push("CASHFREE_APP_ID");
   if (!cashfreeSecret(env)) missing.push("CASHFREE_SECRET_KEY");
   return missing;
+}
+
+export function cashfreeMode(env: ServerEnv): CashfreeMode {
+  return env.CASHFREE_ENV === "production" ? "production" : "sandbox";
 }
 
 function cashfreeBaseUrl(env: ServerEnv) {
@@ -184,11 +189,11 @@ export const cashfreePaymentProvider: PaymentProvider = {
       providerOrderId: parsed.data.order_id,
       amountPaise,
       currency: "INR" as const,
-      checkout: {
-        mode: "cashfree_checkout" as const,
+      checkout: buildCashfreeHostedCheckout({
         paymentSessionId: parsed.data.payment_session_id,
-        env: env.CASHFREE_ENV === "production" ? ("production" as const) : ("sandbox" as const),
-      },
+        env: cashfreeMode(env),
+        requestId: input.notes.internal_order_id,
+      }),
     };
   },
 

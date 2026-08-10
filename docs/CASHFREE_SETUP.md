@@ -10,7 +10,7 @@ Cashfree merchant activation may still be under review. Keep `PAYMENT_PROVIDER` 
 | Layer | Status |
 |---|---|
 | Adapter (`src/lib/payments/providers/cashfree.ts`) | Ready — PG API version `2025-01-01` |
-| Hosted checkout (Cashfree JS v3) | Ready |
+| Hosted checkout (server-driven full-page redirect) | Ready |
 | Return + webhook finalization | Ready (server-verified unlock only) |
 | Production credentials | **Owner action required** |
 | Live site switch (`PAYMENT_PROVIDER=cashfree`) | **Do not flip until credentials + webhook are live** |
@@ -55,6 +55,38 @@ Production build gates reject:
 - obvious placeholder credential values
 - non-HTTPS `NEXT_PUBLIC_APP_URL`
 
+## How checkout opens
+
+`POST /pg/orders` returns a `payment_session_id`. The browser is then sent to Cashfree's hosted
+payment page with a **top-level form POST**:
+
+| `CASHFREE_ENV` | Checkout URL |
+|---|---|
+| `production` | `https://api.cashfree.com/pg/view/sessions/checkout` |
+| `sandbox` | `https://sandbox.cashfree.com/pg/view/sessions/checkout` |
+
+The only field sent is `payment_session_id` (plus the internal order id as `x_request_id` for tracing).
+No amount is ever sent from the browser.
+
+This is the same entry point the official Cashfree JS SDK uses for redirect checkout, but it is
+performed directly so desktop and mobile behave identically. The SDK is intentionally not loaded:
+it only redirects when the viewport is at least 768px wide and otherwise mounts an embedded iframe
+whose promise can stay unresolved, which is what previously left the button spinning.
+
+### CSP requirement
+
+The checkout host **must** be listed in the site's CSP `form-action` directive
+(`next.config.ts` → `CHECKOUT_FORM_ACTION_ORIGINS`). If it is missing, Chrome blocks the submission
+with `Sending form data to … violates … form-action` and the payment page silently never opens.
+`src/lib/payments/checkout-csp.test.ts` fails the build if this regresses.
+
+### Domain whitelisting
+
+Cashfree requires the live domain to be approved under **Dashboard → Developers → Whitelisting**
+before the hosted checkout page will load for production traffic. Register
+`https://www.vploanconnect.in`. Approval is usually within 24 hours and requires Contact,
+Terms, and Refunds pages plus INR pricing to be visible on the site.
+
 ## Webhook URLs
 
 Register **both** if Cashfree allows multiple endpoints, or pick one primary:
@@ -85,7 +117,7 @@ with `x-webhook-signature` + `x-webhook-timestamp`.
 2. Copy sandbox Client ID / Client Secret into local or Vercel Preview env as `CASHFREE_APP_ID` / `CASHFREE_SECRET_KEY`.
 3. Set `PAYMENT_PROVIDER=cashfree` and `CASHFREE_ENV=sandbox` for that environment only.
 4. Configure the test webhook URL above and subscribe to payment + refund events.
-5. Complete an assessment → checkout → Cashfree hosted checkout (JS v3).
+5. Complete an assessment → checkout → Cashfree hosted checkout page (full-page redirect).
 6. Confirm:
    - Order moves to `PAID` only after server verification (return handler and/or webhook).
    - Exactly one report entitlement is created for the order.

@@ -70,7 +70,19 @@ Switch gateways with `PAYMENT_PROVIDER` only. Business unlock logic (`processSuc
 - Shared webhook processor: `src/lib/payments/webhook-handler.ts`
 - Return/reconcile/status: `/api/payments/return`, `/api/payments/reconcile`, `/api/payments/status`
 - Cashfree webhook alias: `/api/payments/webhooks/cashfree`
-- Checkout UI reads `checkout.mode` and launches the correct UX (modal / SDK / redirect / hosted form)
+- Cashfree hosted redirect: `src/lib/payments/cashfree-checkout.ts`
+- Checkout button state rules: `src/lib/payments/checkout-state.ts`
+- Checkout UI reads `checkout.mode` and launches the correct UX (hosted redirect / modal / hosted form)
+
+### Cashfree checkout opens by full-page redirect
+
+The browser is sent to Cashfree's hosted payment page with a top-level form POST carrying only
+`payment_session_id`. The Cashfree JS SDK is not loaded — it redirects only above a 768px viewport
+and otherwise mounts an embedded iframe that can hang, which is what previously left the checkout
+button spinning on "Opening secure payment…".
+
+Every checkout host must appear in CSP `form-action` (`next.config.ts`), or the browser blocks the
+submission and the page never opens. This is enforced by `src/lib/payments/checkout-csp.test.ts`.
 - Detailed Cashfree dashboard steps: [`docs/CASHFREE_SETUP.md`](./docs/CASHFREE_SETUP.md)
 
 ## Safety rules

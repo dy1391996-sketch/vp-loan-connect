@@ -106,10 +106,13 @@ export async function POST(request: NextRequest) {
 
     if (existingPending?.providerOrderId && env.PAYMENT_PROVIDER === "cashfree") {
       try {
-        const { fetchCashfreeOrder } = await import("@/lib/payments/providers/cashfree");
-        const { classifyCashfreeOrderStatus, isReusableCashfreeOrderStatus, isTerminalUnpaidCashfreeOrderStatus } = await import(
-          "@/lib/payments/cashfree-browser"
-        );
+        const { fetchCashfreeOrder, cashfreeMode } = await import("@/lib/payments/providers/cashfree");
+        const {
+          buildCashfreeHostedCheckout,
+          classifyCashfreeOrderStatus,
+          isReusableCashfreeOrderStatus,
+          isTerminalUnpaidCashfreeOrderStatus,
+        } = await import("@/lib/payments/cashfree-checkout");
         const snapshot = await fetchCashfreeOrder(existingPending.providerOrderId, env);
         const status = String(snapshot.order_status || "").toUpperCase();
         const classification = classifyCashfreeOrderStatus(status);
@@ -130,11 +133,11 @@ export async function POST(request: NextRequest) {
             name: "VP Loan Connect",
             description: product.name,
             reused: true,
-            checkout: {
-              mode: "cashfree_checkout" as const,
+            checkout: buildCashfreeHostedCheckout({
               paymentSessionId: snapshot.payment_session_id,
-              env: env.CASHFREE_ENV === "production" ? ("production" as const) : ("sandbox" as const),
-            },
+              env: cashfreeMode(env),
+              requestId: existingPending.id,
+            }),
           });
         }
 

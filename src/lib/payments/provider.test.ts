@@ -253,10 +253,11 @@ describe("Cashfree webhook and verify helpers", () => {
       );
 
       assert.equal(result.provider, "cashfree");
-      assert.equal(result.checkout.mode, "cashfree_checkout");
-      if (result.checkout.mode === "cashfree_checkout") {
-        assert.equal(result.checkout.paymentSessionId, "session_abc");
+      assert.equal(result.checkout.mode, "cashfree_hosted");
+      if (result.checkout.mode === "cashfree_hosted") {
+        assert.equal(result.checkout.fields.payment_session_id, "session_abc");
         assert.equal(result.checkout.env, "sandbox");
+        assert.equal(result.checkout.actionUrl, "https://sandbox.cashfree.com/pg/view/sessions/checkout");
       }
       assert.equal(calls.length, 1);
       assert.match(calls[0]!.url, /sandbox\.cashfree\.com\/pg\/orders$/);

@@ -18,7 +18,7 @@ export default async function PaymentFailedPage({ searchParams }: { searchParams
           <p className="mt-6 text-xs font-extrabold uppercase tracking-[0.2em] text-red-700">Payment status</p>
           <h1 className="mt-3 text-balance text-3xl font-extrabold tracking-[-0.045em] text-navy-950">Payment was not completed</h1>
           <p className="mt-4 text-sm leading-7 text-slate-600">{query.reason || "No amount is treated as paid until secure server verification succeeds."}</p>
-          <ButtonLink href={retry} size="lg" className="mt-7 w-full sm:w-auto"><RefreshCw size={17} />Retry payment</ButtonLink>
+          <ButtonLink href={retry} size="lg" className="mt-7 w-full sm:w-auto"><RefreshCw size={17} />Payment not completed — Try again</ButtonLink>
           <div className="mt-6 flex items-start gap-3 rounded-2xl bg-amber-50 p-4 text-left text-xs leading-6 text-amber-950">
             <CircleAlert className="mt-0.5 shrink-0" size={17} />If your account was debited, do not pay again immediately. Contact support with the gateway reference.
           </div>

@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import { LockKeyhole } from "lucide-react";
 import { CheckoutClient } from "@/components/checkout/checkout-client";
 import { PublicStatePanel } from "@/components/ui/public-state-panel";
 import { USP_PRICE_LABEL, USP_PRODUCT_NAME, USP_PRODUCT_SLUG, USP_SALE_PRICE } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { verifyAccessToken } from "@/lib/security/tokens";
-import { formatInr } from "@/lib/utils";
+import { formatInrExact } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: `Secure ${USP_PRICE_LABEL} Checkout`, robots: { index: false, follow: false } };
@@ -36,7 +35,6 @@ export default async function CheckoutPage({
 
   return (
     <section className="surface-grid min-h-screen bg-surface py-10 sm:py-16">
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" />
       <div className="page-shell">
         <div className="mx-auto max-w-5xl">
           <div className="mb-8">
@@ -45,7 +43,8 @@ export default async function CheckoutPage({
               Review your {USP_PRICE_LABEL} {USP_PRODUCT_NAME}
             </h1>
             <p className="mt-3 text-sm leading-7 text-slate-600">
-              Review the fee and GST, then tap unlock to open secure Cashfree checkout. Checkout never starts automatically.
+              Review the fee and GST, then tap the button to open the secure Cashfree payment page. Payment never starts
+              automatically, and you are charged once.
             </p>
           </div>
           <CheckoutClient
@@ -53,9 +52,9 @@ export default async function CheckoutPage({
             productSlug={product.slug}
             resultToken={query.token}
             productName={product.name}
-            subtotal={formatInr(subtotal)}
-            gst={formatInr(gst)}
-            total={formatInr(total)}
+            subtotal={formatInrExact(subtotal)}
+            gst={formatInrExact(gst)}
+            total={formatInrExact(total)}
             customerName={assessment.lead.fullName}
             customerMobile={assessment.lead.mobile}
             referralCode={assessment.referralCode ?? undefined}

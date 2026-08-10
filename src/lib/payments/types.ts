@@ -2,12 +2,12 @@ import type { ServerEnv } from "@/lib/env";
 
 export type PaymentProviderId = "mock" | "razorpay" | "cashfree" | "phonepe" | "payu";
 
-export type CheckoutMode = "mock" | "razorpay_modal" | "cashfree_checkout" | "phonepe_redirect" | "payu_hosted";
+export type CheckoutMode = "mock" | "razorpay_modal" | "cashfree_hosted" | "phonepe_redirect" | "payu_hosted";
 
 export type CheckoutDescriptor =
   | { mode: "mock" }
   | { mode: "razorpay_modal"; keyId: string; orderId: string }
-  | { mode: "cashfree_checkout"; paymentSessionId: string; env: "sandbox" | "production" }
+  | { mode: "cashfree_hosted"; actionUrl: string; fields: Record<string, string>; env: "sandbox" | "production" }
   | { mode: "phonepe_redirect"; redirectUrl: string }
   | { mode: "payu_hosted"; actionUrl: string; fields: Record<string, string> };
 

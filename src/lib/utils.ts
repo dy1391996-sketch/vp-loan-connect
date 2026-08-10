@@ -14,6 +14,16 @@ export function formatInr(value: number | string) {
   }).format(Number(value));
 }
 
+/** Always two decimals — checkout, receipts and provider order amounts must read identically. */
+export function formatInrExact(value: number | string) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(value));
+}
+
 export function normalizeIndianMobile(value: string) {
   const digits = value.replace(/\D/g, "");
   const local = digits.length === 12 && digits.startsWith("91") ? digits.slice(2) : digits;

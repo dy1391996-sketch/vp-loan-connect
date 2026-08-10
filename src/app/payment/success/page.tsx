@@ -64,7 +64,7 @@ export default async function PaymentSuccessPage({ searchParams }: { searchParam
             <span className="grid h-16 w-16 place-items-center rounded-3xl bg-brand-100 text-brand-700"><CheckCircle2 size={31} /></span>
             <p className="mt-6 text-xs font-extrabold uppercase tracking-[0.2em] text-brand-700">Service fee verified</p>
             <h1 className="font-display mt-3 text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">
-              Report service fee confirmed — booster unlocked
+              Payment successful — booster unlocked
             </h1>
             <p className="mt-3 text-sm leading-7 text-slate-600">
               Your {formatInr(Number(report.order.totalAmount))} payment is a Credit Profile Booster report / service fee only. It is not a loan repayment, disbursement, lender processing fee, or payment for guaranteed loan approval.
