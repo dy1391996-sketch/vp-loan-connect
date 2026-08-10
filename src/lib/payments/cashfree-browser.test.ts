@@ -106,6 +106,20 @@ describe("Cashfree browser SDK helpers", () => {
     assert.equal(redirectTarget, "_top");
   });
 
+  it("returns an SDK error when checkout throws synchronously", async () => {
+    const { launchCashfreeCheckoutWithTimeout } = await import("@/lib/payments/cashfree-browser");
+    const outcome = await launchCashfreeCheckoutWithTimeout(
+      {
+        checkout: () => {
+          throw new Error("Invalid payment session");
+        },
+      },
+      { paymentSessionId: "session_test_1234567890" },
+      1000,
+    );
+    assert.deepEqual(outcome, { kind: "error", message: "Invalid payment session", cancelled: false });
+  });
+
   it("detects Cashfree modal iframe as open checkout", () => {
     const doc = {
       querySelectorAll: () => [

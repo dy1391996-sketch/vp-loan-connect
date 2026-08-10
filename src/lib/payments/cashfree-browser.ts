@@ -118,12 +118,13 @@ export async function launchCashfreeCheckoutWithTimeout(
           : setTimeout(finish, timeoutMs);
 
       const startCheckout = () => {
-        Promise.resolve(
-          cashfree.checkout({
-            paymentSessionId: options.paymentSessionId,
-            redirectTarget: options.redirectTarget ?? "_top",
-          }),
-        )
+        Promise.resolve()
+          .then(() =>
+            cashfree.checkout({
+              paymentSessionId: options.paymentSessionId,
+              redirectTarget: options.redirectTarget ?? "_top",
+            }),
+          )
           .then((result) => {
             sdkSettled = true;
             sdkResult = result;

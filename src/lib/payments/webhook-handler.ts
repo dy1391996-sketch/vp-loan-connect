@@ -121,7 +121,17 @@ export async function handlePaymentWebhook(providerId: PaymentProviderId, reques
       }
       // Never overwrite a successfully paid order.
       if (order.status !== "PAID" && order.status !== "REFUNDED" && order.status !== "PARTIALLY_REFUNDED") {
-        await prisma.order.update({ where: { id: order.id }, data: { status: "FAILED" } });
+        let providerOrderTerminal = true;
+        if (providerId === "cashfree") {
+          const snapshot = await fetchCashfreeOrder(parsed.providerOrderId, env);
+          providerOrderTerminal = ["FAILED", "EXPIRED", "TERMINATED", "CANCELLED"].includes(
+            String(snapshot.order_status || "").toUpperCase(),
+          );
+        }
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { status: providerOrderTerminal ? "FAILED" : "PENDING" },
+        });
       }
     } else if (parsed.kind === "refund_update" && order) {
       const refund =

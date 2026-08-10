@@ -94,12 +94,14 @@ const cashfreeOrderSchema = z.object({
 
 export type CashfreeOrderSnapshot = z.infer<typeof cashfreeOrderSchema>;
 
-export type CashfreePaymentSnapshot = {
-  cf_payment_id?: string | number;
-  payment_status?: string;
-  payment_amount?: number;
-  payment_currency?: string;
-};
+const cashfreePaymentSchema = z.object({
+  cf_payment_id: z.union([z.string(), z.number()]).optional(),
+  payment_status: z.string().optional(),
+  payment_amount: z.number().optional(),
+  payment_currency: z.string().optional(),
+}).passthrough();
+
+export type CashfreePaymentSnapshot = z.infer<typeof cashfreePaymentSchema>;
 
 /** GET /orders/{order_id} — used by return/verify to confirm PAID + amount/currency. */
 export async function fetchCashfreeOrder(providerOrderId: string, env: ServerEnv): Promise<CashfreeOrderSnapshot> {
@@ -126,28 +128,8 @@ export async function fetchCashfreePayments(providerOrderId: string, env: Server
   if (!response.ok) {
     throw new PaymentProviderError(`Cashfree payment lookup failed (${response.status}): ${await readCashfreeError(response)}`, 502);
   }
-  const data = (await response.json()) as unknown;
-  if (!Array.isArray(data)) throw new PaymentProviderError("Cashfree payment response was invalid.", 502);
-  return data as CashfreePaymentSnapshot[];
-}
-
-/** Legitimately close an unpaid duplicate so it can no longer be charged. */
-export async function terminateCashfreeOrder(providerOrderId: string, env: ServerEnv): Promise<CashfreeOrderSnapshot> {
-  const response = await fetch(`${cashfreeBaseUrl(env)}/orders/${encodeURIComponent(providerOrderId)}`, {
-    method: "PATCH",
-    headers: {
-      ...cashfreeHeaders(env),
-      ...(z.string().uuid().safeParse(providerOrderId).success ? { "x-idempotency-key": providerOrderId } : {}),
-    },
-    body: JSON.stringify({ order_status: "TERMINATED" }),
-    signal: AbortSignal.timeout(12_000),
-    cache: "no-store",
-  });
-  if (!response.ok) {
-    throw new PaymentProviderError(`Cashfree order termination failed (${response.status}): ${await readCashfreeError(response)}`, 502);
-  }
-  const parsed = cashfreeOrderSchema.safeParse(await response.json());
-  if (!parsed.success) throw new PaymentProviderError("Cashfree termination response was invalid.", 502);
+  const parsed = z.array(cashfreePaymentSchema).safeParse(await response.json());
+  if (!parsed.success) throw new PaymentProviderError("Cashfree payment response was invalid.", 502);
   return parsed.data;
 }
 

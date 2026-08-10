@@ -18,7 +18,6 @@ export async function processSuccessfulPayment(input: { orderId: string; provide
     await tx.$queryRaw`SELECT id FROM "Order" WHERE id = ${input.orderId}::uuid FOR UPDATE`;
     const order = await tx.order.findUnique({ where: { id: input.orderId }, include: { lead: true, assessment: { include: { score: true, answers: true } }, product: true, reports: true } });
     if (!order || !order.assessment?.score) throw new Error("Order assessment is unavailable.");
-    if (order.status === "PAID" && order.reports[0]) return { order, report: order.reports[0], duplicate: true };
     const [paymentByProviderId, paymentForOrder] = await Promise.all([
       tx.payment.findUnique({ where: { providerPaymentId: input.providerPaymentId } }),
       tx.payment.findFirst({ where: { orderId: order.id }, orderBy: { createdAt: "asc" } }),
@@ -27,7 +26,30 @@ export async function processSuccessfulPayment(input: { orderId: string; provide
       throw new Error("Payment reference is already linked to another order.");
     }
     const paidAt = new Date();
-    const existingPayment = paymentByProviderId || paymentForOrder;
+    if (order.status === "PAID" && order.reports[0]) {
+      const duplicateCharge =
+        paymentByProviderId ||
+        (await tx.payment.create({
+          data: {
+            orderId: order.id,
+            provider: input.provider,
+            providerPaymentId: input.providerPaymentId,
+            amount: order.totalAmount,
+            currency: order.currency,
+            status: "CAPTURED",
+            capturedAt: paidAt,
+          },
+        }));
+      return {
+        order,
+        payment: duplicateCharge,
+        report: order.reports[0],
+        duplicate: true,
+        duplicateCharge: !paymentByProviderId,
+      };
+    }
+    const existingPayment =
+      paymentByProviderId || (paymentForOrder?.status === "CAPTURED" ? null : paymentForOrder);
     const payment = existingPayment
       ? await tx.payment.update({
           where: { id: existingPayment.id },
