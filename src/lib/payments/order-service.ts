@@ -12,14 +12,36 @@ export function datedReference(prefix: "VPLC-ORD" | "VPLC") {
 
 export async function processSuccessfulPayment(input: { orderId: string; providerPaymentId: string; provider: string }) {
   return prisma.$transaction(async (tx) => {
+    // Serialize webhook, return-handler, and polling finalization for this order.
+    // Without the row lock, simultaneous confirmations can both attempt to
+    // create a report before the unique orderId constraint is visible.
+    await tx.$queryRaw`SELECT id FROM "Order" WHERE id = ${input.orderId}::uuid FOR UPDATE`;
     const order = await tx.order.findUnique({ where: { id: input.orderId }, include: { lead: true, assessment: { include: { score: true, answers: true } }, product: true, reports: true } });
     if (!order || !order.assessment?.score) throw new Error("Order assessment is unavailable.");
     if (order.status === "PAID" && order.reports[0]) return { order, report: order.reports[0], duplicate: true };
-    const existingPayment = await tx.payment.findUnique({ where: { providerPaymentId: input.providerPaymentId } });
-    if (existingPayment && existingPayment.orderId !== order.id) throw new Error("Payment reference is already linked to another order.");
+    const [paymentByProviderId, paymentForOrder] = await Promise.all([
+      tx.payment.findUnique({ where: { providerPaymentId: input.providerPaymentId } }),
+      tx.payment.findFirst({ where: { orderId: order.id }, orderBy: { createdAt: "asc" } }),
+    ]);
+    if (paymentByProviderId && paymentByProviderId.orderId !== order.id) {
+      throw new Error("Payment reference is already linked to another order.");
+    }
     const paidAt = new Date();
+    const existingPayment = paymentByProviderId || paymentForOrder;
     const payment = existingPayment
-      ? await tx.payment.update({ where: { id: existingPayment.id }, data: { status: "CAPTURED", capturedAt: paidAt } })
+      ? await tx.payment.update({
+          where: { id: existingPayment.id },
+          data: {
+            provider: input.provider,
+            providerPaymentId: input.providerPaymentId,
+            amount: order.totalAmount,
+            currency: order.currency,
+            status: "CAPTURED",
+            failureCode: null,
+            failureDescription: null,
+            capturedAt: paidAt,
+          },
+        })
       : await tx.payment.create({ data: { orderId: order.id, provider: input.provider, providerPaymentId: input.providerPaymentId, amount: order.totalAmount, currency: order.currency, status: "CAPTURED", capturedAt: paidAt } });
     const paidOrder = await tx.order.update({ where: { id: order.id }, data: { status: "PAID", paidAt } });
     await tx.lead.update({ where: { id: order.leadId }, data: { stage: "REPORT_PROCESSING" } });
@@ -50,5 +72,5 @@ export async function processSuccessfulPayment(input: { orderId: string; provide
       }
     }
     return { order: { ...order, ...paidOrder }, payment, report, rawToken, duplicate: false };
-  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  });
 }

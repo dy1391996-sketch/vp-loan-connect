@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { createProviderOrder, mapPaymentError, reportMissingPaymentCredentials } from "@/lib/payments";
-import { datedReference } from "@/lib/payments/order-service";
+import { createProviderOrder, getPaymentProvider, mapPaymentError, reportMissingPaymentCredentials } from "@/lib/payments";
+import { datedReference, processSuccessfulPayment } from "@/lib/payments/order-service";
 import { assertSameOrigin, rateLimit } from "@/lib/security/request";
 import { USP_PRODUCT_SLUG, USP_SALE_PRICE } from "@/lib/constants";
 import { getPublicAppUrl, getServerEnv, missingPaymentCredentialKeys } from "@/lib/env";
-import { verifyAccessToken } from "@/lib/security/tokens";
+import { signAccessToken, verifyAccessToken } from "@/lib/security/tokens";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     const amountPaise = Math.round(totalAmount * 100);
 
     // Reuse unpaid Cashfree/local orders so Resume does not spawn duplicates.
-    const existingPending = await prisma.order.findFirst({
+    const existingPendingOrders = await prisma.order.findMany({
       where: {
         assessmentId: assessment.id,
         productId: product.id,
@@ -103,28 +103,123 @@ export async function POST(request: NextRequest) {
       },
       orderBy: { createdAt: "desc" },
     });
+    const existingPending = existingPendingOrders[0];
 
-    if (existingPending?.providerOrderId && env.PAYMENT_PROVIDER === "cashfree") {
+    if (existingPendingOrders.length && env.PAYMENT_PROVIDER === "cashfree") {
       try {
-        const { fetchCashfreeOrder } = await import("@/lib/payments/providers/cashfree");
+        const { fetchCashfreeOrder, fetchCashfreePayments, terminateCashfreeOrder } = await import("@/lib/payments/providers/cashfree");
         const { classifyCashfreeOrderStatus, isReusableCashfreeOrderStatus, isTerminalUnpaidCashfreeOrderStatus } = await import(
           "@/lib/payments/cashfree-browser"
         );
-        const snapshot = await fetchCashfreeOrder(existingPending.providerOrderId, env);
-        const status = String(snapshot.order_status || "").toUpperCase();
-        const classification = classifyCashfreeOrderStatus(status);
+        const reusable: Array<{ order: (typeof existingPendingOrders)[number]; paymentSessionId: string }> = [];
 
-        if (classification === "paid") {
-          // Payment already captured at Cashfree — leave reuse path so the client can hit return/status unlock.
-          return NextResponse.json({ error: "Payment already completed for this order. Refresh your result page." }, { status: 409 });
+        for (const pendingOrder of existingPendingOrders) {
+          if (!pendingOrder.providerOrderId) continue;
+          const snapshot = await fetchCashfreeOrder(pendingOrder.providerOrderId, env);
+          const status = String(snapshot.order_status || "").toUpperCase();
+          const classification = classifyCashfreeOrderStatus(status);
+
+          if (classification === "paid") {
+            const verified = await getPaymentProvider("cashfree").verifyClientPayment(
+              {
+                internalOrderId: pendingOrder.id,
+                providerOrderId: pendingOrder.providerOrderId,
+                expectedAmountPaise: Math.round(Number(pendingOrder.totalAmount) * 100),
+                raw: { order_id: pendingOrder.providerOrderId },
+              },
+              pendingOrder.providerOrderId,
+              env,
+            );
+            if (!verified.ok) {
+              return NextResponse.json(
+                { error: "Cashfree reports a paid order, but secure transaction verification is still pending. Do not pay again." },
+                { status: 409 },
+              );
+            }
+            const processed = await processSuccessfulPayment({
+              orderId: pendingOrder.id,
+              providerPaymentId: verified.providerPaymentId,
+              provider: "cashfree",
+            });
+            const reportToken = await signAccessToken(
+              "report_access",
+              processed.report.id,
+              { leadId: pendingOrder.leadId, orderId: pendingOrder.id },
+              "72h",
+            );
+            return NextResponse.json({
+              internalOrderId: pendingOrder.id,
+              orderReference: pendingOrder.orderReference,
+              provider: "cashfree",
+              providerOrderId: pendingOrder.providerOrderId,
+              amountPaise,
+              currency: "INR",
+              name: "VP Loan Connect",
+              description: product.name,
+              completed: true,
+              reportId: processed.report.id,
+              reportToken,
+            });
+          }
+
+          if (snapshot.payment_session_id && isReusableCashfreeOrderStatus(status)) {
+            reusable.push({ order: pendingOrder, paymentSessionId: snapshot.payment_session_id });
+          } else if (isTerminalUnpaidCashfreeOrderStatus(status)) {
+            await prisma.order.update({ where: { id: pendingOrder.id }, data: { status: "FAILED" } });
+          } else {
+            return NextResponse.json(
+              {
+                error: "An existing Cashfree order could not be safely reconciled. Do not start another payment yet.",
+                provider: "cashfree",
+                orderReference: pendingOrder.orderReference,
+                internalOrderId: pendingOrder.id,
+                resumable: true,
+              },
+              { status: 503 },
+            );
+          }
         }
 
-        if (snapshot.payment_session_id && isReusableCashfreeOrderStatus(status)) {
+        // Keep only the newest reusable order. Older ACTIVE orders are closed
+        // through Cashfree first, never deleted or merely failed locally.
+        for (const duplicate of reusable.slice(1)) {
+          const attempts = await fetchCashfreePayments(duplicate.order.providerOrderId!, env);
+          if (attempts.some((attempt) => String(attempt.payment_status || "").toUpperCase() === "PENDING")) {
+            return NextResponse.json(
+              {
+                error: "A previous Cashfree transaction is still pending. Do not pay again until it reaches a final status.",
+                provider: "cashfree",
+                orderReference: duplicate.order.orderReference,
+                internalOrderId: duplicate.order.id,
+                resumable: true,
+              },
+              { status: 409 },
+            );
+          }
+          const terminated = await terminateCashfreeOrder(duplicate.order.providerOrderId!, env);
+          const terminatedStatus = String(terminated.order_status || "").toUpperCase();
+          if (terminatedStatus !== "TERMINATED" && terminatedStatus !== "EXPIRED") {
+            return NextResponse.json(
+              {
+                error: "A previous Cashfree order is being closed. Wait a moment before resuming payment.",
+                provider: "cashfree",
+                orderReference: duplicate.order.orderReference,
+                internalOrderId: duplicate.order.id,
+                resumable: true,
+              },
+              { status: 409 },
+            );
+          }
+          await prisma.order.update({ where: { id: duplicate.order.id }, data: { status: "CANCELLED" } });
+        }
+
+        const selected = reusable[0];
+        if (selected) {
           return NextResponse.json({
-            internalOrderId: existingPending.id,
-            orderReference: existingPending.orderReference,
+            internalOrderId: selected.order.id,
+            orderReference: selected.order.orderReference,
             provider: "cashfree",
-            providerOrderId: existingPending.providerOrderId,
+            providerOrderId: selected.order.providerOrderId,
             amountPaise,
             currency: "INR",
             name: "VP Loan Connect",
@@ -132,28 +227,10 @@ export async function POST(request: NextRequest) {
             reused: true,
             checkout: {
               mode: "cashfree_checkout" as const,
-              paymentSessionId: snapshot.payment_session_id,
+              paymentSessionId: selected.paymentSessionId,
               env: env.CASHFREE_ENV === "production" ? ("production" as const) : ("sandbox" as const),
             },
           });
-        }
-
-        // Only retire on conclusive Cashfree terminal unpaid statuses.
-        // Missing payment_session_id on an otherwise ACTIVE/PENDING order must NOT spawn a second chargeable order.
-        if (isTerminalUnpaidCashfreeOrderStatus(status)) {
-          await prisma.order.update({ where: { id: existingPending.id }, data: { status: "FAILED" } });
-        } else {
-          return NextResponse.json(
-            {
-              error:
-                "Your Cashfree payment session is still active but could not be resumed yet. Tap Resume payment — do not start a new checkout.",
-              provider: "cashfree",
-              orderReference: existingPending.orderReference,
-              internalOrderId: existingPending.id,
-              resumable: true,
-            },
-            { status: 503 },
-          );
         }
       } catch {
         // Never mark ACTIVE/PENDING as FAILED on a transient Cashfree API error — resume must reuse the same order.
@@ -161,8 +238,8 @@ export async function POST(request: NextRequest) {
           {
             error: "Unable to resume the active Cashfree payment session. Tap Resume payment to try again.",
             provider: "cashfree",
-            orderReference: existingPending.orderReference,
-            internalOrderId: existingPending.id,
+            orderReference: existingPending?.orderReference,
+            internalOrderId: existingPending?.id,
             resumable: true,
           },
           { status: 503 },
