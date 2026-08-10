@@ -29,10 +29,12 @@ describe("Meta funnel events", () => {
   });
 
   it("maps first-party funnel events for Pixel/CAPI", () => {
-    assert.deepEqual(FIRST_PARTY_TO_META.homepage_visit, ["LandingPageView"]);
+    // LandingPageView is provider-owned after consent (not mapped from homepage_visit).
+    assert.equal(FIRST_PARTY_TO_META.homepage_visit, undefined);
     assert.deepEqual(FIRST_PARTY_TO_META.email_verified, ["OTPVerified"]);
     assert.deepEqual(FIRST_PARTY_TO_META.checkout_opened, ["CheckoutStarted"]);
     assert.deepEqual(FIRST_PARTY_TO_META.payment_completed, ["PaymentSuccess"]);
+    assert.deepEqual(FIRST_PARTY_TO_META.instagram_profile_click, ["InstagramProfileClick"]);
   });
 
   it("creates stable-length dedupe event ids", () => {

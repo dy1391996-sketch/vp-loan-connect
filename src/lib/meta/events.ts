@@ -20,7 +20,8 @@ export type MetaFunnelEvent = (typeof META_FUNNEL_EVENTS)[number];
 
 /** Map first-party analytics names → Meta funnel events (may emit multiple). */
 export const FIRST_PARTY_TO_META: Record<string, MetaFunnelEvent[]> = {
-  homepage_visit: ["LandingPageView"],
+  // LandingPageView / InstagramAdLanding are emitted once from AnalyticsProvider after consent
+  // (avoids double-fire when first-party homepage_visit runs before consent is granted).
   assessment_started: ["QuickApplyStarted"],
   email_verified: ["OTPVerified"],
   mobile_verified: ["OTPVerified"],
@@ -31,7 +32,6 @@ export const FIRST_PARTY_TO_META: Record<string, MetaFunnelEvent[]> = {
   // Pixel/CAPI standard name is Purchase; funnel label PaymentSuccess is kept in custom_data.
   payment_completed: ["PaymentSuccess"],
   instagram_profile_click: ["InstagramProfileClick"],
-  instagram_ad_landing: ["InstagramAdLanding"],
 };
 
 /** Standard Meta event names where applicable; custom events keep funnel names. */

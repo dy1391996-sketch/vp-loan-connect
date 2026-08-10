@@ -2,8 +2,6 @@
 
 import { Instagram } from "lucide-react";
 import { trackEvent } from "@/lib/analytics-client";
-import { createMetaEventId } from "@/lib/meta/events";
-import { trackMetaPixelEvent } from "@/lib/meta/pixel-client";
 
 type Props = {
   href: string;
@@ -13,19 +11,8 @@ type Props = {
 
 export function InstagramDirectLink({ href, className, children }: Props) {
   function onClick() {
-    const eventId = createMetaEventId("ig_click");
-    trackEvent("instagram_profile_click", { event_id: eventId });
-    trackMetaPixelEvent("InstagramProfileClick", { eventId });
-    void fetch("/api/meta/conversions", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        eventName: "InstagramProfileClick",
-        eventId,
-        eventSourceUrl: window.location.href,
-      }),
-      keepalive: true,
-    }).catch(() => undefined);
+    // Single path: trackEvent emits first-party + consent-gated Pixel/CAPI with one shared event_id.
+    trackEvent("instagram_profile_click");
   }
 
   return (

@@ -2,7 +2,7 @@
 
 import Script from "next/script";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { readMarketingConsent } from "@/lib/consent/marketing-consent";
 import { createMetaEventId } from "@/lib/meta/events";
 import { getPublicMetaPixelId, trackMetaPixelEvent } from "@/lib/meta/pixel-client";
@@ -39,6 +39,8 @@ export function AnalyticsProvider() {
   const pathname = usePathname();
   const [consent, setConsent] = useState<"unknown" | "granted" | "denied">("unknown");
   const [pixelReady, setPixelReady] = useState(false);
+  const landingSentForPath = useRef<string | null>(null);
+  const igAdSentForPath = useRef<string | null>(null);
   const gaId = readGaId();
   const pixelId = getPublicMetaPixelId();
 
@@ -53,7 +55,7 @@ export function AnalyticsProvider() {
     return () => window.removeEventListener("vplc:marketing-consent", onConsent as EventListener);
   }, []);
 
-  // First-party product analytics (no marketing pixels) — always allowed.
+  // First-party product analytics only (Meta LandingPageView is consent-gated below).
   useEffect(() => {
     if (pathname === "/") {
       trackEvent("homepage_visit");
@@ -68,12 +70,13 @@ export function AnalyticsProvider() {
     }
   }, [pathname, consent, gaId]);
 
-  // Consent-gated Meta funnel events.
+  // Consent-gated Meta: one shared event_id for Pixel + CAPI (no duplicate trackEvent mapping).
   useEffect(() => {
     if (consent !== "granted" || !pixelId || !pixelReady) return;
 
-    if (pathname === "/") {
+    if (pathname === "/" && landingSentForPath.current !== pathname) {
       const eventId = createMetaEventId("landing");
+      landingSentForPath.current = pathname;
       trackMetaPixelEvent("LandingPageView", { eventId });
       sendMetaConversion("LandingPageView", eventId);
     }
@@ -89,12 +92,16 @@ export function AnalyticsProvider() {
       source === "facebook" ||
       source === "meta" ||
       medium === "paid_social";
-    if (isIgAd) {
+
+    if (isIgAd && igAdSentForPath.current !== pathname) {
       const eventId = createMetaEventId("ig_ad");
+      igAdSentForPath.current = pathname;
+      // First-party record; Meta is sent once below with the same event_id (not via trackEvent mapping).
       trackEvent("instagram_ad_landing", {
         event_id: eventId,
         utm_source: params.get("utm_source"),
         utm_campaign: params.get("utm_campaign"),
+        meta_via: "provider",
       });
       trackMetaPixelEvent("InstagramAdLanding", { eventId });
       sendMetaConversion("InstagramAdLanding", eventId);
