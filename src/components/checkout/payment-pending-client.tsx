@@ -16,7 +16,7 @@ const MAX_POLLS = 8;
 export function PaymentPendingClient({ orderReference, resultToken, assessmentId }: Props) {
   const router = useRouter();
   const [attempts, setAttempts] = useState(0);
-  const [statusLabel, setStatusLabel] = useState("Checking payment status…");
+  const [statusLabel, setStatusLabel] = useState("Verifying payment…");
   const [done, setDone] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
