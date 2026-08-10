@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import { CircleAlert, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusNotice } from "@/components/ui/status-notice";
-import { createCashfreeSdk } from "@/lib/payments/cashfree-browser";
+import {
+  createCashfreeSdk,
+  isCashfreeCheckoutModalOpen,
+  launchCashfreeCheckoutWithTimeout,
+} from "@/lib/payments/cashfree-browser";
 
 declare global {
   interface Window {
@@ -23,19 +27,30 @@ type Props = {
   orderReference: string;
 };
 
-const LAUNCH_TIMEOUT_MS = 12_000;
+const DID_NOT_OPEN_MESSAGE = "Payment page did not open. Retry this payment.";
 
 export function CashfreeLaunchClient(props: Props) {
   const router = useRouter();
   const [error, setError] = useState("");
   const launched = useRef(false);
 
+  // Returning from the hosted Cashfree page via the back button restores this
+  // page from bfcache mid-"Preparing…" — surface the retry UI instead.
+  useEffect(() => {
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      setError("Payment not completed — Try again.");
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
   useEffect(() => {
     if (launched.current) return;
     launched.current = true;
 
     let cancelled = false;
-    let timeoutId: number | undefined;
+    let modalWatch: number | undefined;
 
     async function openHostedCheckout() {
       try {
@@ -44,21 +59,38 @@ export function CashfreeLaunchClient(props: Props) {
         if (!window.Cashfree) throw new Error("Secure payment page could not be loaded. Disable blockers and try again.");
 
         const cashfree = createCashfreeSdk(window.Cashfree, props.env);
-        timeoutId = window.setTimeout(() => {
-          if (cancelled || document.visibilityState !== "visible") return;
-          setError("Payment page did not open. Retry this payment.");
-        }, LAUNCH_TIMEOUT_MS);
-
-        await cashfree.checkout({
+        const launch = await launchCashfreeCheckoutWithTimeout(cashfree, {
           paymentSessionId: props.paymentSessionId,
           redirectTarget: "_top",
         });
+        if (cancelled) return;
 
-        // Redirect checkout may resolve while navigation is still in progress.
-        window.setTimeout(() => {
-          if (cancelled || document.visibilityState !== "visible") return;
-          setError("Payment page did not open. Retry this payment.");
-        }, 2500);
+        if (launch.kind === "navigating" || launch.kind === "redirecting") {
+          // Browser is leaving for the Cashfree hosted page — keep the spinner.
+          return;
+        }
+
+        if (launch.kind === "modal_open") {
+          // Unexpected for _top, but if a modal mounted, watch for unpaid close.
+          modalWatch = window.setInterval(() => {
+            if (isCashfreeCheckoutModalOpen()) return;
+            if (modalWatch) window.clearInterval(modalWatch);
+            setError("Payment not completed — Try again.");
+          }, 700);
+          return;
+        }
+
+        if (launch.kind === "error") {
+          setError(
+            launch.cancelled
+              ? "Payment was cancelled before completion — Try again."
+              : launch.message || DID_NOT_OPEN_MESSAGE,
+          );
+          return;
+        }
+
+        // redirect_blocked or timeout: the page never navigated.
+        setError(DID_NOT_OPEN_MESSAGE);
       } catch (caught) {
         if (cancelled) return;
         setError(caught instanceof Error ? caught.message : "Payment page could not be opened.");
@@ -68,7 +100,7 @@ export function CashfreeLaunchClient(props: Props) {
     void openHostedCheckout();
     return () => {
       cancelled = true;
-      if (timeoutId) window.clearTimeout(timeoutId);
+      if (modalWatch) window.clearInterval(modalWatch);
     };
   }, [props.env, props.paymentSessionId]);
 
