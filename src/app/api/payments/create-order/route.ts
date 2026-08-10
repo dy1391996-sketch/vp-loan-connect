@@ -138,9 +138,22 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        // Session expired/unusable or Cashfree terminal unpaid — retire only this order, then create one replacement below.
-        if (isTerminalUnpaidCashfreeOrderStatus(status) || !snapshot.payment_session_id) {
+        // Only retire on conclusive Cashfree terminal unpaid statuses.
+        // Missing payment_session_id on an otherwise ACTIVE/PENDING order must NOT spawn a second chargeable order.
+        if (isTerminalUnpaidCashfreeOrderStatus(status)) {
           await prisma.order.update({ where: { id: existingPending.id }, data: { status: "FAILED" } });
+        } else {
+          return NextResponse.json(
+            {
+              error:
+                "Your Cashfree payment session is still active but could not be resumed yet. Tap Resume payment — do not start a new checkout.",
+              provider: "cashfree",
+              orderReference: existingPending.orderReference,
+              internalOrderId: existingPending.id,
+              resumable: true,
+            },
+            { status: 503 },
+          );
         }
       } catch {
         // Never mark ACTIVE/PENDING as FAILED on a transient Cashfree API error — resume must reuse the same order.

@@ -9,6 +9,7 @@ import { PAYMENT_DESCRIPTION, PLATFORM_DISCLAIMER } from "@/lib/constants";
 import { trackEvent } from "@/lib/analytics-client";
 import {
   createCashfreeSdk,
+  isCashfreeCheckoutModalOpen,
   launchCashfreeCheckoutWithTimeout,
   type CashfreeCheckoutInstance,
 } from "@/lib/payments/cashfree-browser";
@@ -197,9 +198,21 @@ export function CheckoutClient(props: Props) {
           redirectTarget: "_self",
         });
 
-        if (launch.kind === "navigating" || launch.kind === "redirecting" || launch.kind === "modal_open") {
-          // Browser is leaving for Cashfree, or the Cashfree modal iframe is already open.
-          // Keep busy; do not treat a visible modal as launch failure/timeout.
+        if (launch.kind === "navigating" || launch.kind === "redirecting") {
+          // Browser is leaving for Cashfree / return URL. Keep busy; do not treat as cancellation.
+          return;
+        }
+
+        if (launch.kind === "modal_open") {
+          // Modal is open — keep busy while visible, then unlock Resume if the user closes it unpaid.
+          const watchModal = window.setInterval(() => {
+            if (isCashfreeCheckoutModalOpen()) return;
+            window.clearInterval(watchModal);
+            setResumeAvailable(true);
+            setBusy(false);
+            payInFlight.current = false;
+          }, 700);
+          window.setTimeout(() => window.clearInterval(watchModal), 30 * 60 * 1000);
           return;
         }
 
@@ -212,6 +225,19 @@ export function CheckoutClient(props: Props) {
             return;
           }
           throw new Error(launch.message || "Cashfree checkout could not be completed. Please try again.");
+        }
+
+        // Final guard: modal may have mounted just after the launch timeout window.
+        if (isCashfreeCheckoutModalOpen()) {
+          setResumeAvailable(true);
+          const watchModal = window.setInterval(() => {
+            if (isCashfreeCheckoutModalOpen()) return;
+            window.clearInterval(watchModal);
+            setBusy(false);
+            payInFlight.current = false;
+          }, 700);
+          window.setTimeout(() => window.clearInterval(watchModal), 30 * 60 * 1000);
+          return;
         }
 
         setResumeAvailable(true);

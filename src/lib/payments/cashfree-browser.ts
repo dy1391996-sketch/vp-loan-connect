@@ -54,7 +54,8 @@ export function interpretCashfreeCheckoutResult(result: unknown): CashfreeChecko
   return { kind: "unknown" };
 }
 
-export const CASHFREE_CHECKOUT_LAUNCH_TIMEOUT_MS = 10_000;
+/** Cashfree modal can take >10s on mobile; do not treat a late mount as launch failure. */
+export const CASHFREE_CHECKOUT_LAUNCH_TIMEOUT_MS = 25_000;
 
 export type CashfreeLaunchOutcome =
   | { kind: "navigating" }
@@ -63,19 +64,24 @@ export type CashfreeLaunchOutcome =
   | { kind: "error"; message: string; cancelled: boolean }
   | { kind: "timeout" };
 
-/** Cashfree PG Web SDK often mounts a modal iframe instead of navigating the page. */
+function iframeNameIndicatesCashfreeModal(name: string): boolean {
+  if (!name) return false;
+  if (/cashfree-modal/i.test(name)) return true;
+  try {
+    return /cashfree-modal/i.test(atob(name));
+  } catch {
+    return false;
+  }
+}
+
+/** Cashfree PG Web SDK mounts a named modal iframe (~510×720) instead of navigating. */
 export function isCashfreeCheckoutModalOpen(doc: Document = document): boolean {
   return [...doc.querySelectorAll("iframe")].some((frame) => {
-    if (frame.offsetWidth < 100 || frame.offsetHeight < 100) return false;
-    const name = frame.getAttribute("name") || "";
-    if (/cashfree-modal/i.test(name)) return true;
-    try {
-      if (name && /cashfree-modal/i.test(atob(name))) return true;
-    } catch {
-      /* ignore non-base64 names */
-    }
+    // Require a real checkout-sized frame; ignore ping/telemetry iframes.
+    if (frame.offsetWidth < 400 || frame.offsetHeight < 500) return false;
+    if (iframeNameIndicatesCashfreeModal(frame.getAttribute("name") || "")) return true;
     const src = frame.getAttribute("src") || "";
-    return /cashfree\.com|cashfree\.js/i.test(src);
+    return /cashfree\.com\/.*checkout|payments\.cashfree\.com/i.test(src);
   });
 }
 

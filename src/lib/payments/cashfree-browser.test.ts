@@ -106,6 +106,24 @@ describe("Cashfree browser SDK helpers", () => {
     assert.equal(isCashfreeCheckoutModalOpen(doc), true);
   });
 
+  it("ignores Cashfree ping/telemetry iframes that are not checkout-sized", () => {
+    const doc = {
+      querySelectorAll: () => [
+        {
+          offsetWidth: 0,
+          offsetHeight: 0,
+          getAttribute: (key: string) => (key === "src" ? "https://sdk.cashfree.com/js/v3/atoms/ping_atom.html" : ""),
+        },
+        {
+          offsetWidth: 120,
+          offsetHeight: 120,
+          getAttribute: (key: string) => (key === "src" ? "https://sdk.cashfree.com/js/v3/cashfree.js" : ""),
+        },
+      ],
+    } as unknown as Document;
+    assert.equal(isCashfreeCheckoutModalOpen(doc), false);
+  });
+
   it("treats visible Cashfree modal as successful launch, not timeout", async () => {
     const { launchCashfreeCheckoutWithTimeout } = await import("@/lib/payments/cashfree-browser");
     const originalDocument = globalThis.document;
