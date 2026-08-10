@@ -83,6 +83,13 @@ Also grant Cursor GitHub App **Issues: Read and write** so future runs can read/
 Deepak: 1) Review/merge PR for issue #13. 2) In Vercel Production env, set NEXT_PUBLIC_INSTAGRAM_URL, NEXT_PUBLIC_META_PIXEL_ID, META_CAPI_ACCESS_TOKEN (and optional META_CAPI_PIXEL_ID / META_TEST_EVENT_CODE / NEXT_PUBLIC_GA_MEASUREMENT_ID). 3) Redeploy. 4) Grant GitHub Issues read/write to Cursor for issue comments.
 ```
 
+## Post-merge production verification (2026-08-10)
+
+- PR #15 merged: `b56cfeb8e7fbec1f39fad7484a3dda425833c5e2`
+- Production `/contact` serves Issue #13 copy (Instagram Direct placeholder + no phone/WhatsApp CTAs)
+- Browser: consent banner present; no Meta/Facebook network requests before consent / after Essential only
+- Follow-up: replace `next/font/google` with local Fontsource packages so CI/Vercel builds do not depend on fonts.gstatic.com via Turbopack
+
 ## OVERALL_STATUS
 
-**READY FOR REVIEW** — public WA/phone CTAs removed; Instagram + Meta readiness implemented behind env + consent; protected payment/OTP flows untouched.
+**MERGED + PRODUCTION-SERVING** — Issue #13 live; Meta/Instagram env still optional for measurement activation.

@@ -1,6 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
-import { DM_Sans, Manrope } from "next/font/google";
+import "@fontsource/manrope/600.css";
+import "@fontsource/manrope/700.css";
+import "@fontsource/manrope/800.css";
+import "@fontsource/dm-sans/400.css";
+import "@fontsource/dm-sans/500.css";
+import "@fontsource/dm-sans/600.css";
+import "@fontsource/dm-sans/700.css";
 import "@fontsource/noto-sans-devanagari/400.css";
 import "@fontsource/noto-sans-devanagari/600.css";
 import "@fontsource/noto-sans-devanagari/700.css";
@@ -12,20 +18,6 @@ import { AttributionCapture } from "@/components/attribution-capture";
 import { MarketingConsentBanner } from "@/components/marketing-consent-banner";
 import { APP_NAME, TAGLINE } from "@/lib/constants";
 import { getPublicAppUrl } from "@/lib/env";
-
-const manrope = Manrope({
-  subsets: ["latin"],
-  variable: "--font-manrope",
-  display: "swap",
-  weight: ["600", "700", "800"],
-});
-
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-dm-sans",
-  display: "swap",
-  weight: ["400", "500", "600", "700"],
-});
 
 export const metadata: Metadata = {
   verification: {
@@ -59,8 +51,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en-IN" className={`${manrope.variable} ${dmSans.variable}`}>
-      <body className={dmSans.className}>
+    <html lang="en-IN">
+      <body>
         <a
           href="#main-content"
           className="absolute left-[-10000px] top-4 z-[100] rounded-xl bg-brand-500 px-4 py-3 font-bold text-navy-950 focus:left-4"
