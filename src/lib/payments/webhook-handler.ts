@@ -107,32 +107,40 @@ export async function handlePaymentWebhook(providerId: PaymentProviderId, reques
         console.error("payment_report_delivery_failed", error instanceof Error ? error.message : "unknown");
       });
     } else if (parsed.kind === "payment_failed" && order) {
-      const payment = await prisma.payment.findFirst({ where: { orderId: order.id }, orderBy: { createdAt: "desc" } });
-      if (payment && payment.status !== "CAPTURED" && payment.status !== "REFUNDED" && payment.status !== "PARTIALLY_REFUNDED") {
-        await prisma.payment.update({
-          where: { id: payment.id },
-          data: {
-            providerPaymentId: parsed.providerPaymentId,
-            status: "FAILED",
-            failureCode: parsed.failureCode,
-            failureDescription: parsed.failureDescription,
-          },
-        });
+      let providerOrderTerminal = true;
+      if (providerId === "cashfree") {
+        const snapshot = await fetchCashfreeOrder(parsed.providerOrderId, env);
+        providerOrderTerminal = ["FAILED", "EXPIRED", "TERMINATED", "CANCELLED"].includes(
+          String(snapshot.order_status || "").toUpperCase(),
+        );
       }
-      // Never overwrite a successfully paid order.
-      if (order.status !== "PAID" && order.status !== "REFUNDED" && order.status !== "PARTIALLY_REFUNDED") {
-        let providerOrderTerminal = true;
-        if (providerId === "cashfree") {
-          const snapshot = await fetchCashfreeOrder(parsed.providerOrderId, env);
-          providerOrderTerminal = ["FAILED", "EXPIRED", "TERMINATED", "CANCELLED"].includes(
-            String(snapshot.order_status || "").toUpperCase(),
-          );
+      await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "Order" WHERE id = ${order.id}::uuid FOR UPDATE`;
+        const currentOrder = await tx.order.findUnique({ where: { id: order.id } });
+        if (!currentOrder || ["PAID", "REFUNDED", "PARTIALLY_REFUNDED"].includes(currentOrder.status)) return;
+        const payment = await tx.payment.findFirst({
+          where: {
+            orderId: order.id,
+            status: { notIn: ["CAPTURED", "REFUNDED", "PARTIALLY_REFUNDED"] },
+          },
+          orderBy: { createdAt: "asc" },
+        });
+        if (payment) {
+          await tx.payment.update({
+            where: { id: payment.id },
+            data: {
+              providerPaymentId: parsed.providerPaymentId,
+              status: "FAILED",
+              failureCode: parsed.failureCode,
+              failureDescription: parsed.failureDescription,
+            },
+          });
         }
-        await prisma.order.update({
+        await tx.order.update({
           where: { id: order.id },
           data: { status: providerOrderTerminal ? "FAILED" : "PENDING" },
         });
-      }
+      });
     } else if (parsed.kind === "refund_update" && order) {
       const refund =
         (await prisma.refund.findFirst({ where: { providerRefundId: parsed.providerRefundId } })) ||

@@ -74,6 +74,12 @@ export async function POST(request: NextRequest) {
         { status: 503 },
       );
     }
+    if (env.NODE_ENV === "production" && env.PAYMENT_PROVIDER !== "cashfree") {
+      return NextResponse.json(
+        { error: "Production checkout is restricted to the verified Cashfree hosted-payment integration." },
+        { status: 503 },
+      );
+    }
 
     const [assessment, product, lead] = await Promise.all([
       prisma.assessment.findUnique({ where: { id: parsed.data.assessmentId } }),
@@ -128,6 +134,7 @@ export async function POST(request: NextRequest) {
         status: { in: ["CREATED", "PENDING", "FAILED", "CANCELLED"] },
         ...(env.PAYMENT_PROVIDER === "cashfree" ? {} : { createdAt: { gte: new Date(Date.now() - 10 * 60 * 1000) } }),
       },
+      include: { payments: { select: { provider: true }, orderBy: { createdAt: "asc" }, take: 1 } },
       orderBy: { createdAt: "desc" },
     });
     const existingPending = existingProviderOrders[0];
@@ -141,6 +148,19 @@ export async function POST(request: NextRequest) {
         const reusable: Array<{ order: (typeof existingProviderOrders)[number]; paymentSessionId: string }> = [];
 
         for (const providerOrder of existingProviderOrders) {
+          const recordedProvider = providerOrder.payments[0]?.provider;
+          if (recordedProvider && recordedProvider !== "cashfree") {
+            return NextResponse.json(
+              {
+                error: "A previous order from another payment provider needs support reconciliation. Do not pay again.",
+                provider: recordedProvider,
+                orderReference: providerOrder.orderReference,
+                internalOrderId: providerOrder.id,
+                resumable: false,
+              },
+              { status: 409 },
+            );
+          }
           const snapshot = await fetchCashfreeOrder(providerOrder.providerOrderId!, env);
           const status = String(snapshot.order_status || "").toUpperCase();
           const classification = classifyCashfreeOrderStatus(status);
@@ -373,7 +393,51 @@ export async function POST(request: NextRequest) {
         try {
           const { fetchCashfreeOrder } = await import("@/lib/payments/providers/cashfree");
           const snapshot = await fetchCashfreeOrder(order.id, env);
-          if (snapshot.payment_session_id && snapshot.order_id === order.id) {
+          const snapshotStatus = String(snapshot.order_status || "").toUpperCase();
+          const snapshotAmountPaise = Math.round(Number(snapshot.order_amount) * 100);
+          const snapshotMatches =
+            snapshot.order_id === order.id &&
+            String(snapshot.order_currency || "").toUpperCase() === "INR" &&
+            snapshotAmountPaise === amountPaise;
+          if (snapshotMatches && snapshotStatus === "PAID") {
+            await persistProviderOrder(order.id, snapshot.order_id, "cashfree", totalAmount);
+            const verified = await getPaymentProvider("cashfree").verifyClientPayment(
+              {
+                internalOrderId: order.id,
+                providerOrderId: snapshot.order_id,
+                expectedAmountPaise: amountPaise,
+                raw: { order_id: snapshot.order_id },
+              },
+              snapshot.order_id,
+              env,
+            );
+            if (!verified.ok) throw new Error("Recovered paid Cashfree order could not be verified.");
+            const processed = await processSuccessfulPayment({
+              orderId: order.id,
+              providerPaymentId: verified.providerPaymentId,
+              provider: "cashfree",
+            });
+            const reportToken = await signAccessToken(
+              "report_access",
+              processed.report.id,
+              { leadId: order.leadId, orderId: order.id },
+              "72h",
+            );
+            return NextResponse.json({
+              internalOrderId: order.id,
+              orderReference: order.orderReference,
+              provider: "cashfree",
+              providerOrderId: snapshot.order_id,
+              amountPaise,
+              currency: "INR",
+              name: "VP Loan Connect",
+              description: product.name,
+              completed: true,
+              reportId: processed.report.id,
+              reportToken,
+            });
+          }
+          if (snapshotMatches && snapshot.payment_session_id && ["ACTIVE", "PENDING", "NOT_ATTEMPTED"].includes(snapshotStatus)) {
             await persistProviderOrder(order.id, snapshot.order_id, "cashfree", totalAmount);
             return NextResponse.json({
               internalOrderId: order.id,

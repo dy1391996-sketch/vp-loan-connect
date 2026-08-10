@@ -27,9 +27,9 @@ export async function processSuccessfulPayment(input: { orderId: string; provide
     }
     const paidAt = new Date();
     if (order.status === "PAID" && order.reports[0]) {
-      const duplicateCharge =
-        paymentByProviderId ||
-        (await tx.payment.create({
+      let duplicateCharge = paymentByProviderId;
+      if (!duplicateCharge) {
+        duplicateCharge = await tx.payment.create({
           data: {
             orderId: order.id,
             provider: input.provider,
@@ -39,7 +39,29 @@ export async function processSuccessfulPayment(input: { orderId: string; provide
             status: "CAPTURED",
             capturedAt: paidAt,
           },
-        }));
+        });
+        await tx.refund.create({
+          data: {
+            orderId: order.id,
+            amount: order.totalAmount,
+            reason: `Automatic review required: duplicate successful ${input.provider} payment ${input.providerPaymentId}`,
+            status: "REQUESTED",
+          },
+        });
+        await tx.auditLog.create({
+          data: {
+            action: "DUPLICATE_PAYMENT_DETECTED",
+            entityType: "Payment",
+            entityId: duplicateCharge.id,
+            metadata: {
+              orderId: order.id,
+              provider: input.provider,
+              providerPaymentId: input.providerPaymentId,
+              refundStatus: "REQUESTED",
+            },
+          },
+        });
+      }
       return {
         order,
         payment: duplicateCharge,
