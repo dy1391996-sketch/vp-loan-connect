@@ -49,6 +49,10 @@ function baseEnv(overrides: Partial<ServerEnv> = {}): ServerEnv {
     GRIEVANCE_NAME: "",
     GRIEVANCE_EMAIL: "",
     ANALYTICS_ID: "",
+    META_CAPI_ACCESS_TOKEN: "",
+    META_CAPI_PIXEL_ID: "",
+    META_TEST_EVENT_CODE: "",
+    META_GRAPH_API_VERSION: "v22.0",
     ...overrides,
   };
 }

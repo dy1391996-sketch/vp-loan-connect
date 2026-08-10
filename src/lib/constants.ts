@@ -7,6 +7,8 @@ export const CANONICAL_SITE_ORIGIN = "https://www.vploanconnect.in";
 /** Public contact shown on website — never use a personal Gmail here */
 export const PUBLIC_SUPPORT_EMAIL = "support@vploanconnect.in";
 export const PUBLIC_GRIEVANCE_EMAIL = "support@vploanconnect.in";
+/** Approved public contact routes: Quick Apply, Instagram Direct (env), official email — never public phone/WhatsApp CTAs. */
+export const PUBLIC_CONTACT_ROUTES = ["Quick Apply", "Instagram Direct", "Official support email"] as const;
 
 /** Primary paid USP — keep price/copy in sync across marketing + checkout */
 export const USP_PRODUCT_SLUG = "credit-health-action-plan";
@@ -22,7 +24,7 @@ export const SERVICE_CONSENT_TEXT =
   "I authorize VP Loan Connect to use the information I provide to prepare my requested profile assessment and contact me about this service request.";
 
 export const MARKETING_CONSENT_TEXT =
-  "I would like to receive loan-readiness updates, document reminders and verified financial offers by WhatsApp, SMS or call. I can opt out at any time.";
+  "I would like to receive loan-readiness updates, document reminders and verified financial offers by email or other consented channels. I can opt out at any time.";
 
 export const LENDER_REFERRAL_CONSENT_TEXT =
   "I request an optional review of my profile for referral to a verified regulated lender or authorized partner. I understand that eligibility, approval, rate and disbursement are not guaranteed, and my data will not be shared without identifying the partner and purpose.";
