@@ -9,6 +9,7 @@ import "./globals.css";
 import { SiteShell } from "@/components/layout/site-shell";
 import { AnalyticsProvider } from "@/components/analytics-provider";
 import { AttributionCapture } from "@/components/attribution-capture";
+import { MarketingConsentBanner } from "@/components/marketing-consent-banner";
 import { APP_NAME, TAGLINE } from "@/lib/constants";
 import { getPublicAppUrl } from "@/lib/env";
 
@@ -71,6 +72,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <AttributionCapture />
         </Suspense>
         <SiteShell>{children}</SiteShell>
+        <MarketingConsentBanner />
       </body>
     </html>
   );

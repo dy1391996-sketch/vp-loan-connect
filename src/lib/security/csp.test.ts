@@ -45,4 +45,17 @@ describe("Content-Security-Policy", () => {
     assert.equal(directive("base-uri"), "base-uri 'self'");
     assert.equal(directive("default-src"), "default-src 'self'");
   });
+
+  it("allows consent-gated Meta Pixel and GA hosts without allow-all", () => {
+    const scriptSrc = directive("script-src");
+    assert.match(scriptSrc, /https:\/\/connect\.facebook\.net/);
+    assert.match(scriptSrc, /https:\/\/www\.googletagmanager\.com/);
+    assert.doesNotMatch(scriptSrc, /\*/);
+
+    const connectSrc = directive("connect-src");
+    assert.match(connectSrc, /https:\/\/www\.facebook\.com/);
+    assert.match(connectSrc, /https:\/\/graph\.facebook\.com/);
+    assert.match(connectSrc, /https:\/\/www\.google-analytics\.com/);
+    assert.doesNotMatch(connectSrc, /(^|\s)\*(?=\s|$)/);
+  });
 });

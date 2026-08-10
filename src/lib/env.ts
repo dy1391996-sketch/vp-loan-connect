@@ -78,6 +78,11 @@ const serverEnvSchema = z.object({
   GRIEVANCE_NAME: z.string().optional().default(""),
   GRIEVANCE_EMAIL: z.string().email().optional().or(z.literal("")),
   ANALYTICS_ID: z.string().optional().default(""),
+  /** Meta Conversions API — optional; missing values must not break production. */
+  META_CAPI_ACCESS_TOKEN: trimSecret,
+  META_CAPI_PIXEL_ID: trimSecret,
+  META_TEST_EVENT_CODE: trimSecret,
+  META_GRAPH_API_VERSION: z.string().optional().default("v22.0"),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

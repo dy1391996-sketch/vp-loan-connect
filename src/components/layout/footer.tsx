@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Mail } from "lucide-react";
+import { InstagramDirectLink } from "@/components/instagram-direct-link";
 import { PLATFORM_DISCLAIMER, PUBLIC_SUPPORT_EMAIL, TAGLINE } from "@/lib/constants";
+import { getPublicInstagramUrl } from "@/lib/public-contact";
 
 const legal = [
   ["Privacy Policy", "/privacy"],
@@ -12,6 +14,7 @@ const legal = [
 ];
 
 export function Footer() {
+  const instagramUrl = getPublicInstagramUrl();
   return (
     <footer className="relative overflow-hidden bg-navy-950 text-white">
       <div className="pointer-events-none absolute -left-24 top-0 h-64 w-64 rounded-full bg-brand-500/10 blur-3xl" />
@@ -67,6 +70,15 @@ export function Footer() {
             <Link href="/contact#grievance" className="inline-flex min-h-11 items-center hover:text-white">
               Grievance contact
             </Link>
+            <Link href="/apply/quick" className="inline-flex min-h-11 items-center hover:text-white">
+              Quick Apply
+            </Link>
+            {instagramUrl ? (
+              <InstagramDirectLink
+                href={instagramUrl}
+                className="flex min-h-11 items-center gap-2 hover:text-white"
+              />
+            ) : null}
             <a href={`mailto:${PUBLIC_SUPPORT_EMAIL}`} className="flex min-h-11 items-center gap-2 hover:text-white">
               <Mail size={15} />
               {PUBLIC_SUPPORT_EMAIL}

@@ -17,7 +17,7 @@ const baseAssessmentSchema = z.object({
   mobile: z
     .string()
     .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number.")
-    .refine((value) => !isImpossibleMobile(value), "Unable to validate this mobile number. Use your real WhatsApp number."),
+    .refine((value) => !isImpossibleMobile(value), "Unable to validate this mobile number. Use your real mobile number."),
   email: z
     .string()
     .trim()

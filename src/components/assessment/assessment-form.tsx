@@ -642,7 +642,7 @@ function VerifyStep({
       </div>
       <h2 className="text-center text-2xl font-extrabold tracking-[-0.04em] text-navy-950 sm:text-3xl">Verify your email</h2>
       <p className="mx-auto mt-3 max-w-md text-center text-sm leading-7 text-slate-600">
-        Enter your name, WhatsApp mobile (for contact/payment), and verify email with OTP before eligibility.
+        Enter your name, mobile number (for contact/payment), and verify email with OTP before eligibility.
       </p>
 
       <div className="mt-5 flex flex-wrap items-center justify-center gap-4 text-xs font-bold text-brand-700">

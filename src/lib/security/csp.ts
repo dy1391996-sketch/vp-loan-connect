@@ -32,6 +32,10 @@ const SCRIPT_SRC = [
   "https://verify.phone91.com",
   "https://www.google.com",
   "https://www.gstatic.com",
+  // Consent-gated marketing analytics (GA4 + Meta Pixel).
+  "https://www.googletagmanager.com",
+  "https://www.google-analytics.com",
+  "https://connect.facebook.net",
 ];
 
 const CONNECT_SRC = [
@@ -49,6 +53,13 @@ const CONNECT_SRC = [
   "https://*.msg91.com",
   "https://*.phone91.com",
   "https://www.google.com",
+  "https://www.googletagmanager.com",
+  "https://www.google-analytics.com",
+  "https://*.google-analytics.com",
+  "https://*.analytics.google.com",
+  "https://connect.facebook.net",
+  "https://www.facebook.com",
+  "https://graph.facebook.com",
 ];
 
 const FRAME_SRC = [
@@ -63,6 +74,7 @@ const FRAME_SRC = [
   "https://*.phone91.com",
   "https://www.google.com",
   "https://recaptcha.google.com",
+  "https://www.facebook.com",
 ];
 
 export const CONTENT_SECURITY_POLICY = [

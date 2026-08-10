@@ -31,7 +31,7 @@ const prisma = new PrismaClient();
 
 const assessmentQuestions = [
   { key: "fullName", step: 1, label: "Full name", required: true },
-  { key: "mobile", step: 1, label: "WhatsApp mobile number", required: true },
+  { key: "mobile", step: 1, label: "Mobile number", required: true },
   { key: "state", step: 1, label: "State", required: true },
   { key: "city", step: 1, label: "City", required: true },
   { key: "loanAmount", step: 1, label: "Required loan amount", required: true },
