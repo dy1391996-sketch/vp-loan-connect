@@ -1,22 +1,10 @@
-const WA = "917827110079";
-
 window.menuToggle = function menuToggle() {
   document.querySelector(".links")?.classList.toggle("show");
 };
 
-window.sendWA = function sendWA(id) {
-  const form = document.getElementById(id);
-  if (!(form instanceof HTMLFormElement)) return false;
-
-  const data = new FormData(form);
-  const message = ["Hello VP Loan Connect, I want loan assistance."];
-
-  for (const [key, value] of data.entries()) {
-    if (value) message.push(`${key}: ${value}`);
-  }
-
-  message.push("I understand approval is subject to lender eligibility and policies.");
-  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(message.join("\n"))}`, "_blank");
+/** Legacy contact helper — public WhatsApp CTAs removed. Route users to Quick Apply. */
+window.sendWA = function sendWA() {
+  window.location.href = "/apply/quick";
   return false;
 };
 

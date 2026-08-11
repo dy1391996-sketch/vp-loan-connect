@@ -28,7 +28,7 @@ export default function CreditHealthPage() {
         "Credit-risk factors and action checklist",
         "Official application handoff links",
         "Downloadable branded PDF",
-        "WhatsApp support instructions",
+        "Official support email and Instagram guidance routes",
       ]}
     />
   );

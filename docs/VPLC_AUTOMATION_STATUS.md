@@ -1,102 +1,91 @@
 # VPLC Automation Status
 
-## Trigger and GitHub issue
+## Issue / scope
 
-- **Trigger:** `issue_comment` on https://github.com/dy1391996-sketch/vp-loan-connect/issues/13
-- **Comment by:** dy1391996-sketch
-- **Comment text:** `START VPLC TECH RUN`
-- **Automation:** VPLC Meta & Instagram Coding Agent (`34a36e9f-94e8-11f1-ba66-0e7d0216e441`)
-- **Cloud run:** https://cursor.com/agents/bc-c29d9e2a-e5cc-4c35-b850-34ad19452ef1
+- **Issue:** https://github.com/dy1391996-sketch/vp-loan-connect/issues/13
+- **Note:** GitHub Issues API remains 403 (`issues=read` missing) for the automation GitHub App token — cannot read/comment on issues until Issues Read/Write is granted.
 
-## Starting commit
+## Merged delivery
 
-- `77611b998fff794afee06c2a6d702543a1d03ddd` (`main` at run start)
-- Tip of main: Cashfree hosted-checkout launch hardening already merged
-
-## Branch
-
-- `cursor/issue-13-tech-run-handoff`
-
-## Verified current state
-
-### Access blocker (hard stop)
-
-GitHub App / integration token for this automation **cannot read Issues**:
-
-- REST `GET /repos/.../issues/13` → HTTP **403** with `x-accepted-github-permissions: issues=read`
-- REST issue comments → HTTP **403**
-- GraphQL `repository.issue(number:13)` → `NOT_FOUND` (consistent with missing Issues permission on a private repo)
-- Pull requests **are** readable (`gh pr list` works)
-
-Because issue title, body, labels, and comments are the authorized work scope for a tech run, **no product implementation was started**.
-
-This automation also has **no Issues write tool** configured (only PR open / PR review / memory), so an issue comment handoff could not be posted from the agent tools.
-
-### Repo snapshot (read-only audit)
-
-| Area | State |
-| --- | --- |
-| Public phone CTAs (`tel:`) in `src/` | None found |
-| Public WhatsApp CTA | `src/components/referral-dashboard-client.tsx` uses `https://wa.me/?text=...` (share text only; no business number in URL). Legacy `script.js` still builds `wa.me/${WA}`. `SUPPORT_WHATSAPP` env exists for reports/PDF. |
-| Meta Pixel / CAPI | No Pixel / `fbq` / Conversions API implementation found under `src/` |
-| UTM attribution | Present (`src/lib/attribution.ts`, `attribution-capture.tsx`, quick-apply / assessment source wiring) |
-| Expected Meta events (`LandingPageView`, `QuickApplyStarted`, …) | Not implemented |
-| CI on recent main/PRs | Latest listed `verify`/CI runs succeeded (no failed-verify trigger this run) |
-| Open payment PRs | #11 reconcile harden (open); #10/#12 related; #12 open |
-| Out-of-boundary PRs | #3 / #5 appear to be **VP Nest** work — do not continue under VPLC project boundary |
-
-## Work completed this run
-
-1. Confirmed trigger payload and automation identity.
-2. Attempted issue read via REST, GraphQL, and public URL — all blocked.
-3. Inspected git state, CI history, open PRs, and contact/Meta code surface.
-4. Created this continuity document (no speculative feature changes).
-5. Recorded blocker in automation memory.
-
-## Files changed
-
-- `docs/VPLC_AUTOMATION_STATUS.md` (this file)
-
-## Test results
-
-- Not run (no code path changes; blocked before implementation).
-
-## Failed attempts and causes
-
-| Attempt | Result | Cause |
+| PR | Commit | Purpose |
 | --- | --- | --- |
-| `gh issue view 13` | Fail | Issues API inaccessible |
-| REST issues/comments | 403 | Missing `issues=read` |
-| GraphQL issue 13 | NOT_FOUND | Likely permission-masked on private repo |
-| Public issue URL fetch | 404 | Private repository |
-| Comment on issue #13 | Skipped | No Issues write capability in automation tools; Issues API blocked |
+| #15 | `b56cfeb…` | Public contact cleanup + consent-gated Meta Pixel/CAPI |
+| #16 | `4eac54e…` | Fontsource CI reliability |
+| #17 | `472e666…` | Runtime `/api/public-config` + Instagram/Pixel hydration |
+| #18 | `5bf0a7e…` | CAPI provider rejection classification (OAuth vs param) |
 
-## PR and CI links
+Production main includes through **#18**.
 
-- PR for this handoff: https://github.com/dy1391996-sketch/vp-loan-connect/pull/14
-- CI latest: **success** — https://github.com/dy1391996-sketch/vp-loan-connect/actions/runs/31427349103
-- CI earlier flake (same PR, docs-only): failure on `pnpm build` resolving `@vercel/turbopack-next/internal/font/google/font` — https://github.com/dy1391996-sketch/vp-loan-connect/actions/runs/31427335241 (re-run succeeded; not introduced by this docs change)
+## Vercel project (proven)
 
-## Missing variable names (no values)
+- **Team:** `dpk09` (dpk)
+- **Project:** `vp-loan-connect`
+- **DOMAIN_MATCH:** yes — aliases include `https://www.vploanconnect.in` and `https://vploanconnect.in`
 
-None requested this run. Meta vars not audited for production values because issue scope could not be read.
+## Production environment variable NAMES (no values)
 
-## Remaining work
+| Name | Production |
+| --- | --- |
+| `NEXT_PUBLIC_INSTAGRAM_URL` | PRESENT |
+| `NEXT_PUBLIC_META_PIXEL_ID` | PRESENT |
+| `META_CAPI_PIXEL_ID` | PRESENT |
+| `META_CAPI_ACCESS_TOKEN` | PRESENT (name only; **token currently invalid for Graph API**) |
+| `META_TEST_EVENT_CODE` | ABSENT (optional) |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | ABSENT (optional) |
 
-1. Deepak: grant the Cursor GitHub App **Issues: Read and Write** on `dy1391996-sketch/vp-loan-connect` (or re-run after permission is added).
-2. Paste or ensure issue #13 contains the authorized task list (or keep `cursor-run` label + full description).
-3. Re-trigger with `START VPLC TECH RUN` (or `cursor-run`) so the next run can read the issue and continue.
-4. Next run must: read issue #13 completely → continue first unfinished authorized task → implement smallest safe fix → full verify → PR → update this file.
+`META_CAPI_PIXEL_ID` is optional in code (falls back to `NEXT_PUBLIC_META_PIXEL_ID`).
 
-## Exact next action
+## Production verification (runtime)
 
-```text
-After Issues read/write is enabled for the Cursor GitHub integration on dy1391996-sketch/vp-loan-connect:
-1) Comment again on issue #13: START VPLC TECH RUN
-2) Next agent reads docs/VPLC_AUTOMATION_STATUS.md + full issue #13
-3) Implements only the first unfinished task from the issue (no restart of completed handoff)
-```
+| Check | Status |
+| --- | --- |
+| Homepage /contact /apply/quick | 200 |
+| Public phone / WhatsApp / Call CTAs | Absent |
+| Instagram CTA `@vploanconnect` | Live (`https://www.instagram.com/vploanconnect/`) |
+| `/api/public-config` Instagram | Configured |
+| `/api/public-config` Pixel ID | Configured (len 16, Dataset `…4945`) |
+| `/api/public-config` `metaCapiConfigured` | `true` (non-empty token present) |
+| Public config secret leak | None (no CAPI token in public API) |
+| Consent banner | Works (shows when consent storage cleared) |
+| Pre-consent Meta network | PASS (no fbevents before Allow analytics) |
+| Post-consent Pixel load | PASS (Pixel `1057590634424945`) |
+| LandingPageView + `event_id` | Observed (browser/CAPI client path) |
+| CAPI Graph delivery | **FAIL** — HTTP 400 OAuthException **190** (*Invalid OAuth access token — Cannot parse access token*) |
+| Pricing constants ₹99 / ₹17.82 / ₹116.82 | Intact in source / apply & checkout UI |
+| OTP / Cashfree | Not intentionally changed |
 
-## OVERALL_STATUS
+## Meta Business assets
 
-**BLOCKED** — missing GitHub Issues API permission; trigger comment alone is not an actionable task scope.
+| Asset | Status |
+| --- | --- |
+| Facebook Page **VP Loan Connect** | Created |
+| Dataset/Pixel **VP Loan Connect Website** | Created — ID **1057590634424945** |
+| Business Portfolio | **Incomplete / missing** — blocks admin CAPI token generation |
+| Instagram @vploanconnect in Business Suite | Not connected yet (website CTA already live via env) |
+| Ad campaigns / spend | None (not authorized) |
+
+## Remaining owner-only blockers
+
+1. **Create/finish Meta Business Portfolio** “VP Loan Connect” (email verification may be required for the business email used).
+2. Ensure the logged-in user is **Business Admin/Developer**.
+3. **Generate** a valid Conversions API access token for Dataset `1057590634424945` and **replace** `META_CAPI_ACCESS_TOKEN` in Vercel → Production.
+4. Agent will then **Redeploy Production** and re-verify CAPI `sent:true`.
+5. Optional: connect Instagram `@vploanconnect` inside Business Suite; grant GitHub App **Issues Read/Write** for Issue #13 comments.
+
+Do **not** paste token values into chat.
+
+## Exact next automatic action (after owner DONE)
+
+1. Confirm `META_CAPI_ACCESS_TOKEN` still present (name only).
+2. Redeploy Production for `dpk09/vp-loan-connect`.
+3. Probe `/api/meta/conversions` — expect `sent:true` (not OAuth 190).
+4. Re-verify consent + Pixel + matching `event_id`.
+5. Update this doc + attempt Issue #13 comment if permissions fixed.
+
+## Meta Business restriction (2026-08-11 evening)
+
+- Business Portfolio **VP Loan Connect** exists but Meta applied a **Business restriction** (account integrity / automation policy).
+- Effects: cannot create/run ads; Events/Pixel collection restricted under that portfolio; CAPI **Generate access token** blocked.
+- Existing Dataset/Pixel **1057590634424945** still loads in browser after consent on Production.
+- CAPI Graph calls still return OAuthException **190** (invalid/unparsable access token in Vercel).
+- Owner must use Meta **Request review** on the restriction, then generate a valid CAPI token and replace `META_CAPI_ACCESS_TOKEN` in Vercel Production, then Redeploy.

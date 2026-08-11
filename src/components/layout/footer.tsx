@@ -1,5 +1,9 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Mail } from "lucide-react";
+import { InstagramDirectLink } from "@/components/instagram-direct-link";
 import { PLATFORM_DISCLAIMER, PUBLIC_SUPPORT_EMAIL, TAGLINE } from "@/lib/constants";
 
 const legal = [
@@ -12,6 +16,23 @@ const legal = [
 ];
 
 export function Footer() {
+  const [instagramUrl, setInstagramUrl] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/public-config", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { instagramUrl?: string } | null) => {
+        if (cancelled) return;
+        const href = typeof data?.instagramUrl === "string" ? data.instagramUrl : "";
+        setInstagramUrl(href);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <footer className="relative overflow-hidden bg-navy-950 text-white">
       <div className="pointer-events-none absolute -left-24 top-0 h-64 w-64 rounded-full bg-brand-500/10 blur-3xl" />
@@ -67,6 +88,12 @@ export function Footer() {
             <Link href="/contact#grievance" className="inline-flex min-h-11 items-center hover:text-white">
               Grievance contact
             </Link>
+            <Link href="/apply/quick" className="inline-flex min-h-11 items-center hover:text-white">
+              Quick Apply
+            </Link>
+            {instagramUrl ? (
+              <InstagramDirectLink href={instagramUrl} className="flex min-h-11 items-center gap-2 hover:text-white" />
+            ) : null}
             <a href={`mailto:${PUBLIC_SUPPORT_EMAIL}`} className="flex min-h-11 items-center gap-2 hover:text-white">
               <Mail size={15} />
               {PUBLIC_SUPPORT_EMAIL}

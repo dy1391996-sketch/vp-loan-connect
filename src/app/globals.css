@@ -10,8 +10,10 @@
   --color-brand-100: #ddf8ed;
   --color-surface: #f3f7f5;
   --color-line: #d8e4df;
-  --font-sans: var(--font-dm-sans), "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-manrope), var(--font-dm-sans), "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif;
+  --font-dm-sans: "DM Sans", "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif;
+  --font-manrope: "Manrope", "DM Sans", "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-dm-sans);
+  --font-display: var(--font-manrope);
   --shadow-soft: 0 28px 80px rgba(6, 21, 33, 0.12);
   --shadow-card: 0 14px 42px rgba(6, 21, 33, 0.08);
   --shadow-premium: 0 40px 100px rgba(6, 21, 33, 0.28);

@@ -410,7 +410,7 @@ export function QuickApplyStepBody({ form, patch, step, otp }: Props) {
           checked={form.marketingConsent}
           onChange={(e) => patch({ marketingConsent: e.target.checked })}
         />
-        <span>I agree to receive promotional communication by email, WhatsApp or phone.</span>
+        <span>I agree to receive promotional communication by email or other consented channels.</span>
       </label>
       <p className="mt-4 text-xs leading-6 text-slate-500">
         Read our{" "}

@@ -32,7 +32,7 @@ export default function LoanReadinessPage() {
         "Application-preparation roadmap",
         "30-day action plan",
         "Branded PDF report",
-        "15-minute WhatsApp consultation request",
+        "15-minute guidance consultation request",
         "Optional verified lender-referral request",
       ]}
     />
