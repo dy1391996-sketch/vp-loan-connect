@@ -121,9 +121,26 @@ export async function sendMetaCapiEvent(
       body: JSON.stringify(payload),
     });
     if (!response.ok) {
-      // Do not log response body (may contain sensitive diagnostics).
-      console.error("meta_capi_rejected", response.status);
-      return { sent: false, reason: "provider_rejected", status: response.status };
+      // Log only Meta error code/type — never token, never full body with secrets.
+      let metaCode: number | undefined;
+      let metaType: string | undefined;
+      try {
+        const errJson = (await response.json()) as {
+          error?: { code?: number; type?: string; error_subcode?: number };
+        };
+        metaCode = errJson?.error?.code;
+        metaType = errJson?.error?.type;
+        console.error("meta_capi_rejected", response.status, metaType ?? "unknown", metaCode ?? "n/a", errJson?.error?.error_subcode ?? "");
+      } catch {
+        console.error("meta_capi_rejected", response.status);
+      }
+      const reason =
+        metaCode === 190 || metaType === "OAuthException"
+          ? "provider_auth_rejected"
+          : metaCode === 100
+            ? "provider_param_rejected"
+            : "provider_rejected";
+      return { sent: false, reason, status: response.status };
     }
     return { sent: true, status: response.status };
   } catch (error) {
