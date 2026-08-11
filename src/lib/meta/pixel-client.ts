@@ -7,11 +7,21 @@ declare global {
   interface Window {
     fbq?: (...args: unknown[]) => void;
     _fbq?: (...args: unknown[]) => void;
+    __VPLC_META_PIXEL_ID__?: string;
   }
 }
 
 export function getPublicMetaPixelId(): string {
+  if (typeof window !== "undefined" && window.__VPLC_META_PIXEL_ID__) {
+    return String(window.__VPLC_META_PIXEL_ID__).trim();
+  }
   return String(process.env.NEXT_PUBLIC_META_PIXEL_ID || "").trim();
+}
+
+export function setRuntimeMetaPixelId(pixelId: string) {
+  if (typeof window === "undefined") return;
+  const trimmed = pixelId.trim();
+  if (trimmed) window.__VPLC_META_PIXEL_ID__ = trimmed;
 }
 
 export function trackMetaPixelEvent(
