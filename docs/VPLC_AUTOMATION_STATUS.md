@@ -1,95 +1,83 @@
 # VPLC Automation Status
 
-## Trigger and GitHub issue
+## Issue / scope
 
-- **Trigger:** Direct execution request — `START VPLC TECH EXECUTION` for Issue #13
 - **Issue:** https://github.com/dy1391996-sketch/vp-loan-connect/issues/13
-- **Note:** GitHub Issues API still returns 403 (`issues=read` missing) for this agent token; work scope taken from the explicit execution priorities in the run prompt.
+- **Note:** GitHub Issues API remains 403 (`issues=read` missing) for the automation GitHub App token — cannot read/comment on issues until Issues Read/Write is granted.
 
-## Starting commit
+## Merged delivery
 
-- `77611b998fff794afee06c2a6d702543a1d03ddd` (`origin/main`)
+| PR | Commit | Purpose |
+| --- | --- | --- |
+| #15 | `b56cfeb…` | Public contact cleanup + consent-gated Meta Pixel/CAPI |
+| #16 | `4eac54e…` | Fontsource CI reliability |
+| #17 | `472e666…` | Runtime `/api/public-config` + Instagram/Pixel hydration |
+| #18 | `5bf0a7e…` | CAPI provider rejection classification (OAuth vs param) |
 
-## Branch
+Production main includes through **#18**.
 
-- `cursor/issue-13-meta-public-contact`
+## Vercel project (proven)
 
-## Verified current state (before this PR)
+- **Team:** `dpk09` (dpk)
+- **Project:** `vp-loan-connect`
+- **DOMAIN_MATCH:** yes — aliases include `https://www.vploanconnect.in` and `https://vploanconnect.in`
 
-- No public `tel:` CTAs in `src/`
-- Public WhatsApp CTA in referral share (`wa.me/?text=`) + legacy `script.js` business number
-- No Instagram public contact route
-- UTM attribution present; Meta Pixel/CAPI absent
-- Hardcoded GA loaded without consent banner
+## Production environment variable NAMES (no values)
 
-## Work completed
+| Name | Production |
+| --- | --- |
+| `NEXT_PUBLIC_INSTAGRAM_URL` | PRESENT |
+| `NEXT_PUBLIC_META_PIXEL_ID` | PRESENT |
+| `META_CAPI_PIXEL_ID` | PRESENT |
+| `META_CAPI_ACCESS_TOKEN` | PRESENT (name only; **token currently invalid for Graph API**) |
+| `META_TEST_EVENT_CODE` | ABSENT (optional) |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | ABSENT (optional) |
 
-1. Removed public WhatsApp share CTA; replaced with Copy + native Share (no `wa.me`).
-2. Removed legacy `script.js` WhatsApp number; `sendWA` routes to `/apply/quick`.
-3. Stopped embedding `SUPPORT_WHATSAPP` in customer PDFs.
-4. Added public Instagram Direct contact (env-gated via `NEXT_PUBLIC_INSTAGRAM_URL`) on Contact + Footer.
-5. Softened public “WhatsApp consultation/support” marketing copy; kept server WhatsApp Business templates.
-6. Added marketing consent banner; GA + Meta Pixel load only after consent.
-7. Implemented Meta Pixel readiness + Conversions API route with shared `event_id` dedupe.
-8. Extended first-party analytics allowlist; mapped funnel events to Meta catalog.
-9. Updated CSP for Meta/GA hosts (still no allow-all).
-10. Added regression tests for public-contact policy, consent parse, Meta events/CAPI payload.
-11. Full local verify: install, prisma validate, migrate deploy, migration verify, readiness, audit, lint, typecheck, tests (133), production build.
+`META_CAPI_PIXEL_ID` is optional in code (falls back to `NEXT_PUBLIC_META_PIXEL_ID`).
 
-## Files changed (high level)
+## Production verification (runtime)
 
-- Public contact: `referral-dashboard-client.tsx`, `script.js`, `contact/page.tsx`, `footer.tsx`, `public-contact.ts`, report PDF data, copy pages
-- Meta/consent: `src/lib/meta/*`, `src/lib/consent/*`, `analytics-provider.tsx`, `analytics-client.ts`, `api/meta/conversions`, `api/analytics`, `csp.ts`, `env.ts`, `.env.example`
-- Tests + `docs/VPLC_AUTOMATION_STATUS.md`
+| Check | Status |
+| --- | --- |
+| Homepage /contact /apply/quick | 200 |
+| Public phone / WhatsApp / Call CTAs | Absent |
+| Instagram CTA `@vploanconnect` | Live (`https://www.instagram.com/vploanconnect/`) |
+| `/api/public-config` Instagram | Configured |
+| `/api/public-config` Pixel ID | Configured (len 16, Dataset `…4945`) |
+| `/api/public-config` `metaCapiConfigured` | `true` (non-empty token present) |
+| Public config secret leak | None (no CAPI token in public API) |
+| Consent banner | Works (shows when consent storage cleared) |
+| Pre-consent Meta network | PASS (no fbevents before Allow analytics) |
+| Post-consent Pixel load | PASS (Pixel `1057590634424945`) |
+| LandingPageView + `event_id` | Observed (browser/CAPI client path) |
+| CAPI Graph delivery | **FAIL** — HTTP 400 OAuthException **190** (*Invalid OAuth access token — Cannot parse access token*) |
+| Pricing constants ₹99 / ₹17.82 / ₹116.82 | Intact in source / apply & checkout UI |
+| OTP / Cashfree | Not intentionally changed |
 
-## Test results
+## Meta Business assets
 
-- `pnpm install --frozen-lockfile` — pass
-- `prisma validate` / `db:deploy` / `verify:migration` / `verify:readiness` — pass
-- `pnpm audit --prod --audit-level moderate` — no known vulnerabilities
-- `pnpm lint` — pass
-- `pnpm typecheck` — pass
-- `pnpm test` — **133 pass / 0 fail**
-- `pnpm build` — pass (includes `/api/meta/conversions`)
+| Asset | Status |
+| --- | --- |
+| Facebook Page **VP Loan Connect** | Created |
+| Dataset/Pixel **VP Loan Connect Website** | Created — ID **1057590634424945** |
+| Business Portfolio | **Incomplete / missing** — blocks admin CAPI token generation |
+| Instagram @vploanconnect in Business Suite | Not connected yet (website CTA already live via env) |
+| Ad campaigns / spend | None (not authorized) |
 
-## PR and CI links
+## Remaining owner-only blockers
 
-- PR: https://github.com/dy1391996-sketch/vp-loan-connect/pull/15
-- Issue comment on #13: **blocked** (GitHub Issues write 403 for this token)
-- CI: **success** — https://github.com/dy1391996-sketch/vp-loan-connect/actions/runs/31428446691
+1. **Create/finish Meta Business Portfolio** “VP Loan Connect” (email verification may be required for the business email used).
+2. Ensure the logged-in user is **Business Admin/Developer**.
+3. **Generate** a valid Conversions API access token for Dataset `1057590634424945` and **replace** `META_CAPI_ACCESS_TOKEN` in Vercel → Production.
+4. Agent will then **Redeploy Production** and re-verify CAPI `sent:true`.
+5. Optional: connect Instagram `@vploanconnect` inside Business Suite; grant GitHub App **Issues Read/Write** for Issue #13 comments.
 
-## Missing variable names (no values)
+Do **not** paste token values into chat.
 
-Set in **Vercel → Project → Settings → Environment Variables** (Production), then redeploy:
+## Exact next automatic action (after owner DONE)
 
-- `NEXT_PUBLIC_INSTAGRAM_URL`
-- `NEXT_PUBLIC_META_PIXEL_ID`
-- `META_CAPI_ACCESS_TOKEN`
-- `META_CAPI_PIXEL_ID` (optional; defaults to pixel id)
-- `META_TEST_EVENT_CODE` (optional sandbox)
-- `NEXT_PUBLIC_GA_MEASUREMENT_ID` (optional; GA only loads after consent)
-
-Also grant Cursor GitHub App **Issues: Read and write** so future runs can read/comment on #13.
-
-## Remaining work
-
-1. Deepak: set Instagram + Meta env vars in Vercel (names above).
-2. Deepak: approve/merge PR (no auto-merge/deploy by agent).
-3. After secrets: verify Meta Test Events in Events Manager; confirm Instagram CTA appears on `/contact`.
-
-## Exact next action
-
-```text
-Deepak: 1) Review/merge PR for issue #13. 2) In Vercel Production env, set NEXT_PUBLIC_INSTAGRAM_URL, NEXT_PUBLIC_META_PIXEL_ID, META_CAPI_ACCESS_TOKEN (and optional META_CAPI_PIXEL_ID / META_TEST_EVENT_CODE / NEXT_PUBLIC_GA_MEASUREMENT_ID). 3) Redeploy. 4) Grant GitHub Issues read/write to Cursor for issue comments.
-```
-
-## Post-merge production verification (2026-08-11)
-
-- Production still served Instagram placeholder + CAPI `not_configured` after owner claimed env+redeploy.
-- Contact page was statically prerendered (`X-Nextjs-Prerender: 1`) so Instagram URL could not appear until runtime-dynamic fix.
-- Follow-up branch `cursor/fix-runtime-public-config`: force-dynamic contact, `/api/public-config`, runtime Pixel/IG hydration, handle normalization.
-
-## OVERALL_STATUS
-
-**OWNER_META_ACTION_REQUIRED** — confirm Production env names + full rebuild/redeploy; merge runtime public-config PR once CI green.
-
+1. Confirm `META_CAPI_ACCESS_TOKEN` still present (name only).
+2. Redeploy Production for `dpk09/vp-loan-connect`.
+3. Probe `/api/meta/conversions` — expect `sent:true` (not OAuth 190).
+4. Re-verify consent + Pixel + matching `event_id`.
+5. Update this doc + attempt Issue #13 comment if permissions fixed.
