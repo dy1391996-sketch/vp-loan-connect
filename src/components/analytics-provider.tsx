@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { readMarketingConsent } from "@/lib/consent/marketing-consent";
 import { createMetaEventId } from "@/lib/meta/events";
-import { getPublicMetaPixelId, trackMetaPixelEvent } from "@/lib/meta/pixel-client";
+import { getPublicMetaPixelId, setRuntimeMetaPixelId, trackMetaPixelEvent } from "@/lib/meta/pixel-client";
 import { trackEvent } from "@/lib/analytics-client";
 
 declare global {
@@ -17,8 +17,8 @@ declare global {
   }
 }
 
-/** Public GA id — optional. Prefer NEXT_PUBLIC_GA_MEASUREMENT_ID in Vercel. */
-function readGaId(): string {
+/** Build-time public GA id (may be empty until runtime public-config loads). */
+function readBuildGaId(): string {
   return String(process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || process.env.NEXT_PUBLIC_ANALYTICS_ID || "").trim();
 }
 
@@ -39,10 +39,14 @@ export function AnalyticsProvider() {
   const pathname = usePathname();
   const [consent, setConsent] = useState<"unknown" | "granted" | "denied">("unknown");
   const [pixelReady, setPixelReady] = useState(false);
+  const [runtimePixelId, setRuntimePixelId] = useState("");
+  const [runtimeGaId, setRuntimeGaId] = useState("");
   const landingSentForPath = useRef<string | null>(null);
   const igAdSentForPath = useRef<string | null>(null);
-  const gaId = readGaId();
-  const pixelId = getPublicMetaPixelId();
+  const buildGaId = readBuildGaId();
+  const buildPixelId = getPublicMetaPixelId();
+  const gaId = runtimeGaId || buildGaId;
+  const pixelId = runtimePixelId || buildPixelId;
 
   useEffect(() => {
     const current = readMarketingConsent();
@@ -53,6 +57,28 @@ export function AnalyticsProvider() {
     };
     window.addEventListener("vplc:marketing-consent", onConsent as EventListener);
     return () => window.removeEventListener("vplc:marketing-consent", onConsent as EventListener);
+  }, []);
+
+  // Runtime public config so Production env changes apply without relying solely on build-time inlining.
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/public-config", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { metaPixelId?: string; gaMeasurementId?: string } | null) => {
+        if (cancelled || !data) return;
+        if (typeof data.metaPixelId === "string" && data.metaPixelId.trim()) {
+          const id = data.metaPixelId.trim();
+          setRuntimeMetaPixelId(id);
+          setRuntimePixelId(id);
+        }
+        if (typeof data.gaMeasurementId === "string" && data.gaMeasurementId.trim()) {
+          setRuntimeGaId(data.gaMeasurementId.trim());
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // First-party product analytics only (Meta LandingPageView is consent-gated below).
@@ -96,7 +122,6 @@ export function AnalyticsProvider() {
     if (isIgAd && igAdSentForPath.current !== pathname) {
       const eventId = createMetaEventId("ig_ad");
       igAdSentForPath.current = pathname;
-      // First-party record; Meta is sent once below with the same event_id (not via trackEvent mapping).
       trackEvent("instagram_ad_landing", {
         event_id: eventId,
         utm_source: params.get("utm_source"),

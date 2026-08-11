@@ -3,7 +3,11 @@ import Link from "next/link";
 import { Headphones, Instagram, Mail, Rocket } from "lucide-react";
 import { InstagramDirectLink } from "@/components/instagram-direct-link";
 import { PUBLIC_GRIEVANCE_EMAIL, PUBLIC_SUPPORT_EMAIL } from "@/lib/constants";
-import { getPublicInstagramUrl } from "@/lib/public-contact";
+import { getPublicSiteConfig } from "@/lib/public-site-config";
+
+/** Always read Instagram URL from runtime env — do not bake a stale placeholder into static HTML. */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "Contact Us",
@@ -12,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 export default function ContactPage() {
-  const instagramUrl = getPublicInstagramUrl();
+  const { instagramUrl } = getPublicSiteConfig();
   return (
     <section className="surface-grid min-h-[75vh] bg-surface py-14 sm:py-20">
       <div className="page-shell">

@@ -13,8 +13,13 @@ export const QUICK_APPLY_HREF = "/apply/quick";
 export function getPublicInstagramUrl(environment: Record<string, string | undefined> = process.env): string {
   const raw = String(environment.NEXT_PUBLIC_INSTAGRAM_URL || "").trim();
   if (!raw) return "";
+
+  // Accept bare handle / @handle from operators and normalize to https Instagram URL.
+  const handleMatch = raw.match(/^@?([A-Za-z0-9._]{1,30})$/);
+  const normalized = handleMatch ? `https://www.instagram.com/${handleMatch[1]}/` : raw;
+
   try {
-    const url = new URL(raw);
+    const url = new URL(normalized);
     const host = url.hostname.toLowerCase();
     const allowed =
       host === "instagram.com" ||
