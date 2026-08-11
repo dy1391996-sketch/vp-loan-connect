@@ -81,3 +81,11 @@ Do **not** paste token values into chat.
 3. Probe `/api/meta/conversions` — expect `sent:true` (not OAuth 190).
 4. Re-verify consent + Pixel + matching `event_id`.
 5. Update this doc + attempt Issue #13 comment if permissions fixed.
+
+## Meta Business restriction (2026-08-11 evening)
+
+- Business Portfolio **VP Loan Connect** exists but Meta applied a **Business restriction** (account integrity / automation policy).
+- Effects: cannot create/run ads; Events/Pixel collection restricted under that portfolio; CAPI **Generate access token** blocked.
+- Existing Dataset/Pixel **1057590634424945** still loads in browser after consent on Production.
+- CAPI Graph calls still return OAuthException **190** (invalid/unparsable access token in Vercel).
+- Owner must use Meta **Request review** on the restriction, then generate a valid CAPI token and replace `META_CAPI_ACCESS_TOKEN` in Vercel Production, then Redeploy.
