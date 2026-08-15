@@ -176,7 +176,31 @@ function Status({ label, ok, detail, icon: Icon }: { label: string; ok: boolean;
 }
 
 function Ranking({ title, subtitle, rows, total }: { title: string; subtitle: string; rows: Array<{ label: string; count: number }>; total: number }) {
-  return <section className="rounded-2xl border border-line bg-white p-6"><h2 className="font-bold text-navy-950">{title}</h2><p className="mt-1 text-xs text-slate-500">{subtitle}</p><div className="mt-5 grid gap-3">{rows.length ? rows.map((row, index) => <div key={row.label} className="flex items-center gap-3"><span className="grid h-7 w-7 place-items-center rounded-lg bg-surface text-xs font-bold text-navy-950">{index + 1}</span><div className="min-w-0 flex-1"><div className="flex justify-between gap-3 text-sm"><span className="truncate font-semibold text-slate-700">{row.label}</span><span className="font-bold text-navy-950">{row.count}</span></div><div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface"><div className="h-full rounded-full bg-brand-500" style={{ width: `${percent(row.count, total)}%` }} /></div></div></div></div>) : <p className="text-sm text-slate-500">No campaign data yet.</p>}</div></section>;
+  return (
+    <section className="rounded-2xl border border-line bg-white p-6">
+      <h2 className="font-bold text-navy-950">{title}</h2>
+      <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
+      <div className="mt-5 grid gap-3">
+        {rows.length ? rows.map((row, index) => {
+          const share = percent(row.count, total);
+          return (
+            <div key={row.label} className="flex items-center gap-3">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-surface text-xs font-bold text-navy-950">{index + 1}</span>
+              <div className="min-w-0 flex-1">
+                <div className="flex justify-between gap-3 text-sm">
+                  <span className="truncate font-semibold text-slate-700">{row.label}</span>
+                  <span className="font-bold text-navy-950">{row.count}</span>
+                </div>
+                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface">
+                  <div className="h-full rounded-full bg-brand-500" style={{ width: `${share}%` }} />
+                </div>
+              </div>
+            </div>
+          );
+        }) : <p className="text-sm text-slate-500">No campaign data yet.</p>}
+      </div>
+    </section>
+  );
 }
 
 function Action({ number, title, text }: { number: string; title: string; text: string }) {
