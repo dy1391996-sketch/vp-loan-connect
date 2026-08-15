@@ -3,7 +3,8 @@ import { BarChart3, FileText, Landmark, LayoutDashboard, Megaphone, Settings, Us
 import { LogoutButton } from "./logout-button";
 
 const links = [
-  ["Overview", "/admin", LayoutDashboard],\n  ["Marketing", "/admin/marketing", Megaphone],
+  ["Overview", "/admin", LayoutDashboard],
+  ["Marketing", "/admin/marketing", Megaphone],
   ["Leads", "/admin/leads", UsersRound],
   ["Payments", "/admin/payments", WalletCards],
   ["Reports", "/admin/reports", FileText],
