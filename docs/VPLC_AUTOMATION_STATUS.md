@@ -3,89 +3,83 @@
 ## Issue / scope
 
 - **Issue:** https://github.com/dy1391996-sketch/vp-loan-connect/issues/13
-- **Note:** GitHub Issues API remains 403 (`issues=read` missing) for the automation GitHub App token — cannot read/comment on issues until Issues Read/Write is granted.
+- **GitHub Issues API:** 403 for automation App (`issues=read` missing) — cannot comment via API until Issues Read/Write is granted.
 
-## Merged delivery
+## Canonical identity (production + Meta target)
 
-| PR | Commit | Purpose |
-| --- | --- | --- |
-| #15 | `b56cfeb…` | Public contact cleanup + consent-gated Meta Pixel/CAPI |
-| #16 | `4eac54e…` | Fontsource CI reliability |
-| #17 | `472e666…` | Runtime `/api/public-config` + Instagram/Pixel hydration |
-| #18 | `5bf0a7e…` | CAPI provider rejection classification (OAuth vs param) |
-
-Production main includes through **#18**.
-
-## Vercel project (proven)
-
-- **Team:** `dpk09` (dpk)
-- **Project:** `vp-loan-connect`
-- **DOMAIN_MATCH:** yes — aliases include `https://www.vploanconnect.in` and `https://vploanconnect.in`
-
-## Production environment variable NAMES (no values)
-
-| Name | Production |
+| Field | Value |
 | --- | --- |
-| `NEXT_PUBLIC_INSTAGRAM_URL` | PRESENT |
-| `NEXT_PUBLIC_META_PIXEL_ID` | PRESENT |
-| `META_CAPI_PIXEL_ID` | PRESENT |
-| `META_CAPI_ACCESS_TOKEN` | PRESENT (name only; **token currently invalid for Graph API**) |
-| `META_TEST_EVENT_CODE` | ABSENT (optional) |
-| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | ABSENT (optional) |
+| Brand | VP Loan Connect |
+| Website | https://www.vploanconnect.in |
+| Instagram | https://www.instagram.com/vploanconnect.in/ |
+| Business Portfolio | **VP Loan Connect** `1065984692638768` |
+| Canonical business email | `info@vploanconnect.in` (visible in Meta business/ad-account contact config) |
+| Public phone / WhatsApp / Call CTA | **Must stay hidden** on website (Quick Apply + Instagram Direct + support email only) |
+| Ads spend | **₹0** |
 
-`META_CAPI_PIXEL_ID` is optional in code (falls back to `NEXT_PUBLIC_META_PIXEL_ID`).
+## Fresh Dataset migration attempt (2026-08-16)
 
-## Production verification (runtime)
+### Phase 1 — Old Dataset bounded check
+
+| Item | Result |
+| --- | --- |
+| Old Dataset ID | `1057590634424945` (“VP Loan Connect Website”) |
+| Ownership context | Personal advertising / ad-account context (not cleanly under VP Loan Connect portfolio Datasets list) |
+| Self-service assign / share / move to VP Loan Connect | **Not available** in UI (bounded check) |
+| **OLD_DATASET_STATUS** | **LEGACY_DO_NOT_USE** (do not delete in Meta; stop trying to repair ownership) |
+
+### Phase 2–3 — New Dataset under VP Loan Connect
+
+| Item | Result |
+| --- | --- |
+| Portfolio | VP Loan Connect `1065984692638768` |
+| Restriction banner | *You can't use this business portfolio to advertise / create ads.* |
+| Account Quality | Restricted **11 Aug 2026**; reason: automation / account-integrity Advertising Standards |
+| Account Quality review | **Review complete** — Meta did **not** remove restrictions; **no** further “Request review” button on the page |
+| Create Dataset attempt | Name `VP Loan Connect Website`, Web, site `https://www.vploanconnect.in` |
+| Meta create error | *Business is not allowed to create Pixel. Your business is prohibited from advertising, including pixel creation.* |
+| **NEW_DATASET_CREATED** | **No** |
+| Second portfolio to bypass restriction | **Not created** (would evade Meta enforcement) |
+| Instagram under portfolio | Not connected in Business Settings (website CTA still uses `@vploanconnect.in` via Vercel) |
+
+### Phases 4–12 — Blocked (no new Dataset)
+
+Cannot generate a new CAPI token, migrate Vercel Pixel/CAPI IDs, or verify `sent:true` / Test Events / Meta-side dedup until Meta lifts the VP Loan Connect advertising / pixel-creation prohibition.
+
+## What still works on Production (unchanged)
 
 | Check | Status |
 | --- | --- |
-| Homepage /contact /apply/quick | 200 |
-| Public phone / WhatsApp / Call CTAs | Absent |
-| Instagram CTA `@vploanconnect` | Live (`https://www.instagram.com/vploanconnect/`) |
-| `/api/public-config` Instagram | Configured |
-| `/api/public-config` Pixel ID | Configured (len 16, Dataset `…4945`) |
-| `/api/public-config` `metaCapiConfigured` | `true` (non-empty token present) |
-| Public config secret leak | None (no CAPI token in public API) |
-| Consent banner | Works (shows when consent storage cleared) |
-| Pre-consent Meta network | PASS (no fbevents before Allow analytics) |
-| Post-consent Pixel load | PASS (Pixel `1057590634424945`) |
-| LandingPageView + `event_id` | Observed (browser/CAPI client path) |
-| CAPI Graph delivery | **FAIL** — HTTP 400 OAuthException **190** (*Invalid OAuth access token — Cannot parse access token*) |
-| Pricing constants ₹99 / ₹17.82 / ₹116.82 | Intact in source / apply & checkout UI |
-| OTP / Cashfree | Not intentionally changed |
+| `/` `/contact` `/apply/quick` | 200 |
+| `/api/public-config` | Instagram `@vploanconnect.in`, Pixel still `1057590634424945`, `metaCapiConfigured:true`, **no token leak** |
+| Public `tel:` / `wa.me` | Absent |
+| Consent-gated browser Pixel | Still loads **legacy** Dataset `1057590634424945` after consent (legacy ID remains Production env until a legitimate new Dataset exists) |
+| CAPI | Still `accepted:true,sent:false,reason:provider_auth_rejected` (OAuthException **190**) |
+| Cloud Agent env | Validated draft build `bld-20260816-a9e47bdc-4dc6-47ff-8ef2-6dfcc451d807` — Save in Environment panel if not already |
 
-## Meta Business assets
+## Vercel Production env NAMES (no values)
 
-| Asset | Status |
+| Name | Status |
 | --- | --- |
-| Facebook Page **VP Loan Connect** | Created |
-| Dataset/Pixel **VP Loan Connect Website** | Created — ID **1057590634424945** |
-| Business Portfolio | **Incomplete / missing** — blocks admin CAPI token generation |
-| Instagram @vploanconnect in Business Suite | Not connected yet (website CTA already live via env) |
-| Ad campaigns / spend | None (not authorized) |
+| `NEXT_PUBLIC_INSTAGRAM_URL` | PRESENT → `@vploanconnect.in` |
+| `NEXT_PUBLIC_META_PIXEL_ID` | PRESENT → still legacy `1057590634424945` (migration blocked) |
+| `META_CAPI_PIXEL_ID` | PRESENT |
+| `META_CAPI_ACCESS_TOKEN` | PRESENT but Graph-rejected (190) |
+| Cashfree / OTP / pricing secrets | Untouched |
 
-## Remaining owner-only blockers
+## MEASUREMENT_READY
 
-1. **Create/finish Meta Business Portfolio** “VP Loan Connect” (email verification may be required for the business email used).
-2. Ensure the logged-in user is **Business Admin/Developer**.
-3. **Generate** a valid Conversions API access token for Dataset `1057590634424945` and **replace** `META_CAPI_ACCESS_TOKEN` in Vercel → Production.
-4. Agent will then **Redeploy Production** and re-verify CAPI `sent:true`.
-5. Optional: connect Instagram `@vploanconnect` inside Business Suite; grant GitHub App **Issues Read/Write** for Issue #13 comments.
+**no**
 
-Do **not** paste token values into chat.
+Hard blocker is **Meta portfolio advertising / pixel-creation restriction** on VP Loan Connect `1065984692638768`, not missing Vercel wiring or website code.
 
-## Exact next automatic action (after owner DONE)
+## Owner actions after Meta clears restriction
 
-1. Confirm `META_CAPI_ACCESS_TOKEN` still present (name only).
-2. Redeploy Production for `dpk09/vp-loan-connect`.
-3. Probe `/api/meta/conversions` — expect `sent:true` (not OAuth 190).
-4. Re-verify consent + Pixel + matching `event_id`.
-5. Update this doc + attempt Issue #13 comment if permissions fixed.
+1. Confirm Account Quality / advertising restriction cleared for portfolio `1065984692638768`.
+2. Create Dataset **VP Loan Connect Website** (Web) under that portfolio; record new ID.
+3. Generate CAPI token for the **new** Dataset only → set Production `NEXT_PUBLIC_META_PIXEL_ID`, `META_CAPI_PIXEL_ID`, `META_CAPI_ACCESS_TOKEN` → Redeploy.
+4. Verify `/api/public-config` shows **new** ID (not `1057590634424945`), consent Pixel, `sent:true`, Test Events, matching `event_id` dedupe.
+5. Leave old Dataset in Meta as legacy; do not delete unless separately decided.
+6. Optional: GitHub App Issues Read/Write for Issue #13; Save Cloud Agent environment; Instagram privacy polish.
 
-## Meta Business restriction (2026-08-11 evening)
-
-- Business Portfolio **VP Loan Connect** exists but Meta applied a **Business restriction** (account integrity / automation policy).
-- Effects: cannot create/run ads; Events/Pixel collection restricted under that portfolio; CAPI **Generate access token** blocked.
-- Existing Dataset/Pixel **1057590634424945** still loads in browser after consent on Production.
-- CAPI Graph calls still return OAuthException **190** (invalid/unparsable access token in Vercel).
-- Owner must use Meta **Request review** on the restriction, then generate a valid CAPI token and replace `META_CAPI_ACCESS_TOKEN` in Vercel Production, then Redeploy.
+Do **not** paste token values into chat or docs.
