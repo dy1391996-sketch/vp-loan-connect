@@ -46,6 +46,19 @@
 
 Cannot generate a new CAPI token, migrate Vercel Pixel/CAPI IDs, or verify `sent:true` / Test Events / Meta-side dedup until Meta lifts the VP Loan Connect advertising / pixel-creation prohibition.
 
+### Meta Support appeal (2026-08-16)
+
+| Item | Result |
+| --- | --- |
+| Channel | Meta Business Support Home → Meta AI Business Assistant (`business.facebook.com/business-support-home`) |
+| Appeal text | Submitted (portfolio `1065984692638768`, website, `info@vploanconnect.in`, `@vploanconnect.in`, Events Manager / CAPI need; no circumvention) |
+| Formal case ID | None (AI chat, not a numbered ticket) |
+| Chat | Saved as “Manual Appeal For Business…” (Today) |
+| Live agent transfer | Unavailable — specialized team at full capacity per AI |
+| AI stated root theme | Fake-accounts / account-integrity scrutiny; incomplete Business Verification; missing linked Page signal |
+| Recommended Meta path | **Start Business Verification** (legal docs) + link official Facebook Page |
+| Legal document upload | **Not performed by agent** — owner must complete Business Verification |
+
 ## What still works on Production (unchanged)
 
 | Check | Status |
