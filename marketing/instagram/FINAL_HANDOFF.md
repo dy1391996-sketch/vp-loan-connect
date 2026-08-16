@@ -1,64 +1,42 @@
 # FINAL HANDOFF — Organic Instagram @vploanconnect.in
 
-Date (UTC): 2026-08-16  
+Updated (UTC): 2026-08-16  
 Branch: `cursor/instagram-organic-setup-bf91`  
+**Live handle:** `@vploanconnect.in` (Production SoT). Owner prompt’s `@vploanconnect` is not the live Production account.
+
 Ads / Pixel / CAPI / billing / Boost: **UNTOUCHED**
 
-## Profile — target vs verified
+## Profile — verified live
 
-| Field | Target | Actual |
-| --- | --- | --- |
-| Username | @vploanconnect.in (Production SoT; master prompt’s `@vploanconnect` superseded by live Production) | **@vploanconnect.in** |
-| Display name | VP Loan Connect \| Loan Assistance | Verified |
-| Category | Financial service | Verified |
-| Bio | Approved 3-line bio | Verified |
-| Website | https://www.vploanconnect.in | Verified |
-| WhatsApp / Call / phone | Off / hidden | Verified |
-| Profile photo | VP monogram 1080×1080 | Uploaded |
+| Field | Status |
+| --- | --- |
+| Username | @vploanconnect.in |
+| Display name | VP Loan Connect \| Loan Assistance |
+| Category / professional | Financial service / professional |
+| Bio | Approved compliant bio |
+| Website | www.vploanconnect.in |
+| Phone / WhatsApp / Call | Not shown |
+| DP | VP monogram |
 
-Evidence: `/opt/cursor/artifacts/ig_profile_verified.webp`, `ig_profile_bio_updated.webp`, `ig_posts_01_02_35_published.webp`
-
-## Published (organic web)
-
-| Post | Topic | Status |
-| --- | --- | --- |
-| 01 | Brand Introduction — Clear Guidance… | **Published** |
-| 02 | Why Choose VP Loan Connect | **Published** |
-| 35 | Start Your Secure Enquiry | **Published** |
-| 03–34, 36 | Remaining educational set | Rendered + queued (not bulk-published to avoid spam burst) |
-
-## Pins & highlights
+## Content status
 
 | Item | Status |
 | --- | --- |
-| Pin 01, 02, 35 | **MANUAL ACTION REQUIRED** — Instagram web (desktop + mobile web) has no Pin control |
-| Highlights (7) | **MANUAL ACTION REQUIRED** — requires native app Stories → Highlights |
-| Story/cover files | Ready under `marketing/instagram/stories/` and `highlights/` |
+| Posts 01, 02, 35 | Published (organic Instagram web) |
+| Posts 03, 04, 05 | Scheduled organic via Meta Business Suite (IG + FB): 17 Aug 15:00, 18 Aug 15:30, 19 Aug 15:59 IST |
+| Posts 06–34, 36 | Rendered locally + queued in 30-day calendar (not bulk-published) |
+| Local factory | 36 posts validated (`VALIDATION_OK 36`) |
+| Pins 01 / 02 / 35 | Instagram app only |
+| Highlights (7) | Instagram app only; covers ready under `highlights/` |
 
-### Owner mobile-app steps (exact)
+## MANUAL ACTION REQUIRED (mobile app)
 
-1. Open Instagram **app** → @vploanconnect.in  
-2. Pin in any order until all three show pin badges:  
-   - “Clear Guidance. Smarter Loan Decisions.” (**01**)  
-   - “Why people start with VP Loan Connect” (**02**)  
-   - “Start your secure enquiry today” (**35**)  
-3. Create Stories from `marketing/instagram/stories/*-1080x1920.png`  
-4. Add Highlights with covers from `marketing/instagram/highlights/*.png` (Reviews = neutral only; no fake testimonials)
+* Action: Pin posts 01, 02, 35; create Stories then Highlights (Start Here, Eligibility, Documents, Loan Types, Safety, FAQs, Reviews)
+* Instagram mobile steps: Profile → open each post → ⋯ → Pin; then + → Story (upload `stories/*`) → New highlight + covers from `highlights/`
+* Expected final result: three pinned posts; seven branded highlights; Reviews neutral only
 
-## Local factory
+## Evidence artifacts
 
-- 36× 1080×1350 feed PNGs + captions + alt + meta  
-- Profile DP, 7 highlight covers, 7 stories, 6 reel packages  
-- `metadata/posts_master.csv`, `30_day_calendar.csv|md`, `publishing_status.csv`  
-- Validator: `VALIDATION_OK 36`  
-- Compliance report: `audit/content_compliance_report.md`
-
-## Remaining
-
-- Owner: pin 01/02/35 + stories/highlights on mobile app  
-- Agent later: continue organic publish cadence from calendar (posts 03+) without Boost  
-- Do not use legacy parked handle for Production CTA; keep website → @vploanconnect.in
-
-## Explicit confirmation
-
-**No Ads Manager, ad account, campaign, budget, billing, Pixel, CAPI, attribution, or Boost Post settings were opened or changed in this run.**
+- `/opt/cursor/artifacts/ig_final_qa_profile.webp`
+- `/opt/cursor/artifacts/ig_edit_profile_verified.webp`
+- `/opt/cursor/artifacts/ig_posts_01_02_35_published.webp`
