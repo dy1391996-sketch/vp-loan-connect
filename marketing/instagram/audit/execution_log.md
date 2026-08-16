@@ -1,12 +1,11 @@
 # Execution log — organic Instagram
 
-## 2026-08-16
+## 2026-08-16 (continued)
 
-- OTP accepted; logged into @vploanconnect.in
-- Profile bio, category (Financial service), website, contact privacy verified
-- DP uploaded (VP monogram)
-- Rendered 36 feed posts (1080×1350), profile DP, 7 highlights, 7 stories, 6 reel packages
-- Validator: VALIDATION_OK 36
-- Published organically via Instagram web: posts **01, 02, 35**
-- Pin + Highlights blocked on Instagram web → owner mobile app required
-- Ads/Pixel/CAPI/billing/Boost: untouched
+- Re-verified live profile @vploanconnect.in (not parked @vploanconnect)
+- Profile fields, bio, website, no phone/WhatsApp/Call: OK
+- Published: 01, 02, 35
+- Scheduled organic via Business Suite: 03, 04, 05 (17–19 Aug IST)
+- Declined Boost prompts
+- Pins/Highlights still mobile-app only
+- Ads/Pixel/CAPI/billing: untouched
