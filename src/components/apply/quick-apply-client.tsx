@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, CircleAlert, Loader2, ShieldCheck, Zap } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CircleAlert, Loader2, ShieldCheck } from "lucide-react";
+import { CreditProfileBoosterPayCard } from "@/components/apply/quick/booster-pay-card";
 import { FunnelHeader, FunnelSidebar, MobileTrustStrip, StickyActions } from "@/components/apply/quick/funnel-shell";
 import { QuickApplyStepBody } from "@/components/apply/quick/steps";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { captureAttributionFromSearch, getAttributionPayload } from "@/lib/attribution";
 import {
   clearDraft,
@@ -15,10 +16,18 @@ import {
   mapIncomeToRange,
   maskEmail,
   readDraft,
+  readResultSnapshot,
   writeDraft,
+  writeResultSnapshot,
   type QuickApplyFormState,
+  type QuickApplyResultSnapshot,
 } from "@/lib/apply/quick-apply-state";
-import { validateQuickApplyStep } from "@/lib/apply/quick-apply-validation";
+import {
+  getNextQuickApplyStep,
+  getPreviousQuickApplyStep,
+  validateQuickApplyStep,
+  validateQuickApplyStepFields,
+} from "@/lib/apply/quick-apply-validation";
 import {
   prepareMsg91EmailOtp,
   resetMsg91EmailOtpClient,
@@ -27,23 +36,14 @@ import {
   verifyMsg91EmailOtp,
 } from "@/lib/apply/msg91-email-otp";
 import { trackEvent } from "@/lib/analytics-client";
-import { RESULT_DISCLAIMER, USP_PRICE_LABEL } from "@/lib/constants";
+import { RESULT_DISCLAIMER, USP_PRODUCT_SLUG } from "@/lib/constants";
 import { isIndividualPan, isValidPanFormat, normalizePan } from "@/lib/domain/identity";
 import { formatInr } from "@/lib/utils";
 
 const MSG91_WIDGET_ID = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID ?? "";
 const MSG91_WIDGET_TOKEN = process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ?? "";
 
-type IndicativeResult = {
-  readinessScore: number;
-  readinessLabel: string;
-  comfortableEmiMin?: number;
-  comfortableEmiMax?: number;
-  strengths?: string[];
-  improvements?: string[];
-  suitableCategories?: string[];
-  disclaimer?: string;
-};
+type IndicativeResult = QuickApplyResultSnapshot["indicative"];
 
 type SubmitResponse = {
   error?: string;
@@ -62,6 +62,10 @@ function firstFieldError(fields?: Record<string, string[] | undefined>) {
   return "";
 }
 
+function checkoutHref(assessmentId: string, accessToken: string) {
+  return `/checkout?product=${USP_PRODUCT_SLUG}&assessment=${assessmentId}&token=${encodeURIComponent(accessToken)}`;
+}
+
 export function QuickApplyClient() {
   const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
@@ -69,6 +73,7 @@ export function QuickApplyClient() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(true);
+  const [attempted, setAttempted] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpToken, setOtpToken] = useState("");
   const [otpCode, setOtpCode] = useState("");
@@ -76,12 +81,9 @@ export function QuickApplyClient() {
   const [resendIn, setResendIn] = useState(0);
   const [otpReady, setOtpReady] = useState(false);
   const [phase, setPhase] = useState<"form" | "result">("form");
-  const [result, setResult] = useState<{
-    assessmentId: string;
-    accessToken: string;
-    indicative: IndicativeResult;
-  } | null>(null);
+  const [result, setResult] = useState<QuickApplyResultSnapshot | null>(null);
   const hydrated = useRef(false);
+  const submitted = useRef(false);
 
   const attribution = useMemo(() => {
     captureAttributionFromSearch(searchParams);
@@ -94,11 +96,16 @@ export function QuickApplyClient() {
   useEffect(() => {
     if (hydrated.current) return;
     hydrated.current = true;
+    const snapshot = readResultSnapshot();
+    if (snapshot) {
+      setResult(snapshot);
+      setStep(6);
+    }
     const draft = readDraft();
     const amountParam = Number(searchParams.get("amount") || "");
     const purposeParam = searchParams.get("purpose") || "";
-    if (draft) {
-      setStep(draft.step);
+    if (draft && !snapshot) {
+      setStep(draft.step === 6 ? 5 : draft.step);
       setForm({
         ...draft.form,
         loanAmount: Number.isFinite(amountParam) && amountParam > 0 ? amountParam : draft.form.loanAmount,
@@ -111,7 +118,7 @@ export function QuickApplyClient() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (phase !== "form") return;
+    if (phase !== "form" || step >= 6) return;
     setSaved(false);
     const timer = window.setTimeout(() => {
       writeDraft(step, form, otpVerified);
@@ -129,6 +136,13 @@ export function QuickApplyClient() {
   function patch(partial: Partial<QuickApplyFormState>) {
     setForm((prev) => ({ ...prev, ...partial }));
     setError("");
+  }
+
+  function goToStep(next: number) {
+    setAttempted(false);
+    setError("");
+    setStep(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function ensureOtpPrepared() {
@@ -183,6 +197,7 @@ export function QuickApplyClient() {
 
   async function verifyOtpAndContinue() {
     if (otpCode.length !== 6) {
+      setAttempted(true);
       setError("Enter the 6-digit verification code.");
       return;
     }
@@ -207,8 +222,7 @@ export function QuickApplyClient() {
       setOtpVerified(true);
       setOtpToken(data.verificationToken);
       trackEvent("email_verified");
-      setStep(5);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      goToStep(getNextQuickApplyStep(2, form));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not verify email.");
     } finally {
@@ -217,9 +231,17 @@ export function QuickApplyClient() {
   }
 
   async function goNext() {
-    // Step 4 verifies OTP; do not gate on otpVerified (that only becomes true after verify).
-    if (step === 4) {
+    setAttempted(true);
+
+    if (step === 2) {
       await verifyOtpAndContinue();
+      return;
+    }
+
+    if (step === 6) {
+      trackEvent("free_result_viewed");
+      setPhase("result");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
@@ -230,34 +252,34 @@ export function QuickApplyClient() {
     }
     setError("");
 
-    if (step === 3) {
+    if (step === 1) {
       try {
         await sendOtp();
-        setStep(4);
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        goToStep(2);
       } catch {
         /* error already set */
       }
       return;
     }
 
-    if (step === 8) {
+    if (step === 5) {
       await submitAssessment();
       return;
     }
 
-    setStep((current) => Math.min(8, current + 1));
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    goToStep(getNextQuickApplyStep(step, form));
   }
 
   function goBack() {
     setError("");
-    if (step === 4) {
-      setStep(3);
+    setAttempted(false);
+    if (phase === "result") {
+      setPhase("form");
+      setStep(6);
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-    setStep((current) => Math.max(1, current - 1));
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    goToStep(getPreviousQuickApplyStep(step, form));
   }
 
   function buildPayload() {
@@ -317,19 +339,22 @@ export function QuickApplyClient() {
       source,
       referralCode: referralCode || undefined,
       utm: attribution,
-      // Extra answers stored via assessment payload filter (unknown keys ignored by zod unless in schema)
     };
   }
 
   async function submitAssessment() {
-    const issue = validateQuickApplyStep(8, form);
+    const issue = validateQuickApplyStep(5, form);
     if (issue) {
       setError(issue);
       return;
     }
     if (!otpToken) {
       setError("Complete email OTP verification again.");
-      setStep(4);
+      goToStep(2);
+      return;
+    }
+    if (submitted.current && result) {
+      goToStep(6);
       return;
     }
     setBusy(true);
@@ -347,19 +372,21 @@ export function QuickApplyClient() {
       }
       if (!data.assessmentId || !data.accessToken) throw new Error("Assessment was saved but result access is missing.");
       trackEvent("assessment_completed");
-      trackEvent("free_result_viewed");
       clearDraft();
-      setResult({
+      const snapshot: QuickApplyResultSnapshot = {
         assessmentId: data.assessmentId,
         accessToken: data.accessToken,
+        loanAmount: form.loanAmount,
         indicative: data.indicative || {
           readinessScore: 50,
           readinessLabel: "Moderate readiness",
           disclaimer: "Indicative eligibility estimate, not a loan approval.",
         },
-      });
-      setPhase("result");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      };
+      submitted.current = true;
+      writeResultSnapshot(snapshot);
+      setResult(snapshot);
+      goToStep(6);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Assessment submission failed.");
     } finally {
@@ -367,16 +394,26 @@ export function QuickApplyClient() {
     }
   }
 
+  const fieldErrors =
+    attempted && step < 6
+      ? {
+          ...validateQuickApplyStepFields(step, form),
+          ...(step === 2 && otpCode.length !== 6 ? { otpCode: "Enter the 6-digit verification code." } : {}),
+        }
+      : {};
+
   const ctaLabel =
-    step === 3 ? "Verify email" : step === 4 ? "Verify and continue" : step === 8 ? "Check my eligibility" : "Continue";
+    step === 1 ? "Send email code" : step === 2 ? "Verify and continue" : step === 5 ? "Continue to payment" : step === 6 ? "View my loan options" : "Continue";
+
+  const headerPhase = phase === "result" ? "result" : step === 6 ? "payment" : "form";
 
   if (phase === "result" && result) {
-    const checkoutUrl = `/checkout?product=credit-health-action-plan&assessment=${result.assessmentId}&token=${encodeURIComponent(result.accessToken)}`;
+    const checkoutUrl = checkoutHref(result.assessmentId, result.accessToken);
     const emiMin = result.indicative.comfortableEmiMin;
     const emiMax = result.indicative.comfortableEmiMax;
     return (
       <div className="min-h-screen bg-surface">
-        <FunnelHeader step={8} saved phase="result" />
+        <FunnelHeader step={6} saved phase="result" />
         <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
           <div className="rounded-[1.75rem] border border-line bg-white p-6 shadow-soft sm:p-8">
             <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-700">Preliminary result</p>
@@ -395,7 +432,7 @@ export function QuickApplyClient() {
               </div>
               <div className="rounded-2xl border border-line bg-surface p-5">
                 <p className="text-xs font-semibold text-slate-500">Requested amount</p>
-                <p className="mt-2 text-xl font-extrabold text-navy-950">{formatInr(form.loanAmount)}</p>
+                <p className="mt-2 text-xl font-extrabold text-navy-950">{formatInr(result.loanAmount || form.loanAmount)}</p>
               </div>
               <div className="rounded-2xl border border-line bg-surface p-5">
                 <p className="text-xs font-semibold text-slate-500">Estimated affordable EMI</p>
@@ -443,43 +480,18 @@ export function QuickApplyClient() {
               </div>
             ) : null}
 
-            <div className="mt-8 overflow-hidden rounded-[1.5rem] border border-brand-500/30">
-              <div className="grid lg:grid-cols-[1.15fr_0.85fr]">
-                <div className="p-6">
-                  <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-brand-700">Credit Profile Booster</p>
-                  <h2 className="mt-3 text-2xl font-extrabold text-navy-950">Unlock the full report</h2>
-                  <ul className="mt-4 space-y-2 text-sm text-slate-600">
-                    {[
-                      "Detailed profile analysis",
-                      "Personalized improvement plan",
-                      "Downloadable PDF",
-                      "Matched official lender links",
-                      "Consultation eligibility (if supported)",
-                    ].map((item) => (
-                      <li key={item} className="flex items-start gap-2">
-                        <Check className="mt-0.5 shrink-0 text-brand-600" size={15} />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="bg-navy-950 p-6 text-white">
-                  <Zap className="text-brand-500" size={26} />
-                  <p className="mt-4 text-sm text-slate-300">Service fee {USP_PRICE_LABEL}</p>
-                  <p className="text-sm text-slate-300">GST (18%) ₹17.82</p>
-                  <p className="mt-2 text-3xl font-black text-brand-500">₹116.82</p>
-                  <ButtonLink href={checkoutUrl} size="lg" className="mt-6 w-full">
-                    Unlock full report for ₹116.82 <ArrowRight size={18} />
-                  </ButtonLink>
-                  <p className="mt-3 text-xs leading-6 text-slate-400">Fee is for profile analysis and matched options — not a lender processing fee.</p>
-                </div>
-              </div>
+            <div className="mt-8">
+              <CreditProfileBoosterPayCard checkoutUrl={checkoutUrl} compact />
             </div>
 
             <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
               <ShieldCheck className="mt-0.5 shrink-0" size={18} />
               <p>{RESULT_DISCLAIMER}</p>
             </div>
+
+            <button type="button" className="mt-6 text-sm font-bold text-brand-700 underline" onClick={goBack}>
+              Back to payment
+            </button>
           </div>
         </div>
       </div>
@@ -488,32 +500,47 @@ export function QuickApplyClient() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <FunnelHeader step={step} saved={saved} phase="form" />
+      <FunnelHeader step={step} saved={saved} phase={headerPhase} />
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:py-10">
         <div>
           <MobileTrustStrip />
           <div className="mt-4 rounded-[1.75rem] border border-line bg-white p-5 shadow-soft sm:p-8">
-            <QuickApplyStepBody
-              form={form}
-              patch={patch}
-              step={step}
-              otp={{
-                code: otpCode,
-                setCode: setOtpCode,
-                maskedEmail: maskEmail(form.email),
-                resendIn,
-                onResend: () => void resendOtp(),
-                onChangeEmail: () => {
-                  setOtpVerified(false);
-                  setOtpToken("");
-                  setOtpCode("");
-                  setStep(3);
-                },
-                sending: busy,
-              }}
-            />
+            {step === 6 && result ? (
+              <div>
+                <h1 className="font-display text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">
+                  Unlock matched loan options
+                </h1>
+                <p className="mt-3 text-sm leading-7 text-slate-600">
+                  Your profile check is saved. Continue with the existing Credit Profile Booster checkout to see matched official lender links.
+                </p>
+                <div className="mt-6">
+                  <CreditProfileBoosterPayCard checkoutUrl={checkoutHref(result.assessmentId, result.accessToken)} />
+                </div>
+              </div>
+            ) : (
+              <QuickApplyStepBody
+                form={form}
+                patch={patch}
+                step={step}
+                errors={fieldErrors}
+                otp={{
+                  code: otpCode,
+                  setCode: setOtpCode,
+                  maskedEmail: maskEmail(form.email),
+                  resendIn,
+                  onResend: () => void resendOtp(),
+                  onChangeEmail: () => {
+                    setOtpVerified(false);
+                    setOtpToken("");
+                    setOtpCode("");
+                    goToStep(1);
+                  },
+                  sending: busy,
+                }}
+              />
+            )}
             <StickyActions error={error}>
-              {step > 1 ? (
+              {step > 1 || phase === "result" ? (
                 <Button type="button" variant="secondary" className="min-w-24" onClick={goBack} disabled={busy}>
                   <ArrowLeft size={16} /> Back
                 </Button>

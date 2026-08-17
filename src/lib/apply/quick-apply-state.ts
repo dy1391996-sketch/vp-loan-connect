@@ -1,10 +1,20 @@
 import type { AttributionMap } from "@/lib/attribution";
 import type { incomeRangeMidpoints } from "@/lib/domain/scoring";
 
-export const QUICK_APPLY_STEPS = 8;
-export const QUICK_APPLY_DRAFT_KEY = "vplc_quick_apply_draft_v1";
+export const QUICK_APPLY_STEPS = 6;
+export const QUICK_APPLY_DRAFT_KEY = "vplc_quick_apply_draft_v2";
+export const QUICK_APPLY_RESULT_KEY = "vplc_quick_apply_result_v1";
 export const MIN_LOAN_AMOUNT = 10_000;
 export const MAX_LOAN_AMOUNT = 1_000_000;
+
+export const QUICK_APPLY_STEP_LABELS = [
+  "Your details",
+  "Email verification",
+  "Loan need",
+  "Work & credit",
+  "PAN & consent",
+  "Credit Profile Booster",
+] as const;
 
 export const QUICK_AMOUNTS = [25_000, 50_000, 100_000, 200_000, 500_000] as const;
 
@@ -200,3 +210,50 @@ export function maskEmail(email: string): string {
 }
 
 export type AttributionForSubmit = AttributionMap;
+
+export type QuickApplyResultSnapshot = {
+  assessmentId: string;
+  accessToken: string;
+  indicative: {
+    readinessScore: number;
+    readinessLabel: string;
+    comfortableEmiMin?: number;
+    comfortableEmiMax?: number;
+    strengths?: string[];
+    improvements?: string[];
+    suitableCategories?: string[];
+    disclaimer?: string;
+  };
+  loanAmount: number;
+};
+
+export function readResultSnapshot(): QuickApplyResultSnapshot | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(QUICK_APPLY_RESULT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as QuickApplyResultSnapshot;
+    if (!parsed?.assessmentId || !parsed?.accessToken) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function writeResultSnapshot(snapshot: QuickApplyResultSnapshot) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(QUICK_APPLY_RESULT_KEY, JSON.stringify(snapshot));
+  } catch {
+    /* ignore quota */
+  }
+}
+
+export function clearResultSnapshot() {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(QUICK_APPLY_RESULT_KEY);
+  } catch {
+    /* ignore */
+  }
+}
