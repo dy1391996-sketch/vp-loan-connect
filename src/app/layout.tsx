@@ -12,6 +12,7 @@ import "@fontsource/noto-sans-devanagari/600.css";
 import "@fontsource/noto-sans-devanagari/700.css";
 import "@fontsource/noto-sans-devanagari/800.css";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 import { SiteShell } from "@/components/layout/site-shell";
 import { AnalyticsProvider } from "@/components/analytics-provider";
 import { AttributionCapture } from "@/components/attribution-capture";
@@ -65,6 +66,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </Suspense>
         <SiteShell>{children}</SiteShell>
         <MarketingConsentBanner />
+        <Analytics />
       </body>
     </html>
   );
