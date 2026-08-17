@@ -7,7 +7,8 @@ import {
   isMetaFunnelEvent,
   metaPixelEventName,
 } from "@/lib/meta/events";
-import { buildCapIPayload, getMetaCapiConfig } from "@/lib/meta/capi";
+import { buildCapIPayload, getMetaCapiConfig, sendMetaCapiEvent } from "@/lib/meta/capi";
+
 
 describe("Meta funnel events", () => {
   it("includes the expected VP Loan Connect funnel catalog", () => {
@@ -82,5 +83,42 @@ describe("Meta CAPI readiness", () => {
     assert.notEqual(payload.data[0].user_data.em?.[0], "User@Example.com");
     assert.equal(payload.data[0].custom_data?.currency, "INR");
     assert.equal(payload.data[0].custom_data?.value, 116.82);
+  });
+
+  it("surfaces sanitized Meta OAuth 190 fields without exposing the token", async () => {
+    const result = await sendMetaCapiEvent(
+      {
+        eventName: "LandingPageView",
+        eventId: "vplc_landing_diag01",
+        eventSourceUrl: "https://www.vploanconnect.in/",
+      },
+      {
+        environment: {
+          NODE_ENV: "test",
+          NEXT_PUBLIC_META_PIXEL_ID: "1057590634424945",
+          META_CAPI_ACCESS_TOKEN: "secret-token-must-not-leak",
+        },
+        fetchImpl: async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                message: "Invalid OAuth access token - Cannot parse access token",
+                type: "OAuthException",
+                code: 190,
+                fbtrace_id: "TRACEONLY",
+              },
+            }),
+            { status: 400, headers: { "content-type": "application/json" } },
+          ),
+      },
+    );
+    assert.equal(result.sent, false);
+    assert.equal(result.reason, "provider_auth_rejected");
+    assert.equal(result.status, 400);
+    assert.equal(result.meta?.code, 190);
+    assert.equal(result.meta?.type, "OAuthException");
+    assert.equal(result.meta?.fbtrace_id, "TRACEONLY");
+    assert.match(String(result.meta?.message), /Invalid OAuth access token/i);
+    assert.equal(JSON.stringify(result).includes("secret-token-must-not-leak"), false);
   });
 });
