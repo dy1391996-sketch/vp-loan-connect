@@ -247,7 +247,7 @@ export function QuickApplyClient() {
 
     const issue = validateQuickApplyStep(step, form);
     if (issue) {
-      setError(issue);
+      setError("Please fix the highlighted fields.");
       return;
     }
     setError("");

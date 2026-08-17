@@ -14,7 +14,7 @@ const NEXT_STEPS = [
   "Verify your email",
   "Answer a few profile questions",
   "Unlock Credit Profile Booster",
-  "Complete remaining details and view options",
+  "View matched loan options",
 ];
 
 export function FunnelHeader({
