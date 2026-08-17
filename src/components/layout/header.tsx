@@ -36,7 +36,7 @@ export function Header() {
         </nav>
         <div className="hidden sm:block">
           <ButtonLink href="/apply/quick" size="sm" variant="dark">
-            Quick Apply <ArrowRight size={16} />
+            Check loan options <ArrowRight size={16} />
           </ButtonLink>
         </div>
         <button
@@ -58,7 +58,7 @@ export function Header() {
               </Link>
             ))}
             <ButtonLink href="/apply/quick" className="mt-2 w-full" variant="dark">
-              Quick Apply <ArrowRight size={16} />
+              Check My Loan Options <ArrowRight size={16} />
             </ButtonLink>
           </nav>
         </div>

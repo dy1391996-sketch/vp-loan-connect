@@ -12,16 +12,51 @@ export function Field({ label, hint, error, required, children }: { label: strin
   );
 }
 
+function invalidClass(invalid?: boolean | "true" | "false" | "grammar" | "spelling") {
+  return invalid === true || invalid === "true"
+    ? "border-red-400 hover:border-red-500 focus:border-red-600 focus:ring-red-100"
+    : "";
+}
+
 export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={cn("min-h-14 w-full rounded-2xl border border-line bg-white px-4 text-base text-navy-950 shadow-sm transition placeholder:text-slate-400 hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100 focus:outline-none", className)} {...props} />;
+  return (
+    <input
+      className={cn(
+        "min-h-14 w-full rounded-2xl border border-line bg-white px-4 text-base text-navy-950 shadow-sm transition placeholder:text-slate-400 hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100 focus:outline-none",
+        invalidClass(props["aria-invalid"]),
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 export function Select({ className, children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select className={cn("min-h-14 w-full rounded-2xl border border-line bg-white px-4 text-base text-navy-950 shadow-sm transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100 focus:outline-none", className)} {...props}>{children}</select>;
+  return (
+    <select
+      className={cn(
+        "min-h-14 w-full rounded-2xl border border-line bg-white px-4 text-base text-navy-950 shadow-sm transition hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100 focus:outline-none",
+        invalidClass(props["aria-invalid"]),
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </select>
+  );
 }
 
 export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea className={cn("min-h-32 w-full resize-y rounded-2xl border border-line bg-white px-4 py-3.5 text-base text-navy-950 shadow-sm transition placeholder:text-slate-400 hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100 focus:outline-none", className)} {...props} />;
+  return (
+    <textarea
+      className={cn(
+        "min-h-32 w-full resize-y rounded-2xl border border-line bg-white px-4 py-3.5 text-base text-navy-950 shadow-sm transition placeholder:text-slate-400 hover:border-slate-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100 focus:outline-none",
+        invalidClass(props["aria-invalid"]),
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 export function Choice({ name, value, label, checked, onChange }: { name: string; value: string; label: string; checked: boolean; onChange: () => void }) {

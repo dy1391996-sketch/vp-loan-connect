@@ -1,5 +1,5 @@
 import { Check, LockKeyhole, ShieldCheck, Sparkles } from "lucide-react";
-import { QUICK_APPLY_STEPS } from "@/lib/apply/quick-apply-state";
+import { QUICK_APPLY_STEP_LABELS, QUICK_APPLY_STEPS } from "@/lib/apply/quick-apply-state";
 import { cn } from "@/lib/utils";
 
 const TRUST_ITEMS = [
@@ -11,10 +11,10 @@ const TRUST_ITEMS = [
 ];
 
 const NEXT_STEPS = [
-  "Share a few profile details",
-  "Verify your email securely",
-  "See a preliminary readiness result",
-  "Unlock matched options if useful",
+  "Verify your email",
+  "Answer a few profile questions",
+  "Unlock Credit Profile Booster",
+  "View matched loan options",
 ];
 
 export function FunnelHeader({
@@ -24,10 +24,20 @@ export function FunnelHeader({
 }: {
   step: number;
   saved: boolean;
-  phase: "form" | "result";
+  phase: "form" | "payment" | "result";
 }) {
-  const pct = phase === "result" ? 100 : Math.round((Math.min(step, QUICK_APPLY_STEPS) / QUICK_APPLY_STEPS) * 100);
-  const label = phase === "result" ? "Result ready" : `Step ${step} of ${QUICK_APPLY_STEPS}`;
+  const pct =
+    phase === "result"
+      ? 100
+      : phase === "payment"
+        ? Math.round((5.5 / QUICK_APPLY_STEPS) * 100)
+        : Math.round((Math.min(step, QUICK_APPLY_STEPS) / QUICK_APPLY_STEPS) * 100);
+  const label =
+    phase === "result"
+      ? "Options ready"
+      : phase === "payment"
+        ? "Unlock matched options"
+        : `Step ${step} of ${QUICK_APPLY_STEPS}`;
 
   return (
     <header className="sticky top-0 z-40 border-b border-line/80 bg-white/95 backdrop-blur-xl">
@@ -49,7 +59,7 @@ export function FunnelHeader({
           <p className="text-[11px] font-semibold text-slate-500">{saved ? "Progress saved" : "Saving…"} · {pct}%</p>
         </div>
       </div>
-      <div className="h-1 w-full bg-line">
+      <div className="h-1.5 w-full bg-line">
         <div className="h-full bg-brand-600 transition-all duration-300" style={{ width: `${pct}%` }} />
       </div>
     </header>
@@ -65,16 +75,7 @@ export function FunnelSidebar({ step }: { step: number }) {
             <Sparkles size={14} /> Progress
           </p>
           <ol className="mt-5 space-y-3">
-            {[
-              "Loan amount",
-              "Purpose",
-              "Basic profile",
-              "Email verification",
-              "Work & income",
-              "Commitments",
-              "Identity & address",
-              "Consent",
-            ].map((label, index) => {
+            {QUICK_APPLY_STEP_LABELS.map((label, index) => {
               const n = index + 1;
               const done = step > n;
               const active = step === n;
@@ -82,7 +83,7 @@ export function FunnelSidebar({ step }: { step: number }) {
                 <li key={label} className="flex items-center gap-3 text-sm">
                   <span
                     className={cn(
-                      "grid h-7 w-7 place-items-center rounded-full text-[11px] font-extrabold",
+                      "grid h-7 w-7 place-items-center rounded-full text-[11px] font-extrabold transition",
                       done || active ? "bg-brand-600 text-white" : "bg-line text-slate-500",
                     )}
                   >
