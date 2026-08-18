@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
 
     if (existingPending?.providerOrderId && env.PAYMENT_PROVIDER === "cashfree") {
       try {
-        const { fetchCashfreeOrder } = await import("@/lib/payments/providers/cashfree");
+        const { fetchCashfreeOrder, resolveCashfreeEnv } = await import("@/lib/payments/providers/cashfree");
         const { classifyCashfreeOrderStatus, isReusableCashfreeOrderStatus, isTerminalUnpaidCashfreeOrderStatus } = await import(
           "@/lib/payments/cashfree-browser"
         );
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
             checkout: {
               mode: "cashfree_checkout" as const,
               paymentSessionId: snapshot.payment_session_id,
-              env: env.CASHFREE_ENV === "production" ? ("production" as const) : ("sandbox" as const),
+              env: resolveCashfreeEnv(env),
             },
           });
         }

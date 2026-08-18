@@ -3,7 +3,7 @@ import { LockKeyhole } from "lucide-react";
 import { CashfreeLaunchClient } from "@/components/checkout/cashfree-launch-client";
 import { PublicStatePanel } from "@/components/ui/public-state-panel";
 import { prisma } from "@/lib/db";
-import { fetchCashfreeOrder } from "@/lib/payments/providers/cashfree";
+import { fetchCashfreeOrder, resolveCashfreeEnv } from "@/lib/payments/providers/cashfree";
 import { isReusableCashfreeOrderStatus } from "@/lib/payments/cashfree-browser";
 import { getServerEnv } from "@/lib/env";
 import { verifyAccessToken } from "@/lib/security/tokens";
@@ -104,7 +104,7 @@ export default async function PaymentLaunchPage({
       <div className="page-shell w-full">
         <CashfreeLaunchClient
           paymentSessionId={paymentSessionId}
-          env={env.CASHFREE_ENV === "production" ? "production" : "sandbox"}
+          env={resolveCashfreeEnv(env)}
           internalOrderId={order.id}
           assessmentId={order.assessmentId}
           productSlug={order.product.slug}
