@@ -3,9 +3,9 @@ import { Suspense } from "react";
 import { QuickApplyClient } from "@/components/apply/quick-apply-client";
 
 export const metadata: Metadata = {
-  title: "Quick Apply — Profile check & matched options",
+  title: "Quick Apply — Check loan options for your profile",
   description:
-    "Mobile-first Quick Apply for VP Loan Connect. Complete a preliminary profile check, verify email, and unlock matched lender options with a transparent ₹99 + GST fee.",
+    "Verify email, answer a few profile questions, unlock the ₹99 + GST Credit Profile Booster, then view matched loan options. Not a lender approval.",
   alternates: { canonical: "/apply/quick" },
   openGraph: {
     title: "Quick Apply | VP Loan Connect",

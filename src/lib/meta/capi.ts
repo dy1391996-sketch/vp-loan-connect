@@ -100,10 +100,24 @@ export function buildCapIPayload(input: CapIEventInput, config: CapIConfig) {
   };
 }
 
+export type CapISendResult = {
+  sent: boolean;
+  reason?: string;
+  status?: number;
+  /** Sanitized Meta Graph error fields only — never includes access token. */
+  meta?: {
+    code?: number;
+    type?: string;
+    error_subcode?: number;
+    message?: string;
+    fbtrace_id?: string;
+  };
+};
+
 export async function sendMetaCapiEvent(
   input: CapIEventInput,
   options?: { fetchImpl?: typeof fetch; environment?: NodeJS.ProcessEnv },
-): Promise<{ sent: boolean; reason?: string; status?: number }> {
+): Promise<CapISendResult> {
   const config = getMetaCapiConfig(options?.environment);
   if (!config) return { sent: false, reason: "not_configured" };
 
@@ -111,6 +125,7 @@ export async function sendMetaCapiEvent(
   if (!input.eventId?.trim()) return { sent: false, reason: "missing_event_id" };
 
   const payload = buildCapIPayload(input, config);
+  // Auth via query param is Meta's documented CAPI pattern; token never logged.
   const url = `https://graph.facebook.com/${config.apiVersion}/${encodeURIComponent(config.pixelId)}/events?access_token=${encodeURIComponent(config.accessToken)}`;
   const fetchImpl = options?.fetchImpl ?? fetch;
 
@@ -121,26 +136,44 @@ export async function sendMetaCapiEvent(
       body: JSON.stringify(payload),
     });
     if (!response.ok) {
-      // Log only Meta error code/type — never token, never full body with secrets.
-      let metaCode: number | undefined;
-      let metaType: string | undefined;
+      // Log sanitized Meta fields only — never token, never request URL with token.
+      let meta: CapISendResult["meta"];
       try {
         const errJson = (await response.json()) as {
-          error?: { code?: number; type?: string; error_subcode?: number };
+          error?: {
+            code?: number;
+            type?: string;
+            error_subcode?: number;
+            message?: string;
+            fbtrace_id?: string;
+          };
         };
-        metaCode = errJson?.error?.code;
-        metaType = errJson?.error?.type;
-        console.error("meta_capi_rejected", response.status, metaType ?? "unknown", metaCode ?? "n/a", errJson?.error?.error_subcode ?? "");
+        meta = {
+          code: errJson?.error?.code,
+          type: errJson?.error?.type,
+          error_subcode: errJson?.error?.error_subcode,
+          message: errJson?.error?.message?.slice(0, 200),
+          fbtrace_id: errJson?.error?.fbtrace_id,
+        };
+        console.error(
+          "meta_capi_rejected",
+          response.status,
+          meta.type ?? "unknown",
+          meta.code ?? "n/a",
+          meta.error_subcode ?? "",
+          meta.message ?? "",
+          meta.fbtrace_id ?? "",
+        );
       } catch {
         console.error("meta_capi_rejected", response.status);
       }
       const reason =
-        metaCode === 190 || metaType === "OAuthException"
+        meta?.code === 190 || meta?.type === "OAuthException"
           ? "provider_auth_rejected"
-          : metaCode === 100
+          : meta?.code === 100
             ? "provider_param_rejected"
             : "provider_rejected";
-      return { sent: false, reason, status: response.status };
+      return { sent: false, reason, status: response.status, meta };
     }
     return { sent: true, status: response.status };
   } catch (error) {

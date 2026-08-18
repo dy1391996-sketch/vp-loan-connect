@@ -27,14 +27,15 @@ import {
   WalletCards,
 } from "lucide-react";
 import { EmiCalculator } from "@/components/emi-calculator";
+import { HomeQuickStart } from "@/components/home/home-quick-start";
 import { ButtonLink } from "@/components/ui/button";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { PLATFORM_DISCLAIMER, RESULT_DISCLAIMER } from "@/lib/constants";
+import { PLATFORM_DISCLAIMER, RESULT_DISCLAIMER, USP_TOTAL_WITH_GST_LABEL } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "Free Loan Check + ₹99 Credit Profile Booster",
+  title: "Find Loan Options for Your Profile | VP Loan Connect",
   description:
-    "Free profile check, then ₹99 Credit Profile Booster — understand your credit profile, loan readiness, and see profile-matched loan options first.",
+    "Check loan options for your profile in minutes. Verify email, answer a few questions, then unlock the ₹99 Credit Profile Booster. Not a lender — no guaranteed approval.",
   alternates: { canonical: "/" },
 };
 
@@ -76,12 +77,12 @@ const faqs = [
 ] as const;
 
 const journey = [
-  ["01", "Amount & purpose", "Start on Quick Apply with what you need."],
-  ["02", "Verify", "Name, mobile for contact, email OTP from VP Loan Connect."],
-  ["03", "Eligibility + address", "PAN, income, credit range, and current address."],
-  ["04", "₹99 unlock", "Credit Profile Booster — not a lender fee."],
-  ["05", "Official apply", "Continue on the partner’s official flow."],
-  ["06", "Your choice", "No automatic data sharing without your click."],
+  ["01", "Quick start", "Tell us the amount you need, or start from Quick Apply."],
+  ["02", "Email OTP", "Verify your email before we continue the profile check."],
+  ["03", "Short questions", "Existing details: loan need, work, credit, PAN and consent."],
+  ["04", "₹116.82 unlock", "Credit Profile Booster checkout — same ₹99 + GST fee."],
+  ["05", "View your options", "See the preliminary result and matched loan categories."],
+  ["06", "Official apply", "Continue only on the partner’s official flow if you choose."],
 ] as const;
 
 export default function HomePage() {
@@ -116,94 +117,43 @@ export default function HomePage() {
           <div className="absolute -left-16 bottom-0 h-72 w-72 rounded-full bg-sky-500/10 blur-3xl" />
         </div>
 
-        <div className="page-shell relative grid min-h-[860px] items-center gap-16 py-20 lg:grid-cols-[1.05fr_0.95fr] lg:py-28">
+        <div className="page-shell relative grid min-h-[820px] items-center gap-12 py-16 lg:grid-cols-[1.08fr_0.92fr] lg:gap-16 lg:py-24">
           <div className="animate-rise relative z-10">
             <p className="font-display text-sm font-extrabold tracking-[0.28em] text-brand-500">VP LOAN CONNECT</p>
-            <h1 className="font-display mt-6 max-w-3xl text-balance text-4xl font-extrabold leading-[1.05] tracking-[-0.055em] sm:text-5xl lg:text-[4.15rem]">
-              Verify. Check eligibility.
-              <span className="mt-2 block text-brand-500">Unlock honest matches.</span>
+            <h1 className="font-display mt-6 max-w-3xl text-balance text-4xl font-extrabold leading-[1.05] tracking-[-0.055em] sm:text-5xl lg:text-[3.9rem]">
+              Find loan options
+              <span className="mt-2 block text-brand-500">for your profile.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300 sm:text-xl">
-              Verify with OTP, share PAN & income, add your address, then unlock the ₹99 Credit Profile Booster. Official partner links after payment — no percentage platform fee on your loan.
+              Check what may fit your amount, income and credit picture — then unlock matched official lender links with the Credit Profile Booster. We are not a lender and do not approve or disburse loans.
             </p>
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
               <ButtonLink href="/apply/quick" size="lg">
-                Start quick apply <ArrowRight size={18} aria-hidden="true" />
+                Check My Loan Options <ArrowRight size={18} aria-hidden="true" />
               </ButtonLink>
               <ButtonLink href="/credit-health" variant="glass" size="lg">
-                What ₹99 includes
+                What {USP_TOTAL_WITH_GST_LABEL} includes
               </ButtonLink>
             </div>
             <div className="mt-10 flex flex-wrap gap-x-7 gap-y-3 text-sm text-slate-300">
               <span className="flex items-center gap-2">
-                <Clock3 className="text-brand-500" size={17} />~2-minute flow
+                <Clock3 className="text-brand-500" size={17} />
+                Email OTP, then a short check
               </span>
               <span className="flex items-center gap-2">
                 <FileCheck2 className="text-brand-500" size={17} />
-                PAN + income
+                Existing {USP_TOTAL_WITH_GST_LABEL} booster
               </span>
               <span className="flex items-center gap-2">
                 <LockKeyhole className="text-brand-500" size={17} />
-                ₹99 unlocks links
+                No guaranteed approval
               </span>
             </div>
           </div>
 
           <div className="animate-rise-delay relative mx-auto w-full max-w-md lg:mx-0 lg:max-w-none">
             <div className="animate-pulse-soft absolute -inset-8 rounded-full bg-brand-500/15 blur-3xl" />
-            <div className="animate-float relative mx-auto w-full max-w-[380px]">
-              <div className="premium-panel relative overflow-hidden rounded-[2.25rem] p-3">
-                <div className="overflow-hidden rounded-[1.75rem] bg-navy-950">
-                  <div className="border-b border-white/10 px-6 py-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Credit Profile</p>
-                        <p className="font-display mt-1 text-lg font-extrabold text-white">Booster Report</p>
-                      </div>
-                      <span className="rounded-xl bg-brand-500/15 px-3 py-1.5 text-xs font-extrabold text-brand-500">₹99</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4 px-6 py-6">
-                    <div className="relative mx-auto grid h-40 w-40 place-items-center">
-                      <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 120 120" aria-hidden="true">
-                        <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
-                        <circle
-                          cx="60"
-                          cy="60"
-                          r="52"
-                          fill="none"
-                          stroke="#19b77e"
-                          strokeWidth="8"
-                          strokeLinecap="round"
-                          strokeDasharray="327"
-                          strokeDashoffset="59"
-                        />
-                      </svg>
-                      <div className="relative text-center">
-                        <p className="font-display text-4xl font-black tracking-[-0.06em] text-white">82</p>
-                        <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-brand-500">Readiness</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <HeroMetric label="EMI capacity" value="Healthy" />
-                      <HeroMetric label="Match rank" value="Top fit" />
-                    </div>
-
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Sample match view</p>
-                      <div className="mt-3 space-y-2.5">
-                        <MatchRow name="Bank / NBFC A" score="Strong" />
-                        <MatchRow name="Fintech B" score="Good" />
-                        <MatchRow name="NBFC C" score="Fair" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
+            <HomeQuickStart />
           </div>
         </div>
       </section>
@@ -227,14 +177,14 @@ export default function HomePage() {
         <div className="page-shell">
           <SectionHeading
             eyebrow="Simple, premium process"
-            title="Smooth apply. Honest ₹99 unlock."
-            description="A clear 3-step journey without percentage platform fees: verify, check eligibility & address, then unlock Credit Profile Booster for matched official links."
+            title="See options. Unlock matches when useful."
+            description="A clear journey: verify email, answer a few existing questions, unlock Credit Profile Booster, then finish the check. No percentage platform fee on your loan amount."
             align="center"
           />
           <div className="mt-16 grid gap-5 md:grid-cols-3">
-            <ProcessCard number="01" icon={UserRoundCheck} title="Verify + eligibility" description="OTP, PAN, income and address in a 4-step mobile flow." />
-            <ProcessCard number="02" icon={HandCoins} title="Pay ₹99 Booster" description="Fixed Credit Profile Booster — not a lender processing fee." />
-            <ProcessCard number="03" icon={ChartNoAxesCombined} title="Matched options" description="Best-fit partners first, official apply links you choose." />
+            <ProcessCard number="01" icon={UserRoundCheck} title="Verify + short check" description="Email OTP, then 2–3 existing questions about your loan need and profile." />
+            <ProcessCard number="02" icon={HandCoins} title={`Pay ${USP_TOTAL_WITH_GST_LABEL} Booster`} description="Same Credit Profile Booster checkout — not a lender processing fee." />
+            <ProcessCard number="03" icon={ChartNoAxesCombined} title="View matched options" description="See your preliminary result and official apply links after the booster unlock." />
           </div>
         </div>
       </section>
@@ -247,9 +197,9 @@ export default function HomePage() {
               title="Explore categories aligned with your profile"
               description="These are profile-based suggestions—not lender offers, approvals or guaranteed eligibility."
             />
-            <ButtonLink href="/assessment" variant="secondary">
-              Check My Profile <ArrowRight size={17} />
-            </ButtonLink>
+              <ButtonLink href="/apply/quick" variant="secondary">
+                Check My Loan Options <ArrowRight size={17} />
+              </ButtonLink>
           </div>
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {categories.map(([title, description, Icon, href]) => (
@@ -274,8 +224,8 @@ export default function HomePage() {
                 <h3 className="font-display mt-6 text-xl font-extrabold tracking-[-0.02em]">Not sure where to begin?</h3>
                 <p className="mt-3 text-sm leading-7 text-slate-300">The assessment compares your profile with common eligibility factors.</p>
               </div>
-              <ButtonLink href="/assessment" className="mt-6 w-full">
-                View Potential Options
+              <ButtonLink href="/apply/quick" className="mt-6 w-full">
+                Check My Loan Options
               </ButtonLink>
             </article>
           </div>
@@ -427,18 +377,18 @@ export default function HomePage() {
               <div>
                 <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-brand-500">Start with accurate information</p>
                 <h2 className="font-display mt-4 text-balance text-3xl font-extrabold tracking-[-0.045em] sm:text-4xl lg:text-5xl">
-                  Ready to understand your loan profile?
+                Ready to check loan options for your profile?
                 </h2>
                 <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
-                  Verify → eligibility → address → unlock matched official partner links with honest ₹99 + GST Credit Profile Booster.
+                  Verify email, answer a few questions, then unlock matched official partner links with the {USP_TOTAL_WITH_GST_LABEL} Credit Profile Booster.
                 </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <ButtonLink href="/apply/quick" size="lg">
-                  Start quick apply <ArrowRight size={18} />
+                  Check My Loan Options <ArrowRight size={18} />
                 </ButtonLink>
                 <ButtonLink href="/credit-health" variant="glass" size="lg">
-                  What ₹99 includes
+                  What {USP_TOTAL_WITH_GST_LABEL} includes
                 </ButtonLink>
               </div>
             </div>
@@ -446,27 +396,6 @@ export default function HomePage() {
         </div>
       </section>
     </>
-  );
-}
-
-function HeroMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">{label}</p>
-      <p className="font-display mt-1 text-sm font-extrabold text-white">{value}</p>
-    </div>
-  );
-}
-
-function MatchRow({ name, score }: { name: string; score: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <div className="flex items-center gap-2.5">
-        <span className="h-2 w-2 rounded-full bg-brand-500" />
-        <span className="text-sm font-semibold text-slate-200">{name}</span>
-      </div>
-      <span className="text-xs font-extrabold text-brand-500">{score}</span>
-    </div>
   );
 }
 

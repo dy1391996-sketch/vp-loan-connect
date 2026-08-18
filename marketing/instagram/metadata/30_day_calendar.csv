@@ -1,0 +1,31 @@
+day,date,time_ist,format,post,topic,objective,cta,asset,caption,status
+1,2026-08-17,18:30,feed,01,"Brand Introduction",reach,website,posts/01/post-01.png,posts/01/caption.txt,queued
+2,2026-08-18,11:00,feed,02,"Why Choose VP Loan Connect",trust,website,posts/02/post-02.png,posts/02/caption.txt,queued
+3,2026-08-19,18:30,feed,03,"Loan Types",education,website,posts/03/post-03.png,posts/03/caption.txt,queued
+4,2026-08-20,11:00,feed,04,"Eligibility Factors",education,website,posts/04/post-04.png,posts/04/caption.txt,queued
+5,2026-08-21,18:30,carousel_ready_single,05,"Documents Checklist",education,website,posts/05/post-05.png,posts/05/caption.txt,queued
+6,2026-08-22,11:00,feed,06,"Loan Process",education,website,posts/06/post-06.png,posts/06/caption.txt,queued
+7,2026-08-23,18:30,reel,07,"Credit Score Basics",education,website,posts/07/post-07.png,posts/07/caption.txt,queued
+8,2026-08-24,11:00,feed,08,"Common Loan Mistakes",education,website,posts/08/post-08.png,posts/08/caption.txt,queued
+9,2026-08-25,18:30,feed,09,"Approval FAQ",education,website,posts/09/post-09.png,posts/09/caption.txt,queued
+10,2026-08-26,11:00,carousel_ready_single,10,"Personal Loan Guidance",education,website,posts/10/post-10.png,posts/10/caption.txt,queued
+11,2026-08-27,18:30,feed,11,"Business Loan Guidance",education,website,posts/11/post-11.png,posts/11/caption.txt,queued
+12,2026-08-28,11:00,feed,12,"Home Loan Guidance",education,website,posts/12/post-12.png,posts/12/caption.txt,queued
+13,2026-08-29,18:30,feed,13,"Loan Against Property",education,website,posts/13/post-13.png,posts/13/caption.txt,queued
+14,2026-08-30,11:00,reel,14,"MSME Loan Guidance",education,website,posts/14/post-14.png,posts/14/caption.txt,queued
+15,2026-08-31,18:30,carousel_ready_single,15,"Balance Transfer",education,website,posts/15/post-15.png,posts/15/caption.txt,queued
+16,2026-09-01,11:00,feed,16,"EMI Guide",education,website,posts/16/post-16.png,posts/16/caption.txt,queued
+17,2026-09-02,18:30,feed,17,"Interest Rate Guide",education,website,posts/17/post-17.png,posts/17/caption.txt,queued
+18,2026-09-03,11:00,feed,18,"Responsible Borrowing",trust,website,posts/18/post-18.png,posts/18/caption.txt,queued
+19,2026-09-04,18:30,feed,19,"Fraud Awareness",trust,website,posts/19/post-19.png,posts/19/caption.txt,queued
+20,2026-09-05,11:00,carousel_ready_single,20,"Loan Myth",education,website,posts/20/post-20.png,posts/20/caption.txt,queued
+21,2026-09-06,18:30,reel,21,"Hidden Charges",education,website,posts/21/post-21.png,posts/21/caption.txt,queued
+22,2026-09-07,11:00,feed,22,"Customer Journey",trust,website,posts/22/post-22.png,posts/22/caption.txt,queued
+23,2026-09-08,18:30,feed,23,"Salaried Documents",education,website,posts/23/post-23.png,posts/23/caption.txt,queued
+24,2026-09-09,11:00,feed,24,"Business Documents",education,website,posts/24/post-24.png,posts/24/caption.txt,queued
+25,2026-09-10,18:30,carousel_ready_single,25,"Rejection Factors",education,website,posts/25/post-25.png,posts/25/caption.txt,queued
+26,2026-09-11,11:00,feed,26,"Credit Utilisation",education,website,posts/26/post-26.png,posts/26/caption.txt,queued
+27,2026-09-12,18:30,feed,27,"Multiple Applications",education,website,posts/27/post-27.png,posts/27/caption.txt,queued
+28,2026-09-13,11:00,reel,28,"Prepayment",education,website,posts/28/post-28.png,posts/28/caption.txt,queued
+29,2026-09-14,18:30,feed,29,"Co-applicant",education,website,posts/29/post-29.png,posts/29/caption.txt,queued
+30,2026-09-15,11:00,carousel_ready_single,30,"Processing Time",education,website,posts/30/post-30.png,posts/30/caption.txt,queued

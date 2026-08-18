@@ -8,10 +8,12 @@ allowBuilds:
 minimumReleaseAgeExclude:
   - postcss@8.5.23
   - nanoid@3.3.18
+  - deepmerge-ts@8.0.1
 overrides:
   postcss: 8.5.23
   nanoid@^3: 3.3.18
   sharp: 0.35.3
+  deepmerge-ts: 8.0.1
 onlyBuiltDependencies:
   - "@prisma/client"
   - "@prisma/engines"
