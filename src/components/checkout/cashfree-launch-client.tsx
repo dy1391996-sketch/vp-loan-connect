@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { StatusNotice } from "@/components/ui/status-notice";
 import {
   createCashfreeSdk,
-  isCashfreeCheckoutModalOpen,
   launchCashfreeCheckoutWithTimeout,
 } from "@/lib/payments/cashfree-browser";
 
@@ -50,7 +49,6 @@ export function CashfreeLaunchClient(props: Props) {
     launched.current = true;
 
     let cancelled = false;
-    let modalWatch: number | undefined;
 
     async function openHostedCheckout() {
       try {
@@ -71,12 +69,9 @@ export function CashfreeLaunchClient(props: Props) {
         }
 
         if (launch.kind === "modal_open") {
-          // Unexpected for _top, but if a modal mounted, watch for unpaid close.
-          modalWatch = window.setInterval(() => {
-            if (isCashfreeCheckoutModalOpen()) return;
-            if (modalWatch) window.clearInterval(modalWatch);
-            setError("Payment not completed — Try again.");
-          }, 700);
+          // Hosted checkout must be a full-page redirect. Modal mounts are a
+          // failed launch for this product flow — never leave the UI spinning.
+          setError("Payment not completed — Try again.");
           return;
         }
 
@@ -100,7 +95,6 @@ export function CashfreeLaunchClient(props: Props) {
     void openHostedCheckout();
     return () => {
       cancelled = true;
-      if (modalWatch) window.clearInterval(modalWatch);
     };
   }, [props.env, props.paymentSessionId]);
 

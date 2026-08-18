@@ -268,13 +268,17 @@ describe("Cashfree webhook and verify helpers", () => {
       assert.equal(headers.get("x-client-id"), "test_app");
       assert.equal(headers.get("x-client-secret"), "test_secret");
       assert.equal(headers.get("x-api-version"), "2025-01-01");
+      assert.equal(headers.get("x-idempotency-key"), "11111111-1111-1111-1111-111111111111");
+      assert.equal(headers.get("x-request-id"), "11111111-1111-1111-1111-111111111111");
       const body = JSON.parse(String(calls[0]!.init?.body)) as {
         order_amount: number;
         order_currency: string;
+        order_expiry_time: string;
         order_meta: { return_url: string };
       };
       assert.equal(body.order_amount, 116.82);
       assert.equal(body.order_currency, "INR");
+      assert.ok(Date.parse(body.order_expiry_time) > Date.now());
       assert.match(body.order_meta.return_url, /order_id=\{order_id\}/);
       assert.doesNotMatch(JSON.stringify(result), /test_secret|CASHFREE_SECRET/);
     } finally {
