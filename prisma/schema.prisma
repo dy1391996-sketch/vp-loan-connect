@@ -247,7 +247,32 @@ enum CommentCategory {
   ABUSIVE
   COLLABORATION
   COMPETITOR
+  GENERAL
+  HUMAN_REQUEST
   OTHER
+}
+
+enum HandoffStatus {
+  CREATED
+  CLICKED
+  CONSUMED
+  EXPIRED
+  CANCELLED
+}
+
+enum IdentityLinkStatus {
+  UNLINKED
+  POSSIBLE_MATCH
+  ATTRIBUTED_HANDOFF
+  VERIFIED_MATCH
+}
+
+enum ProviderSendStatus {
+  SENT
+  QUEUED
+  FAILED
+  SKIPPED_PROVIDER_UNAVAILABLE
+  SKIPPED_POLICY
 }
 
 enum TicketPriority {
@@ -391,6 +416,10 @@ model Customer {
   reviews        CustomerReview[]
   reviewRequests ReviewRequest[]
   preferredStudio Studio? @relation("PreferredStudio", fields: [preferredStudioId], references: [id])
+  handoffsSource ChannelHandoff[] @relation("HandoffSourceCustomer")
+  handoffsDest   ChannelHandoff[] @relation("HandoffDestCustomer")
+  identityLinksA IdentityLink[]   @relation("IdentityCustomerA")
+  identityLinksB IdentityLink[]   @relation("IdentityCustomerB")
 
   @@index([phone])
   @@index([optedOut])
@@ -478,32 +507,43 @@ model LeadActivity {
 // ─── Conversations / inbox ───────────────────────────────────────────────────
 
 model Conversation {
-  id              String             @id @default(cuid())
-  customerId      String
-  channel         ChannelType
+  id               String             @id @default(cuid())
+  customerId       String
+  channel          ChannelType
   externalThreadId String?
-  status          ConversationStatus @default(AI_ACTIVE)
-  aiPaused        Boolean            @default(false)
-  assignedStaffId String?
-  summary         String?
-  pendingAction   String?
-  tags            String[]           @default([])
-  unreadCount     Int                @default(0)
-  urgent          Boolean            @default(false)
-  lastMessageAt   DateTime?
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  status           ConversationStatus @default(AI_ACTIVE)
+  aiPaused         Boolean            @default(false)
+  assignedStaffId  String?
+  summary          String?
+  pendingAction    String?
+  tags             String[]           @default([])
+  unreadCount      Int                @default(0)
+  urgent           Boolean            @default(false)
+  lastMessageAt    DateTime?
+  /// Attribution chain e.g. INSTAGRAM_COMMENT>INSTAGRAM_DM>WHATSAPP
+  attributionPath  String?
+  sourceCommentId  String?
+  sourceMediaId    String?
+  linkedFromConversationId String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 
   customer  Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
   messages  Message[]
   notes     ConversationNote[]
   tickets   SupportTicket[]
+  handoffsSource ChannelHandoff[] @relation("HandoffSourceConversation")
+  handoffsDest   ChannelHandoff[] @relation("HandoffDestConversation")
+  linkedFrom     Conversation?    @relation("ConversationLink", fields: [linkedFromConversationId], references: [id])
+  linkedTo       Conversation[]   @relation("ConversationLink")
 
   @@unique([channel, externalThreadId])
   @@index([customerId])
   @@index([status])
   @@index([urgent])
   @@index([lastMessageAt])
+  @@index([channel])
+  @@index([linkedFromConversationId])
 }
 
 model Message {
@@ -519,6 +559,8 @@ model Message {
   language          LanguagePref?
   aiGenerated       Boolean          @default(false)
   aiConfidence      Float?
+  providerSendStatus ProviderSendStatus?
+  replyToExternalId String?
   metadata          Json?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
@@ -527,6 +569,59 @@ model Message {
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId, createdAt])
+}
+
+model ChannelHandoff {
+  id                     String        @id @default(cuid())
+  publicRef              String        @unique
+  tokenHash              String        @unique
+  sourceChannel          ChannelType
+  sourceConversationId   String?
+  sourceMessageId        String?
+  sourceCommentId        String?
+  sourceLeadId           String?
+  sourceCustomerId       String?
+  destinationChannel     ChannelType   @default(WHATSAPP)
+  destinationConversationId String?
+  destinationCustomerId  String?
+  destinationPhoneE164   String?
+  status                 HandoffStatus @default(CREATED)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  clickedAt              DateTime?
+  consumedAt             DateTime?
+  expiresAt              DateTime
+  createdById            String?
+  metadata               Json?
+
+  sourceConversation Conversation? @relation("HandoffSourceConversation", fields: [sourceConversationId], references: [id])
+  destConversation   Conversation? @relation("HandoffDestConversation", fields: [destinationConversationId], references: [id])
+  sourceCustomer     Customer?     @relation("HandoffSourceCustomer", fields: [sourceCustomerId], references: [id])
+  destCustomer       Customer?     @relation("HandoffDestCustomer", fields: [destinationCustomerId], references: [id])
+
+  @@index([status, expiresAt])
+  @@index([sourceLeadId])
+  @@index([sourceConversationId])
+}
+
+model IdentityLink {
+  id              String             @id @default(cuid())
+  customerAId     String
+  customerBId     String
+  status          IdentityLinkStatus @default(POSSIBLE_MATCH)
+  method          String
+  handoffId       String?
+  note            String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  createdById     String?
+  verifiedAt      DateTime?
+
+  customerA Customer @relation("IdentityCustomerA", fields: [customerAId], references: [id], onDelete: Cascade)
+  customerB Customer @relation("IdentityCustomerB", fields: [customerBId], references: [id], onDelete: Cascade)
+
+  @@unique([customerAId, customerBId])
+  @@index([status])
 }
 
 model ConversationNote {

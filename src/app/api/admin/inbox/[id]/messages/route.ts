@@ -23,19 +23,26 @@ export async function POST(request: NextRequest, context: RouteContext) {
     });
 
     let externalMessageId: string | undefined;
+    let providerSendStatus: "SENT" | "SKIPPED_PROVIDER_UNAVAILABLE" | "FAILED" | undefined = "SENT";
     if (conversation.channel === "WHATSAPP" && conversation.customer.phone) {
       const sent = await sendWhatsAppText(conversation.customer.phone, input.body);
       externalMessageId = sent.messageId;
+    } else if (conversation.channel === "INSTAGRAM_DM" && conversation.externalThreadId) {
+      const { sendInstagramText } = await import("@/lib/integrations/instagram/client");
+      const sent = await sendInstagramText(conversation.externalThreadId, input.body);
+      externalMessageId = sent.messageId;
+      providerSendStatus = sent.status;
     }
 
     const message = await prisma.message.create({
       data: {
         conversationId: id,
         direction: "OUTBOUND",
-        status: "SENT",
+        status: providerSendStatus === "FAILED" ? "FAILED" : "SENT",
         body: input.body,
         aiGenerated: false,
         externalMessageId,
+        providerSendStatus,
         createdById: authResult.auth.user.id,
       },
     });

@@ -7,9 +7,10 @@ export async function middleware(request: NextRequest) {
   if (pathname === "/login" || pathname === "/api/auth/login") return NextResponse.next();
   if (pathname.startsWith("/api/webhooks/")) return NextResponse.next();
   if (pathname.startsWith("/api/cron/")) return NextResponse.next();
+  if (pathname.startsWith("/go/wa/")) return NextResponse.next();
 
   const isProtectedApi = pathname.startsWith("/api/admin/") || pathname.startsWith("/api/tools/") || pathname.startsWith("/api/auth/logout");
-  const isProtectedPage = !pathname.startsWith("/api/") && pathname !== "/login";
+  const isProtectedPage = !pathname.startsWith("/api/") && pathname !== "/login" && !pathname.startsWith("/go/wa/");
 
   if (!isProtectedApi && !isProtectedPage) return NextResponse.next();
 

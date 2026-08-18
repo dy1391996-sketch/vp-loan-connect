@@ -20,7 +20,7 @@ This is not a basic chatbot. The Command Center unifies WhatsApp Business, Insta
 |------:|-------|--------|
 | 1 | Auth, studios, pricing, availability, customers, leads, bookings, payments, dashboard | **Implemented** |
 | 2 | WhatsApp AI automation, unified inbox replies, follow-ups | **Implemented** |
-| 3 | Instagram DM / comments + WA handoff | Adapters ready |
+| 3 | Instagram DM / comments + WA handoff | **Implemented** |
 | 4 | Content studio, calendar, publishing | Schema + pages + approval gates |
 | 5 | Cleaning, maintenance, reviews automation | Schema + pages |
 | 6 | Advanced AI reports & forecasting | Daily/weekly report cron + tools |
@@ -53,6 +53,7 @@ Rotate these passwords before any shared environment.
 ## Documentation
 
 - [Phase 2 WhatsApp automation](docs/PHASE2_WHATSAPP.md)
+- [Phase 3 Instagram + handoff](docs/PHASE3_INSTAGRAM_HANDOFF.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Architecture diagrams](docs/ARCHITECTURE_DIAGRAM.md)
 - [Meta / WhatsApp setup](docs/META_INTEGRATION.md)

@@ -16,7 +16,9 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
-    "verify:readiness": "tsx scripts/verify-readiness.ts"
+    "verify:migration": "tsx scripts/verify-migration.ts",
+    "verify:readiness": "tsx scripts/verify-readiness.ts",
+    "check:env": "tsx scripts/check-env.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
@@ -38,7 +40,7 @@
     "@types/react-dom": "^19.1.2",
     "eslint": "^9.36.0",
     "eslint-config-next": "15.5.21",
-    "postcss": "8.5.22",
+    "postcss": "8.5.23",
     "prisma": "^6.19.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.20.6",
