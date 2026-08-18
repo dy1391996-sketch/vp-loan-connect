@@ -12,8 +12,8 @@ const TRUST_ITEMS = [
 
 const NEXT_STEPS = [
   "Verify your email",
-  "Answer a few profile questions",
   "Unlock Credit Profile Booster",
+  "Complete your detailed profile",
   "View matched loan options",
 ];
 

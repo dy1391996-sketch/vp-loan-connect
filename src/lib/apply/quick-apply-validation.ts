@@ -40,18 +40,6 @@ export function validateQuickApplyStepFields(step: number, form: QuickApplyFormS
     if (!/^[6-9]\d{9}$/.test(mobileDigits) || isImpossibleMobile(mobileDigits)) {
       errors.mobile = "Enter a valid 10-digit Indian mobile number.";
     }
-    const age = ageFromDob(form.dateOfBirth);
-    if (age === null) errors.dateOfBirth = "Enter a valid date of birth.";
-    else if (age < 21 || age > 60) errors.dateOfBirth = "Applicant age must be between 21 and 60 years.";
-    if (!/^\d{6}$/.test(form.pinCode)) errors.pinCode = "Enter a valid six-digit PIN code.";
-    return errors;
-  }
-
-  if (step === 2) {
-    return errors;
-  }
-
-  if (step === 3) {
     if (!Number.isFinite(form.loanAmount) || form.loanAmount <= 0) {
       errors.loanAmount = "Enter a valid loan amount.";
     } else if (form.loanAmount < MIN_LOAN_AMOUNT) {
@@ -63,7 +51,18 @@ export function validateQuickApplyStepFields(step: number, form: QuickApplyFormS
     return errors;
   }
 
+  if (step === 2) {
+    return errors;
+  }
+
+  if (step === 3) {
+    return errors;
+  }
+
   if (step === 4) {
+    const age = ageFromDob(form.dateOfBirth);
+    if (age === null) errors.dateOfBirth = "Enter a valid date of birth.";
+    else if (age < 21 || age > 60) errors.dateOfBirth = "Applicant age must be between 21 and 60 years.";
     if (!form.employmentUi) errors.employmentUi = "Select your employment type.";
     const income = Number(form.monthlyIncome.replace(/\D/g, "") || "0");
     if (!Number.isFinite(income) || income < 5000) {
@@ -132,18 +131,22 @@ export function validateQuickApplyStep(step: number, form: QuickApplyFormState):
 }
 
 export function isLoanNeedComplete(form: QuickApplyFormState): boolean {
-  return validateQuickApplyStep(3, form) === "";
+  return Boolean(
+    Number.isFinite(form.loanAmount) &&
+      form.loanAmount >= MIN_LOAN_AMOUNT &&
+      form.loanAmount <= MAX_LOAN_AMOUNT &&
+      form.loanPurpose.trim(),
+  );
 }
 
-/** After email OTP, skip the loan-need screen when amount and purpose are already valid. */
-export function getNextQuickApplyStep(step: number, form: QuickApplyFormState): number {
+/** After email OTP the next major screen is Credit Profile Booster payment. */
+export function getNextQuickApplyStep(step: number, paid = false): number {
   if (step >= 6) return 6;
-  if (step === 2 && isLoanNeedComplete(form)) return 4;
+  if (step === 3 && !paid) return 3;
   return step + 1;
 }
 
-export function getPreviousQuickApplyStep(step: number, form: QuickApplyFormState): number {
+export function getPreviousQuickApplyStep(step: number): number {
   if (step <= 1) return 1;
-  if (step === 4 && isLoanNeedComplete(form)) return 2;
   return step - 1;
 }

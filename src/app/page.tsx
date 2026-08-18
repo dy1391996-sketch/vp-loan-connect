@@ -35,7 +35,7 @@ import { PLATFORM_DISCLAIMER, RESULT_DISCLAIMER, USP_TOTAL_WITH_GST_LABEL } from
 export const metadata: Metadata = {
   title: "Find Loan Options for Your Profile | VP Loan Connect",
   description:
-    "Check loan options for your profile in minutes. Verify email, answer a few questions, then unlock the ₹99 Credit Profile Booster. Not a lender — no guaranteed approval.",
+    "Check loan options for your profile in minutes. Verify email, unlock the ₹99 Credit Profile Booster, then complete PAN and profile details. Not a lender — no guaranteed approval.",
   alternates: { canonical: "/" },
 };
 
@@ -78,9 +78,9 @@ const faqs = [
 
 const journey = [
   ["01", "Quick start", "Tell us the amount you need, or start from Quick Apply."],
-  ["02", "Email OTP", "Verify your email before we continue the profile check."],
-  ["03", "Short questions", "Existing details: loan need, work, credit, PAN and consent."],
-  ["04", "₹116.82 unlock", "Credit Profile Booster checkout — same ₹99 + GST fee."],
+  ["02", "Email OTP", "Verify your email before checkout."],
+  ["03", "₹116.82 unlock", "Credit Profile Booster checkout — same ₹99 + GST fee."],
+  ["04", "Detailed profile", "Work, income, PAN, address and consent after payment."],
   ["05", "View your options", "See the preliminary result and matched loan categories."],
   ["06", "Official apply", "Continue only on the partner’s official flow if you choose."],
 ] as const;
@@ -178,13 +178,13 @@ export default function HomePage() {
           <SectionHeading
             eyebrow="Simple, premium process"
             title="See options. Unlock matches when useful."
-            description="A clear journey: verify email, answer a few existing questions, unlock Credit Profile Booster, then finish the check. No percentage platform fee on your loan amount."
+            description="A clear journey: verify email, unlock Credit Profile Booster, then finish the detailed profile. No percentage platform fee on your loan amount."
             align="center"
           />
           <div className="mt-16 grid gap-5 md:grid-cols-3">
-            <ProcessCard number="01" icon={UserRoundCheck} title="Verify + short check" description="Email OTP, then 2–3 existing questions about your loan need and profile." />
+            <ProcessCard number="01" icon={UserRoundCheck} title="Start + email OTP" description="Amount, purpose, name and email — then verify before checkout." />
             <ProcessCard number="02" icon={HandCoins} title={`Pay ${USP_TOTAL_WITH_GST_LABEL} Booster`} description="Same Credit Profile Booster checkout — not a lender processing fee." />
-            <ProcessCard number="03" icon={ChartNoAxesCombined} title="View matched options" description="See your preliminary result and official apply links after the booster unlock." />
+            <ProcessCard number="03" icon={ChartNoAxesCombined} title="Finish profile + options" description="PAN and work details come after payment, then matched official apply links." />
           </div>
         </div>
       </section>
@@ -380,7 +380,7 @@ export default function HomePage() {
                 Ready to check loan options for your profile?
                 </h2>
                 <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
-                  Verify email, answer a few questions, then unlock matched official partner links with the {USP_TOTAL_WITH_GST_LABEL} Credit Profile Booster.
+                  Verify email, unlock the {USP_TOTAL_WITH_GST_LABEL} Credit Profile Booster, then complete your profile for matched official partner links.
                 </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
