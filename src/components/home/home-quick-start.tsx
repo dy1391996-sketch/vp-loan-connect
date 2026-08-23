@@ -101,7 +101,7 @@ export function HomeQuickStart() {
         Check My Loan Options <ArrowRight size={18} />
       </Button>
       <p className="mt-3 text-xs leading-5 text-slate-400">
-        Not a lender. This starts a profile check — not an approval or disbursement.
+        Not a lender. Amount and purpose are saved for after the ₹116.82 Credit Profile Booster. The next screen only asks for name, email and OTP.
       </p>
     </div>
   );

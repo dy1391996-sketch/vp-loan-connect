@@ -182,7 +182,7 @@ export default function HomePage() {
             align="center"
           />
           <div className="mt-16 grid gap-5 md:grid-cols-3">
-            <ProcessCard number="01" icon={UserRoundCheck} title="Start + email OTP" description="Amount, purpose, name and email — then verify before checkout." />
+            <ProcessCard number="01" icon={UserRoundCheck} title="Start + email OTP" description="Name, email and mobile — then verify before the ₹116.82 checkout." />
             <ProcessCard number="02" icon={HandCoins} title={`Pay ${USP_TOTAL_WITH_GST_LABEL} Booster`} description="Same Credit Profile Booster checkout — not a lender processing fee." />
             <ProcessCard number="03" icon={ChartNoAxesCombined} title="Finish profile + options" description="PAN and work details come after payment, then matched official apply links." />
           </div>
