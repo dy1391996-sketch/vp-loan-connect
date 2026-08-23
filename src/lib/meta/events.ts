@@ -29,6 +29,9 @@ export const FIRST_PARTY_TO_META: Record<string, MetaFunnelEvent[]> = {
   free_result_viewed: ["EligibilityViewed"],
   checkout_opened: ["CheckoutStarted"],
   checkout_resumed: ["CheckoutStarted"],
+  booster_checkout_started: ["CheckoutStarted"],
+  payment_order_created: ["CheckoutStarted"],
+  cashfree_checkout_opened: ["CheckoutStarted"],
   // Pixel/CAPI standard name is Purchase; funnel label PaymentSuccess is kept in custom_data.
   payment_completed: ["PaymentSuccess"],
   instagram_profile_click: ["InstagramProfileClick"],

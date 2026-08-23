@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   buildCashfreeLaunchPath,
   buildCashfreeReturnUrl,
+  cashfreeHostedCheckoutAction,
   classifyCashfreeOrderStatus,
   createCashfreeSdk,
   interpretCashfreeCheckoutResult,
@@ -64,6 +65,9 @@ describe("Cashfree browser SDK helpers", () => {
     assert.match(launchPath, /^\/payment\/launch\?/);
     assert.match(launchPath, /internalOrderId=11111111-1111-1111-1111-111111111111/);
     assert.match(launchPath, /token=result_token/);
+
+    assert.equal(cashfreeHostedCheckoutAction("production"), "https://api.cashfree.com/pg/view/sessions/checkout");
+    assert.equal(cashfreeHostedCheckoutAction("sandbox"), "https://sandbox.cashfree.com/pg/view/sessions/checkout");
   });
 
   it("classifies Cashfree order statuses for reuse vs recreate", () => {
