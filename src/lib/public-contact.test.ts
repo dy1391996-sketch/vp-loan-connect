@@ -38,4 +38,28 @@ describe("public contact policy", () => {
     assert.doesNotMatch(source, /wa\.me/);
     assert.doesNotMatch(source, /whatsapp\.com/i);
   });
+
+  it("public policy and product pages do not advertise WhatsApp, phones, or guaranteed approval", () => {
+    const files = [
+      "src/app/privacy/page.tsx",
+      "src/app/consent-policy/page.tsx",
+      "src/app/loan-readiness/page.tsx",
+      "src/app/credit-health/page.tsx",
+      "src/app/personal-loan/page.tsx",
+      "src/app/page.tsx",
+      "src/components/product/product-page.tsx",
+      "src/components/connect-options-panel.tsx",
+    ];
+    for (const file of files) {
+      const source = readFileSync(path.join(process.cwd(), file), "utf8");
+      assert.doesNotMatch(source, /wa\.me/i, file);
+      assert.doesNotMatch(source, /verified WhatsApp/i, file);
+      assert.doesNotMatch(source, /official WhatsApp/i, file);
+      assert.doesNotMatch(source, /Send WhatsApp/i, file);
+      assert.doesNotMatch(source, /tel:\+?\d/, file);
+      assert.doesNotMatch(source, /(?<!no )(?<!not )guaranteed approval/i, file);
+      assert.doesNotMatch(source, /(?<!no )(?<!not )guaranteed rate/i, file);
+      assert.doesNotMatch(source, /(?<!no )(?<!not )guaranteed disbursement/i, file);
+    }
+  });
 });

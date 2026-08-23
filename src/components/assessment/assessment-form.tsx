@@ -985,7 +985,7 @@ function UnlockStep({ form, update }: StepProps) {
         </span>
         <h2 className="mt-4 text-3xl font-extrabold tracking-[-0.045em] sm:text-4xl">Unlock matched options</h2>
         <p className="mt-3 max-w-xl text-sm leading-7 text-slate-300">
-          {USP_PRODUCT_NAME}: profile analysis + official partner apply links ranked for your answers. Not a lender fee. Not an approval.
+          {USP_PRODUCT_NAME}: profile analysis + official lender/LSP apply links ranked for your answers. Not a lender fee. Not an approval.
         </p>
         <p className="mt-6 text-5xl font-extrabold text-brand-400">
           {USP_PRICE_LABEL} <span className="text-base font-bold text-slate-400">+ GST</span>

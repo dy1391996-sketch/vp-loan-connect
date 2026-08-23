@@ -13,8 +13,8 @@ export default function CreditHealthPage() {
     <ProductPage
       kind="credit"
       title={`VP ${USP_PRODUCT_NAME}`}
-      heading="₹99 mein samjhein apni Credit Profile aur profile-matched options"
-      description="Credit profile explanation, loan-readiness analysis, aur aapke profile ke hisaab se banks, NBFCs aur fintechs ke relevant options pehle — random loan websites nahi."
+      heading="Understand your credit profile and profile-matched options for ₹99"
+      description="Credit-profile explanation, loan-readiness analysis, and relevant bank, NBFC and fintech options ranked for your answers — not a random list of loan websites."
       regular="₹299 + GST"
       price={`Launch price ${USP_PRICE_LABEL} + 18% GST`}
       total={`${USP_TOTAL_WITH_GST_LABEL} total`}

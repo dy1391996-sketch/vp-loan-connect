@@ -25,7 +25,7 @@ export function ConnectOptionsPanel({ matched, more, tone = "dark" }: Props) {
             Official platforms you can connect to
           </h2>
           <p className={dark ? "mt-3 max-w-3xl text-sm leading-7 text-slate-300" : "mt-3 max-w-3xl text-sm leading-7 text-slate-600"}>
-            Best-fit options pehle. Neeche more official loan links bhi hain. Hum aapka data auto-submit nahi karte — lender hi amount, APR, fees aur approval decide karta hai.
+            Profile-fit options are shown first. Additional official apply links appear below. We do not auto-submit your data. The lender decides amount, APR, fees and approval.
           </p>
         </div>
       </div>
@@ -42,7 +42,7 @@ export function ConnectOptionsPanel({ matched, more, tone = "dark" }: Props) {
             More platforms you can also open
           </h3>
           <p className={dark ? "mt-2 text-sm text-slate-400" : "mt-2 text-sm text-slate-600"}>
-            Extra official connect links — har platform apni eligibility check karega.
+            Additional official apply links — each platform runs its own eligibility check.
           </p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {more.map((option) => (
@@ -69,7 +69,7 @@ export function ConnectOptionsPanel({ matched, more, tone = "dark" }: Props) {
 
       <div className={dark ? "mt-6 flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-5 text-xs leading-6 text-slate-300" : "mt-6 flex items-start gap-3 rounded-2xl border border-line bg-surface p-5 text-xs leading-6 text-slate-600"}>
         <LockKeyhole className="mt-0.5 shrink-0 text-brand-500" size={17} />
-        Ek saath bahut saare applications mat bhejo — har apply se credit enquiry ban sakti hai. Key Fact Statement, APR aur total charges padh kar hi aage badho.
+        Do not submit many applications at once — each apply can create a credit enquiry. Read the Key Fact Statement, APR and total charges before you continue.
       </div>
     </div>
   );

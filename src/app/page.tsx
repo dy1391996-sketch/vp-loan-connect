@@ -49,13 +49,13 @@ const trustItems = [
 ] as const;
 
 const categories = [
-  ["Personal Loan", "Income aur EMI ke hisaab se personal-loan readiness.", Banknote, "/personal-loan"],
-  ["Business Loan", "Vintage, cash flow aur document readiness review.", BriefcaseBusiness, "/assessment?loanType=BUSINESS"],
-  ["MSME Loan", "Growing businesses ke liye relevant profile factors.", Building2, "/assessment?loanType=BUSINESS"],
-  ["Gold Loan", "Gold available ho to secured-loan readiness explore karo.", Gem, "/assessment?loanType=GOLD"],
-  ["Loan Against Property", "Property-backed route ke liye profile readiness.", Home, "/assessment?loanType=PROPERTY"],
-  ["Education Loan", "Income, co-applicant aur education docs prepare karo.", GraduationCap, "/assessment?loanType=PERSONAL&purpose=Education%20expense"],
-  ["Working Capital", "Business working-capital readiness samjho.", WalletCards, "/assessment?loanType=BUSINESS&purpose=Business%20working%20capital"],
+  ["Personal Loan", "Personal-loan readiness based on income and EMI capacity.", Banknote, "/personal-loan"],
+  ["Business Loan", "Vintage, cash-flow and document-readiness review.", BriefcaseBusiness, "/assessment?loanType=BUSINESS"],
+  ["MSME Loan", "Profile factors relevant to growing businesses.", Building2, "/assessment?loanType=BUSINESS"],
+  ["Gold Loan", "Secured-loan readiness when gold is available.", Gem, "/assessment?loanType=GOLD"],
+  ["Loan Against Property", "Profile readiness for a property-backed route.", Home, "/assessment?loanType=PROPERTY"],
+  ["Education Loan", "Prepare income, co-applicant and education documents.", GraduationCap, "/assessment?loanType=PERSONAL&purpose=Education%20expense"],
+  ["Working Capital", "Working-capital readiness for business cash-flow needs.", WalletCards, "/assessment?loanType=BUSINESS&purpose=Business%20working%20capital"],
 ] as const;
 
 const rejectionReasons = [
@@ -380,7 +380,7 @@ export default function HomePage() {
                 Ready to check loan options for your profile?
                 </h2>
                 <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
-                  Verify email, unlock the {USP_TOTAL_WITH_GST_LABEL} Credit Profile Booster, then complete your profile for matched official partner links.
+                  Verify email, unlock the {USP_TOTAL_WITH_GST_LABEL} Credit Profile Booster, then complete your profile for matched official lender/LSP apply links.
                 </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">

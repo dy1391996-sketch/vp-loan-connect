@@ -57,8 +57,8 @@ export default function AboutPage() {
             <ul className="mt-5 grid gap-3 text-sm leading-7 text-slate-600">
               <li>Free profile assessment to explain credit-readiness indicators from the information you provide.</li>
               <li>
-                Paid {USP_PRODUCT_NAME} ({USP_PRICE_LABEL} + GST) with profile analysis and matched official partner apply
-                links.
+                Paid {USP_PRODUCT_NAME} ({USP_PRICE_LABEL} + GST) with profile analysis and matched official lender/LSP apply
+                links (non-exclusive).
               </li>
               <li>Optional consultation / assisted application guidance — educational support only.</li>
             </ul>

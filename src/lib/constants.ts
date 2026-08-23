@@ -38,6 +38,9 @@ export const PLATFORM_DISCLAIMER =
 export const PAYMENT_DESCRIPTION =
   "This payment is for the ₹99 Credit Profile Booster: credit-profile guidance, loan-readiness analysis and access to profile-matched lender options. It is not a lender processing fee or a guarantee of loan approval.";
 
+export const READINESS_PAYMENT_DESCRIPTION =
+  "This payment is for the Complete Loan Readiness Report (₹299 + 18% GST = ₹352.82). It is a deeper educational report, separate from the ₹99 Credit Profile Booster, and is not a lender processing fee or a guarantee of loan approval.";
+
 export const CREDIT_REPORT_DISCLAIMER =
   "We are not TransUnion CIBIL, Experian, Equifax or CRIF High Mark. We cannot directly change or delete a bureau record and do not guarantee any score increase. Corrections depend on confirmation by the reporting credit institution.";
 

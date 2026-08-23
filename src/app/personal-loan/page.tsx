@@ -32,13 +32,13 @@ export const metadata: Metadata = {
 const benefits = [
   ["Collateral-free profile review", "Understand unsecured personal-loan readiness without uploading documents first."],
   ["Clear next-step guidance", "See EMI capacity, document gaps and matched official platform options."],
-  ["OTP-secured result", "Verify your contact details before the free indicative result is unlocked."],
+  ["Email OTP-secured result", "Verify your email before the free indicative result is unlocked."],
   ["Apply only when ready", "We do not auto-submit your data. Every lender application stays voluntary."],
 ] as const;
 
 const steps = [
   ["01", "Share your need", "Choose amount, purpose and basic contact details."],
-  ["02", "Verify securely", "Complete OTP verification for a protected result link."],
+  ["02", "Verify securely", "Complete email OTP verification for a protected result link."],
   ["03", "Answer profile questions", "Income, existing EMIs, CIBIL range and document readiness."],
   ["04", "View free result", "See indicative readiness before the optional ₹99 Credit Profile Booster."],
   ["05", "Best-fit official platforms", "Open profile-ranked lender or LSP journeys only if you choose."],
@@ -83,7 +83,7 @@ export default function PersonalLoanPage() {
               <span className="mt-2 block text-brand-500">before you apply</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300 sm:text-xl">
-              Amount चुनो, income और CIBIL range बताओ — free indicative eligibility, bina document upload ya bank password.
+              Choose an amount, share income and CIBIL range, and see a free indicative eligibility view — without uploading documents or bank passwords.
             </p>
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
               <ButtonLink href="/assessment?loanType=PERSONAL&purpose=Other%20personal%20need" size="lg">

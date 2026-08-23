@@ -6,7 +6,7 @@ import { trackEvent } from "@/lib/analytics-client";
 
 export function ReferralActions({ link }: { link: string }) {
   const [copied, setCopied] = useState(false);
-  const message = `Loan apply se pehle apni credit profile samjhein. Free check available. ₹99 Credit Profile Booster yahan: ${link}. Yeh loan approval guarantee nahi hai.`;
+  const message = `Check your credit profile before applying for a loan. Free check available. ₹99 Credit Profile Booster: ${link}. This is not a loan-approval guarantee.`;
 
   async function copy() {
     await navigator.clipboard.writeText(link);
