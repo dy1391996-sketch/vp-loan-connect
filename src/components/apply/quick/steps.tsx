@@ -55,10 +55,93 @@ export function QuickApplyStepBody({ form, patch, step, errors, otp }: Props) {
     return (
       <div>
         <h1 className="font-display text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">
-          Start with your loan need
+          Start Your Credit Profile
         </h1>
         <p className="mt-3 text-sm leading-7 text-slate-600">
-          Tell us the amount, then verify email. Credit Profile Booster checkout comes next — PAN and detailed work questions come after payment.
+          Enter a few details and verify your email. The ₹116.82 Credit Profile Booster comes next — the detailed profile questions come after verified payment.
+        </p>
+        <div className="mt-8 grid gap-4">
+          <Field label="Full name as per PAN" required error={errors.fullName}>
+            <Input
+              value={form.fullName}
+              aria-invalid={Boolean(errors.fullName)}
+              onChange={(e) => patch({ fullName: e.target.value })}
+              autoComplete="name"
+            />
+          </Field>
+          <Field label="Email address" required error={errors.email}>
+            <Input
+              type="email"
+              value={form.email}
+              aria-invalid={Boolean(errors.email)}
+              onChange={(e) => patch({ email: e.target.value })}
+              onBlur={(e) => patch({ email: normalizeEmailInput(e.target.value) })}
+              autoComplete="email"
+              placeholder="you@email.com"
+            />
+          </Field>
+          <Field label="Mobile number" hint="Needed for the secure payment record. We do not send SMS OTP." required error={errors.mobile}>
+            <Input
+              inputMode="numeric"
+              maxLength={10}
+              value={form.mobile}
+              aria-invalid={Boolean(errors.mobile)}
+              onChange={(e) => patch({ mobile: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+              autoComplete="tel"
+              placeholder="10-digit Indian mobile"
+            />
+          </Field>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 2) {
+    return (
+      <div>
+        <h1 className="font-display text-3xl font-extrabold tracking-[-0.045em] text-navy-950">Verify your email</h1>
+        <p className="mt-3 text-sm leading-7 text-slate-600">Enter the 6-digit code sent to your email. This confirms it’s you before we continue.</p>
+        <div className="mt-6 rounded-2xl border border-line bg-surface px-4 py-3 text-sm font-semibold text-navy-950">
+          Code sent to <span className="font-extrabold">{otp.maskedEmail}</span>
+          <button type="button" className="ml-3 font-bold text-brand-700 underline" onClick={otp.onChangeEmail}>
+            Change email
+          </button>
+        </div>
+        <Field label="6-digit verification code" required error={errors.otpCode}>
+          <Input
+            className="tracking-[0.35em]"
+            inputMode="numeric"
+            maxLength={6}
+            value={otp.code}
+            aria-invalid={Boolean(errors.otpCode)}
+            onChange={(e) => otp.setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            autoComplete="one-time-code"
+            aria-label="Email verification code"
+          />
+        </Field>
+        <p className="mt-4 text-sm text-slate-600" aria-live="polite">
+          {otp.resendIn > 0 ? (
+            <>Resend available in {otp.resendIn}s</>
+          ) : (
+            <button type="button" className="font-bold text-brand-700 underline disabled:opacity-50" disabled={otp.sending} onClick={otp.onResend}>
+              Resend code
+            </button>
+          )}
+        </p>
+      </div>
+    );
+  }
+
+  if (step === 3) {
+    return null;
+  }
+
+  if (step === 4) {
+    return (
+      <div>
+        <h1 className="font-display text-3xl font-extrabold tracking-[-0.045em] text-navy-950">Let&apos;s understand your profile</h1>
+        <p className="mt-3 text-sm leading-7 text-slate-600">
+          Payment is verified. These details estimate indicative affordability. This does not pull a bureau report or affect your CIBIL score.
         </p>
         <div className="mt-8 grid gap-4">
           <label className="block">
@@ -131,89 +214,6 @@ export function QuickApplyStepBody({ form, patch, step, errors, otp }: Props) {
               );
             })}
           </div>
-          <Field label="Email address" required error={errors.email}>
-            <Input
-              type="email"
-              value={form.email}
-              aria-invalid={Boolean(errors.email)}
-              onChange={(e) => patch({ email: e.target.value })}
-              onBlur={(e) => patch({ email: normalizeEmailInput(e.target.value) })}
-              autoComplete="email"
-              placeholder="you@email.com"
-            />
-          </Field>
-          <Field label="Full name as per PAN" required error={errors.fullName}>
-            <Input
-              value={form.fullName}
-              aria-invalid={Boolean(errors.fullName)}
-              onChange={(e) => patch({ fullName: e.target.value })}
-              autoComplete="name"
-            />
-          </Field>
-          <Field label="Mobile number" hint="Collected as profile information only. We do not send SMS OTP." required error={errors.mobile}>
-            <Input
-              inputMode="numeric"
-              maxLength={10}
-              value={form.mobile}
-              aria-invalid={Boolean(errors.mobile)}
-              onChange={(e) => patch({ mobile: e.target.value.replace(/\D/g, "").slice(0, 10) })}
-              autoComplete="tel"
-              placeholder="10-digit Indian mobile"
-            />
-          </Field>
-        </div>
-      </div>
-    );
-  }
-
-  if (step === 2) {
-    return (
-      <div>
-        <h1 className="font-display text-3xl font-extrabold tracking-[-0.045em] text-navy-950">Verify your email</h1>
-        <p className="mt-3 text-sm leading-7 text-slate-600">Enter the 6-digit code sent to your email. This confirms it’s you before we continue.</p>
-        <div className="mt-6 rounded-2xl border border-line bg-surface px-4 py-3 text-sm font-semibold text-navy-950">
-          Code sent to <span className="font-extrabold">{otp.maskedEmail}</span>
-          <button type="button" className="ml-3 font-bold text-brand-700 underline" onClick={otp.onChangeEmail}>
-            Change email
-          </button>
-        </div>
-        <Field label="6-digit verification code" required error={errors.otpCode}>
-          <Input
-            className="tracking-[0.35em]"
-            inputMode="numeric"
-            maxLength={6}
-            value={otp.code}
-            aria-invalid={Boolean(errors.otpCode)}
-            onChange={(e) => otp.setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-            autoComplete="one-time-code"
-            aria-label="Email verification code"
-          />
-        </Field>
-        <p className="mt-4 text-sm text-slate-600" aria-live="polite">
-          {otp.resendIn > 0 ? (
-            <>Resend available in {otp.resendIn}s</>
-          ) : (
-            <button type="button" className="font-bold text-brand-700 underline disabled:opacity-50" disabled={otp.sending} onClick={otp.onResend}>
-              Resend code
-            </button>
-          )}
-        </p>
-      </div>
-    );
-  }
-
-  if (step === 3) {
-    return null;
-  }
-
-  if (step === 4) {
-    return (
-      <div>
-        <h1 className="font-display text-3xl font-extrabold tracking-[-0.045em] text-navy-950">Work, income and commitments</h1>
-        <p className="mt-3 text-sm leading-7 text-slate-600">
-          A few details to estimate indicative affordability. This does not pull a bureau report or affect your CIBIL score.
-        </p>
-        <div className="mt-6 grid gap-4">
           <Field label="Date of birth" required error={errors.dateOfBirth}>
             <Input type="date" value={form.dateOfBirth} aria-invalid={Boolean(errors.dateOfBirth)} onChange={(e) => patch({ dateOfBirth: e.target.value })} />
           </Field>

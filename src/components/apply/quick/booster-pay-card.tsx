@@ -22,9 +22,9 @@ export function CreditProfileBoosterPayCard({ checkoutUrl, compact = false }: Pr
       <div className={compact ? "grid" : "grid lg:grid-cols-[1.15fr_0.85fr]"}>
         <div className="p-6">
           <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-brand-700">Credit Profile Booster</p>
-          <h2 className="mt-3 text-2xl font-extrabold text-navy-950">Unlock matched loan options</h2>
+          <h2 className="mt-3 text-2xl font-extrabold text-navy-950">Unlock Your Credit Profile Booster</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            This is a profile-analysis service fee, not a lender processing fee and not a loan approval.
+            After payment you complete the detailed profile and receive a profile-readiness analysis plus matched official lender links. This is not loan approval, guaranteed eligibility, a guaranteed interest rate, or disbursement.
           </p>
           <ul className="mt-4 space-y-2 text-sm text-slate-600">
             {BOOSTER_POINTS.map((item) => (
@@ -41,10 +41,10 @@ export function CreditProfileBoosterPayCard({ checkoutUrl, compact = false }: Pr
           <p className="text-sm text-slate-300">GST (18%) ₹17.82</p>
           <p className="mt-2 text-3xl font-black text-brand-500">{USP_TOTAL_WITH_GST_LABEL}</p>
           <ButtonLink href={checkoutUrl} size="lg" className="mt-6 w-full">
-            Unlock Credit Profile Booster — {USP_TOTAL_WITH_GST_LABEL} <ArrowRight size={18} />
+            Continue to Secure Payment — {USP_TOTAL_WITH_GST_LABEL} <ArrowRight size={18} />
           </ButtonLink>
           <p className="mt-3 text-xs leading-6 text-slate-400">
-            Fee is for profile analysis and matched options — not a lender processing fee.
+            Payment is for VP Loan Connect&apos;s Credit Profile Booster / profile-readiness service. Loan approval, interest rate and disbursement depend on the lender&apos;s eligibility criteria, documentation, credit profile and internal policies. VP Loan Connect is not a lender.
           </p>
         </div>
       </div>

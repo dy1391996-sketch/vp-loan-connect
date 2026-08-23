@@ -153,5 +153,5 @@ export function buildAssessmentEntryHref(options?: {
   }
 
   const query = params.toString();
-  return query ? `/assessment?${query}` : "/assessment";
+  return query ? `/apply/quick?${query}` : "/apply/quick";
 }

@@ -200,16 +200,13 @@ describe("assessmentSchema server validation", () => {
 });
 
 describe("draftAssessmentSchema", () => {
-  it("accepts OTP-verified loan-need identity without PAN, address or work details", async () => {
+  it("accepts OTP-verified identity without loan need, PAN, address or work details", async () => {
     const { draftAssessmentSchema } = await import("./assessment-schema");
     const parsed = draftAssessmentSchema.safeParse({
       otpVerificationToken: "x".repeat(40),
       fullName: "Rahul Sharma",
       mobile: "9876512345",
       email: "rahul.sharma@gmail.com",
-      loanAmount: 50000,
-      loanPurpose: "Personal expenses",
-      loanType: "PERSONAL",
     });
     assert.equal(parsed.success, true);
     assert.equal(draftAssessmentSchema.safeParse({ ...parsed.data, panNumber: "ABCPT1234F" }).success, true);
@@ -217,9 +214,6 @@ describe("draftAssessmentSchema", () => {
       fullName: "Rahul Sharma",
       mobile: "9876512345",
       email: "rahul.sharma@gmail.com",
-      loanAmount: 50000,
-      loanPurpose: "Personal expenses",
-      loanType: "PERSONAL",
     });
     assert.equal(missingOtp.success, false);
   });

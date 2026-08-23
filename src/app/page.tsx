@@ -77,11 +77,11 @@ const faqs = [
 ] as const;
 
 const journey = [
-  ["01", "Quick start", "Tell us the amount you need, or start from Quick Apply."],
+  ["01", "Start your profile", "Enter your name and email, then verify with OTP."],
   ["02", "Email OTP", "Verify your email before checkout."],
-  ["03", "₹116.82 unlock", "Credit Profile Booster checkout — same ₹99 + GST fee."],
+  ["03", "₹116.82 unlock", "Credit Profile Booster checkout — ₹99 + GST."],
   ["04", "Detailed profile", "Work, income, PAN, address and consent after payment."],
-  ["05", "View your options", "See the preliminary result and matched loan categories."],
+  ["05", "View your options", "See the booster result and matched loan categories."],
   ["06", "Official apply", "Continue only on the partner’s official flow if you choose."],
 ] as const;
 

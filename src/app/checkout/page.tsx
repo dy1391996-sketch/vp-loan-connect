@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { redirect } from "next/navigation";
 import { LockKeyhole } from "lucide-react";
 import { CheckoutClient } from "@/components/checkout/checkout-client";
 import { PublicStatePanel } from "@/components/ui/public-state-panel";
 import { USP_PRICE_LABEL, USP_PRODUCT_NAME, USP_PRODUCT_SLUG, USP_SALE_PRICE } from "@/lib/constants";
+import { continueQuickApplyHref } from "@/lib/domain/early-checkout";
 import { prisma } from "@/lib/db";
+import { readBoosterEntitlement } from "@/lib/payments/entitlement";
 import { verifyAccessToken } from "@/lib/security/tokens";
 import { formatInr } from "@/lib/utils";
 
@@ -30,6 +33,12 @@ export default async function CheckoutPage({
     prisma.product.findUnique({ where: { slug: query.product } }),
   ]);
   if (!assessment || assessment.leadId !== token.leadId || !product?.active) return <InvalidCheckout />;
+  if (typeof token.leadId === "string") {
+    const entitlement = await readBoosterEntitlement(assessment.id, token.leadId);
+    if (entitlement?.paid) {
+      redirect(continueQuickApplyHref(assessment.id, query.token));
+    }
+  }
   const subtotal = product.slug === USP_PRODUCT_SLUG ? USP_SALE_PRICE : Number(product.salePrice);
   const gst = Math.round(subtotal * Number(product.gstRate)) / 100;
   const total = Math.round((subtotal + gst) * 100) / 100;

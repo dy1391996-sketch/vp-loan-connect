@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       const firstMessage = parsed.error.issues[0]?.message;
       return NextResponse.json(
-        { error: firstMessage || "Complete email verification and loan need details first.", fields: parsed.error.flatten().fieldErrors },
+        { error: firstMessage || "Complete email verification first.", fields: parsed.error.flatten().fieldErrors },
         { status: 400 },
       );
     }
@@ -57,12 +57,9 @@ export async function POST(request: NextRequest) {
       });
 
       const sharedData = {
-        loanAmount: input.loanAmount,
-        loanPurpose: sanitizeText(input.loanPurpose),
-        loanType: input.loanType,
         source: input.source,
         referralCode: input.referralCode || null,
-        completionPercent: 25,
+        completionPercent: 15,
       };
 
       const answers = [

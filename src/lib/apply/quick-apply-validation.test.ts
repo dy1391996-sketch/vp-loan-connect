@@ -23,20 +23,20 @@ function form(overrides: Partial<ReturnType<typeof defaultQuickApplyForm>> = {})
 }
 
 describe("quick apply identity and OTP order", () => {
-  it("validates loan need plus contact fields on step 1 and does not require PAN, DOB or address", () => {
+  it("validates contact fields only on step 1 and does not require loan need, PAN, DOB or address", () => {
     const base = form({
       fullName: "Rahul Sharma",
       email: "rahul@gmail.com",
       mobile: "9876512345",
-      loanAmount: 50_000,
-      loanPurpose: "Personal expenses",
+      loanAmount: 0,
+      loanPurpose: "",
     });
     assert.equal(validateQuickApplyStep(1, base), "");
+    assert.equal(validateQuickApplyStepFields(1, base).loanAmount, undefined);
+    assert.equal(validateQuickApplyStepFields(1, base).loanPurpose, undefined);
     assert.equal(validateQuickApplyStepFields(1, base).panNumber, undefined);
     assert.equal(validateQuickApplyStepFields(1, base).dateOfBirth, undefined);
     assert.equal(validateQuickApplyStepFields(1, base).residentialAddress, undefined);
-    assert.match(validateQuickApplyStep(1, form({ ...base, loanAmount: 5000 })), /10,000/);
-    assert.match(validateQuickApplyStep(1, form({ ...base, loanPurpose: "" })), /funds for/i);
   });
 
   it("trims and lowercases email and shows inline email errors", () => {
@@ -61,18 +61,42 @@ describe("quick apply identity and OTP order", () => {
 });
 
 describe("quick apply amount and purpose", () => {
-  it("requires amount within 10k–10L on step 1", () => {
+  it("requires amount within 10k–10L on the post-payment profile step", () => {
     const identity = { fullName: "Rahul Sharma", email: "rahul@gmail.com", mobile: "9876512345" };
-    assert.match(validateQuickApplyStep(1, form({ ...identity, loanAmount: 0, loanPurpose: "Education expense" })), /valid loan amount/i);
-    assert.match(validateQuickApplyStep(1, form({ ...identity, loanAmount: 5000, loanPurpose: "Education expense" })), /10,000/);
-    assert.equal(validateQuickApplyStep(1, form({ ...identity, loanAmount: MIN_LOAN_AMOUNT, loanPurpose: "Education expense" })), "");
-    assert.equal(validateQuickApplyStep(1, form({ ...identity, loanAmount: MAX_LOAN_AMOUNT, loanPurpose: "Education expense" })), "");
-    assert.match(validateQuickApplyStep(1, form({ ...identity, loanAmount: MAX_LOAN_AMOUNT + 1, loanPurpose: "Education expense" })), /Maximum/);
+    assert.match(validateQuickApplyStep(4, form({ ...identity, loanAmount: 0, loanPurpose: "Education expense" })), /valid loan amount|date of birth|employment/i);
+    assert.match(validateQuickApplyStep(4, form({ ...identity, loanAmount: 5000, loanPurpose: "Education expense" })), /10,000/);
+    const readyNeed = form({
+      ...identity,
+      loanAmount: MIN_LOAN_AMOUNT,
+      loanPurpose: "Education expense",
+      dateOfBirth: "1995-06-15",
+      employmentUi: "SALARIED",
+      monthlyIncome: "45000",
+      employerOrBusinessName: "Acme Private Limited",
+      durationMonths: "24",
+      salaryCreditMode: "bank",
+      salaryDate: "1",
+      existingEmi: "0",
+      activeLoans: "0",
+      cardOutstanding: "0",
+      currentOverdue: false,
+      creditRange: "UNKNOWN",
+    });
+    assert.equal(validateQuickApplyStep(4, readyNeed), "");
+    assert.match(
+      validateQuickApplyStep(4, form({ ...readyNeed, loanAmount: MAX_LOAN_AMOUNT + 1 })),
+      /Maximum/,
+    );
   });
 
-  it("requires a purpose and maps business loan type", () => {
-    assert.match(validateQuickApplyStep(1, form({ fullName: "Rahul Sharma", email: "rahul@gmail.com", mobile: "9876512345", loanAmount: 50_000 })), /funds for/i);
-    assert.equal(validateQuickApplyStep(1, form({ fullName: "Rahul Sharma", email: "rahul@gmail.com", mobile: "9876512345", loanAmount: 50_000, loanPurpose: "Education expense" })), "");
+  it("requires a purpose on the post-payment step and maps business loan type", () => {
+    assert.match(
+      validateQuickApplyStep(
+        4,
+        form({ fullName: "Rahul Sharma", email: "rahul@gmail.com", mobile: "9876512345", loanAmount: 50_000 }),
+      ),
+      /funds for/i,
+    );
     assert.equal(loanTypeFromPurpose("Business working capital"), "BUSINESS");
     assert.equal(loanTypeFromPurpose("Personal expenses"), "PERSONAL");
   });
@@ -81,6 +105,8 @@ describe("quick apply amount and purpose", () => {
 describe("quick apply work, credit, PAN and consent", () => {
   it("requires DOB 21–60 plus conditional salaried fields and credit commitments on step 4", () => {
     const employed = form({
+      loanAmount: 50_000,
+      loanPurpose: "Personal expenses",
       employmentUi: "SALARIED",
       monthlyIncome: "45000",
       employerOrBusinessName: "Acme Private Limited",
@@ -163,8 +189,6 @@ describe("no SMS OTP contract for quick apply validation helpers", () => {
       fullName: "Rahul Sharma",
       email: "rahul@gmail.com",
       mobile: "9876512345",
-      loanAmount: 50_000,
-      loanPurpose: "Personal expenses",
     });
     assert.equal(validateQuickApplyStep(1, payload), "");
     assert.equal("smsOtp" in payload, false);

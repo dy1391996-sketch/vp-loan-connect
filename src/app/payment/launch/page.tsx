@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { fetchCashfreeOrder, resolveCashfreeEnv } from "@/lib/payments/providers/cashfree";
 import { isReusableCashfreeOrderStatus } from "@/lib/payments/cashfree-browser";
 import { getServerEnv } from "@/lib/env";
+import { continueQuickApplyHref } from "@/lib/domain/early-checkout";
 import { verifyAccessToken } from "@/lib/security/tokens";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +44,7 @@ export default async function PaymentLaunchPage({
         eyebrow="Secure payment"
         title="Payment already completed"
         description="This order is already paid. Return to your result page to access the Credit Profile Booster."
-        action={{ href: `/result/${order.assessmentId}`, label: "Back to result" }}
+        action={{ href: continueQuickApplyHref(order.assessmentId, query.token), label: "Continue your profile" }}
       />
     );
   }
@@ -65,7 +66,7 @@ export default async function PaymentLaunchPage({
           eyebrow="Secure payment"
           title="Payment already completed"
           description="Cashfree shows this order as paid. Return to your result page while we finish verification."
-          action={{ href: `/result/${order.assessmentId}`, label: "Back to result" }}
+          action={{ href: continueQuickApplyHref(order.assessmentId, query.token), label: "Continue your profile" }}
         />
       );
     }

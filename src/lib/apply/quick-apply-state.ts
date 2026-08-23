@@ -8,10 +8,10 @@ export const MIN_LOAN_AMOUNT = 10_000;
 export const MAX_LOAN_AMOUNT = 1_000_000;
 
 export const QUICK_APPLY_STEP_LABELS = [
-  "Loan need & details",
+  "Start your profile",
   "Email verification",
   "Credit Profile Booster",
-  "Work & credit",
+  "Profile details",
   "PAN & consent",
   "Loan options",
 ] as const;

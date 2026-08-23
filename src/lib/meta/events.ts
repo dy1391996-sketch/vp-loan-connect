@@ -23,17 +23,23 @@ export const FIRST_PARTY_TO_META: Record<string, MetaFunnelEvent[]> = {
   // LandingPageView / InstagramAdLanding are emitted once from AnalyticsProvider after consent
   // (avoids double-fire when first-party homepage_visit runs before consent is granted).
   assessment_started: ["QuickApplyStarted"],
+  quick_apply_started: ["QuickApplyStarted"],
   email_verified: ["OTPVerified"],
+  otp_verified: ["OTPVerified"],
   mobile_verified: ["OTPVerified"],
   assessment_completed: ["AssessmentCompleted"],
   free_result_viewed: ["EligibilityViewed"],
+  result_viewed: ["EligibilityViewed"],
+  matched_options_viewed: ["EligibilityViewed"],
   checkout_opened: ["CheckoutStarted"],
   checkout_resumed: ["CheckoutStarted"],
   booster_checkout_started: ["CheckoutStarted"],
   payment_order_created: ["CheckoutStarted"],
   cashfree_checkout_opened: ["CheckoutStarted"],
   // Pixel/CAPI standard name is Purchase; funnel label PaymentSuccess is kept in custom_data.
+  // Purchase must fire only after verified ₹116.82 success — never when checkout opens.
   payment_completed: ["PaymentSuccess"],
+  payment_success: ["PaymentSuccess"],
   instagram_profile_click: ["InstagramProfileClick"],
 };
 

@@ -13,5 +13,5 @@ export default async function CheckPage({
     else if (Array.isArray(value) && value[0]) query.set(key, value[0]);
   }
   const suffix = query.toString();
-  redirect(suffix ? `/assessment?${suffix}` : "/assessment");
+  redirect(suffix ? `/apply/quick?${suffix}` : "/apply/quick");
 }

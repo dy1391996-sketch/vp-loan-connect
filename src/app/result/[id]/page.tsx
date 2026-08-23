@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { ArrowRight, Check, CircleAlert, FileCheck2, Gauge, ShieldCheck, Sparkles, TrendingUp, Zap } from "lucide-react";
-import { notFound } from "next/navigation";
-import { ButtonLink } from "@/components/ui/button";
+import { Check, CircleAlert, FileCheck2, Gauge, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
+import { notFound, redirect } from "next/navigation";
 import { PublicStatePanel } from "@/components/ui/public-state-panel";
-import { RESULT_DISCLAIMER } from "@/lib/constants";
+import { RESULT_DISCLAIMER, USP_PRODUCT_SLUG } from "@/lib/constants";
+import { continueQuickApplyHref } from "@/lib/domain/early-checkout";
 import { prisma } from "@/lib/db";
+import { readBoosterEntitlement } from "@/lib/payments/entitlement";
 import { trackServerEvent } from "@/lib/server-analytics";
 import { verifyAccessToken } from "@/lib/security/tokens";
 import { formatInr } from "@/lib/utils";
@@ -21,10 +22,19 @@ export default async function ResultPage({ params, searchParams }: { params: Pro
   const { id } = await params;
   const { token } = await searchParams;
   if (!token) return <AccessDenied />;
+  let payload;
   try {
-    const payload = await verifyAccessToken(token, "result_access");
-    if (payload.sub !== id) return <AccessDenied />;
+    payload = await verifyAccessToken(token, "result_access");
+    if (payload.sub !== id || typeof payload.leadId !== "string") return <AccessDenied />;
   } catch { return <AccessDenied />; }
+
+  const entitlement = await readBoosterEntitlement(id, payload.leadId);
+  if (!entitlement?.paid) {
+    redirect(`/checkout?product=${USP_PRODUCT_SLUG}&assessment=${id}&token=${encodeURIComponent(token)}`);
+  }
+  if (!entitlement?.hasScore) {
+    redirect(continueQuickApplyHref(id, token));
+  }
 
   const assessment = await prisma.assessment.findUnique({ where: { id }, include: { lead: true, score: true } });
   if (!assessment?.score || assessment.lead.deletedAt) notFound();
@@ -34,11 +44,10 @@ export default async function ResultPage({ params, searchParams }: { params: Pro
   const offer = indicativeOffer(assessment.creditRange ?? "UNKNOWN", Number(assessment.monthlyIncome ?? 0), Number(assessment.loanAmount ?? 0));
 
   await Promise.all([
-    prisma.lead.update({ where: { id: assessment.leadId }, data: { stage: "FREE_RESULT_VIEWED" } }),
-    trackServerEvent("free_result_viewed", { leadId: assessment.leadId, page: `/result/${id}` }),
+    prisma.lead.update({ where: { id: assessment.leadId }, data: { stage: "REPORT_DELIVERED" } }),
+    trackServerEvent("result_viewed", { leadId: assessment.leadId, page: `/result/${id}` }),
+    trackServerEvent("matched_options_viewed", { leadId: assessment.leadId, page: `/result/${id}` }),
   ]).catch(() => undefined);
-
-  const checkoutUrl = `/checkout?product=credit-health-action-plan&assessment=${id}&token=${encodeURIComponent(token)}`;
 
   return (
     <section className="surface-grid min-h-screen bg-surface py-8 sm:py-14">
@@ -73,20 +82,17 @@ export default async function ResultPage({ params, searchParams }: { params: Pro
           <div className="mt-5 overflow-hidden rounded-[2.25rem] border border-brand-500/30 bg-white shadow-card">
             <div className="grid lg:grid-cols-[1.1fr_0.75fr]">
               <div className="p-7 sm:p-10">
-                <span className="inline-flex items-center gap-2 rounded-full bg-brand-100 px-4 py-2 text-xs font-extrabold text-brand-700"><Sparkles size={15} />Recommended next step</span>
-                <h2 className="mt-5 text-balance text-3xl font-black tracking-[-0.045em] text-navy-950 sm:text-4xl">Unlock your ₹99 Credit Profile Booster</h2>
-                <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">Understand your credit profile, review loan readiness, and see relevant bank, NBFC and fintech options ranked for your answers. This does not instantly change a bureau score and is not an approval guarantee.</p>
+                <span className="inline-flex items-center gap-2 rounded-full bg-brand-100 px-4 py-2 text-xs font-extrabold text-brand-700"><Sparkles size={15} />Credit Profile Booster unlocked</span>
+                <h2 className="mt-5 text-balance text-3xl font-black tracking-[-0.045em] text-navy-950 sm:text-4xl">Your paid profile analysis is ready</h2>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">This is a profile-readiness result, not a lender approval. Interest rate, eligibility and disbursement depend on the lender&apos;s criteria, documentation and internal policies. VP Loan Connect is not a lender.</p>
                 <div className="mt-7 grid gap-3 sm:grid-cols-2">
                   {["Credit profile explained simply", "Loan-readiness analysis", "Profile-fit options shown first (not endorsements)", "Official apply links — no random sites"].map((item) => <p key={item} className="flex items-start gap-2 text-sm font-semibold text-slate-700"><Check className="mt-0.5 shrink-0 text-brand-600" size={17} />{item}</p>)}
                 </div>
               </div>
               <div className="bg-navy-950 p-7 text-white sm:p-10">
-                <Zap className="text-brand-500" size={28} />
-                <p className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-slate-300">One-time access</p>
-                <p className="mt-2 text-5xl font-black text-brand-500">₹99 <span className="text-base text-slate-300">+ GST</span></p>
-                <p className="mt-2 text-sm font-bold">GST ₹17.82 · Total payable: ₹116.82</p>
-                <ButtonLink href={checkoutUrl} size="lg" className="mt-7 w-full">Unlock full report for ₹116.82 <ArrowRight size={18} /></ButtonLink>
-                <p className="mt-4 text-xs leading-6 text-slate-400">Fee is for profile analysis and matched options—not a lender fee or loan approval fee.</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-300">Requested amount</p>
+                <p className="mt-2 text-4xl font-black text-brand-500">{formatInr(Number(assessment.loanAmount ?? 0))}</p>
+                <p className="mt-3 text-sm leading-6 text-slate-300">Matched options appear with your completed paid profile. This does not guarantee approval or disbursement.</p>
               </div>
             </div>
           </div>
@@ -116,4 +122,4 @@ function indicativeOffer(creditRange: string, income: number, requested: number)
 function asStringArray(value: unknown) { return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []; }
 function StatusCard({ icon: Icon, label, value }: { icon: typeof Gauge; label: string; value: string }) { return <div className="rounded-3xl border border-line bg-white p-5 shadow-sm"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-brand-100 text-brand-700"><Icon size={19} /></span><p className="mt-4 text-xs font-semibold text-slate-500">{label}</p><p className="mt-1 font-extrabold text-navy-950">{value}</p></div>; }
 function ResultList({ title, items, positive }: { title: string; items: string[]; positive?: boolean }) { return <div><h3 className="font-extrabold text-navy-950">{title}</h3><div className="mt-4 grid gap-3">{items.map((item) => <p key={item} className="flex items-start gap-2 text-sm leading-6 text-slate-600"><Check className={positive ? "mt-1 shrink-0 text-brand-600" : "mt-1 shrink-0 text-amber-600"} size={15} />{item}</p>)}</div></div>; }
-function AccessDenied() { return <PublicStatePanel icon={ShieldCheck} title="Secure result link required" description="This link is invalid or has expired. Please complete the assessment again." action={{ href: "/assessment", label: "Start assessment" }} />; }
+function AccessDenied() { return <PublicStatePanel icon={ShieldCheck} title="Secure result link required" description="This link is invalid or has expired. Start from Quick Apply to verify email and unlock the Credit Profile Booster." action={{ href: "/apply/quick", label: "Start Quick Apply" }} />; }

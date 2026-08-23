@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/db";
-import { USP_PRODUCT_SLUG } from "@/lib/constants";
+import { readBoosterEntitlement } from "@/lib/payments/entitlement";
 import { assertSameOrigin, rateLimit } from "@/lib/security/request";
 import { isAccessTokenError, verifyAccessToken } from "@/lib/security/tokens";
 
@@ -29,26 +28,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Too many status checks. Please wait." }, { status: 429 });
     }
 
-    const assessment = await prisma.assessment.findUnique({
-      where: { id: parsed.data.assessmentId },
-      include: {
-        score: { select: { id: true } },
-        orders: {
-          where: { status: "PAID", product: { slug: USP_PRODUCT_SLUG } },
-          select: { id: true },
-          take: 1,
-        },
-      },
-    });
-    if (!assessment || assessment.leadId !== token.leadId) {
+    const entitlement = await readBoosterEntitlement(parsed.data.assessmentId, token.leadId);
+    if (!entitlement) {
       return NextResponse.json({ error: "Assessment not found." }, { status: 404 });
     }
 
     return NextResponse.json({
-      assessmentId: assessment.id,
-      status: assessment.status,
-      paid: assessment.orders.length > 0,
-      hasScore: Boolean(assessment.score),
+      assessmentId: entitlement.assessmentId,
+      status: entitlement.status,
+      paid: entitlement.paid,
+      paymentStatus: entitlement.paymentStatus,
+      hasScore: entitlement.hasScore,
     });
   } catch (error) {
     if (isAccessTokenError(error)) {

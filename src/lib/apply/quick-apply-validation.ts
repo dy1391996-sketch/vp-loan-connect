@@ -40,14 +40,6 @@ export function validateQuickApplyStepFields(step: number, form: QuickApplyFormS
     if (!/^[6-9]\d{9}$/.test(mobileDigits) || isImpossibleMobile(mobileDigits)) {
       errors.mobile = "Enter a valid 10-digit Indian mobile number.";
     }
-    if (!Number.isFinite(form.loanAmount) || form.loanAmount <= 0) {
-      errors.loanAmount = "Enter a valid loan amount.";
-    } else if (form.loanAmount < MIN_LOAN_AMOUNT) {
-      errors.loanAmount = `Enter an amount of at least ₹${MIN_LOAN_AMOUNT.toLocaleString("en-IN")}.`;
-    } else if (form.loanAmount > MAX_LOAN_AMOUNT) {
-      errors.loanAmount = `Maximum amount is ₹${MAX_LOAN_AMOUNT.toLocaleString("en-IN")}.`;
-    }
-    if (!form.loanPurpose.trim()) errors.loanPurpose = "Select what you need the funds for.";
     return errors;
   }
 
@@ -60,6 +52,14 @@ export function validateQuickApplyStepFields(step: number, form: QuickApplyFormS
   }
 
   if (step === 4) {
+    if (!Number.isFinite(form.loanAmount) || form.loanAmount <= 0) {
+      errors.loanAmount = "Enter a valid loan amount.";
+    } else if (form.loanAmount < MIN_LOAN_AMOUNT) {
+      errors.loanAmount = `Enter an amount of at least ₹${MIN_LOAN_AMOUNT.toLocaleString("en-IN")}.`;
+    } else if (form.loanAmount > MAX_LOAN_AMOUNT) {
+      errors.loanAmount = `Maximum amount is ₹${MAX_LOAN_AMOUNT.toLocaleString("en-IN")}.`;
+    }
+    if (!form.loanPurpose.trim()) errors.loanPurpose = "Select what you need the funds for.";
     const age = ageFromDob(form.dateOfBirth);
     if (age === null) errors.dateOfBirth = "Enter a valid date of birth.";
     else if (age < 21 || age > 60) errors.dateOfBirth = "Applicant age must be between 21 and 60 years.";
@@ -139,10 +139,11 @@ export function isLoanNeedComplete(form: QuickApplyFormState): boolean {
   );
 }
 
-/** After email OTP the next major screen is Credit Profile Booster payment. */
+/** After email OTP the next major screen is Credit Profile Booster payment. Unpaid users cannot enter step 4+. */
 export function getNextQuickApplyStep(step: number, paid = false): number {
   if (step >= 6) return 6;
   if (step === 3 && !paid) return 3;
+  if (step >= 3 && !paid) return 3;
   return step + 1;
 }
 

@@ -11,8 +11,9 @@ const TRUST_ITEMS = [
 ];
 
 const NEXT_STEPS = [
+  "Start with name and email",
   "Verify your email",
-  "Unlock Credit Profile Booster",
+  "Unlock Credit Profile Booster — ₹116.82",
   "Complete your detailed profile",
   "View matched loan options",
 ];

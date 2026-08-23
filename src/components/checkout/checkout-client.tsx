@@ -32,6 +32,8 @@ type CreateOrderResponse = {
   missing?: string[];
   reused?: boolean;
   resumable?: boolean;
+  alreadyPaid?: boolean;
+  continueUrl?: string;
   internalOrderId: string;
   orderReference: string;
   providerOrderId: string;
@@ -68,6 +70,7 @@ export function CheckoutClient(props: Props) {
 
   async function completeVerified(verified: { orderReference: string; reportId: string; reportToken: string }, provider: string) {
     trackEvent("payment_completed", { product: props.productSlug, provider });
+    trackEvent("payment_success", { product: props.productSlug, provider });
     router.push(
       `/payment/success?order=${encodeURIComponent(verified.orderReference)}&report=${verified.reportId}&token=${encodeURIComponent(verified.reportToken)}`,
     );
@@ -94,6 +97,7 @@ export function CheckoutClient(props: Props) {
     setBusy(true);
     setError("");
     trackEvent(resumeAvailable ? "checkout_resumed" : "checkout_opened", { product: props.productSlug });
+    trackEvent("booster_checkout_started", { product: props.productSlug });
 
     try {
       const orderResponse = await fetch("/api/payments/create-order", {
@@ -108,6 +112,10 @@ export function CheckoutClient(props: Props) {
       });
       const order = (await orderResponse.json()) as CreateOrderResponse;
       if (!orderResponse.ok) {
+        if (order.alreadyPaid && order.continueUrl) {
+          window.location.assign(order.continueUrl);
+          return;
+        }
         if (order.resumable && order.orderReference) {
           setResumeAvailable(true);
           setActiveOrderReference(order.orderReference);
@@ -218,7 +226,11 @@ export function CheckoutClient(props: Props) {
     }
   }
 
-  const primaryLabel = busy ? "Preparing secure payment…" : resumeAvailable ? "Resume secure payment" : "Proceed to secure payment";
+  const primaryLabel = busy
+    ? "Preparing secure payment…"
+    : resumeAvailable
+      ? "Resume secure payment — ₹116.82"
+      : "Continue to Secure Payment — ₹116.82";
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_0.75fr]">

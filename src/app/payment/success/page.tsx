@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { CheckCircle2, FileText, ReceiptText, ShieldCheck } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { ConnectOptionsPanel } from "@/components/connect-options-panel";
@@ -44,6 +45,9 @@ export default async function PaymentSuccessPage({ searchParams }: { searchParam
   const pendingProfile = !score;
   const continueToken = await signAccessToken("result_access", report.assessmentId, { leadId: report.leadId }, "7d");
   const continueHref = continueQuickApplyHref(report.assessmentId, continueToken);
+  if (pendingProfile) {
+    redirect(continueHref);
+  }
   const suitableCategories = Array.isArray(score?.suitableCategories)
     ? score.suitableCategories.filter((item): item is string => typeof item === "string")
     : [];

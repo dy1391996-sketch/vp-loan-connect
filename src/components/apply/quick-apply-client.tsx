@@ -22,6 +22,7 @@ import {
   type QuickApplyFormState,
   type QuickApplyResultSnapshot,
 } from "@/lib/apply/quick-apply-state";
+import { boosterCheckoutHref, isPostPaymentStep } from "@/lib/apply/funnel-order";
 import {
   getNextQuickApplyStep,
   getPreviousQuickApplyStep,
@@ -63,7 +64,7 @@ function firstFieldError(fields?: Record<string, string[] | undefined>) {
 }
 
 function checkoutHref(assessmentId: string, accessToken: string) {
-  return `/checkout?product=${USP_PRODUCT_SLUG}&assessment=${assessmentId}&token=${encodeURIComponent(accessToken)}`;
+  return boosterCheckoutHref(assessmentId, accessToken, USP_PRODUCT_SLUG);
 }
 
 export function QuickApplyClient() {
@@ -144,7 +145,13 @@ export function QuickApplyClient() {
       setStep(draft.step >= 3 ? 2 : draft.step);
     }
     trackEvent("assessment_started", { source: "quick_apply" });
+    trackEvent("quick_apply_started", { source: "quick_apply" });
   }, [searchParams]);
+
+  useEffect(() => {
+    if (step === 3) trackEvent("booster_offer_viewed");
+    if (step === 4 && paid) trackEvent("post_payment_assessment_started");
+  }, [step, paid]);
 
   useEffect(() => {
     if (phase !== "form" || step >= 6) return;
@@ -191,6 +198,7 @@ export function QuickApplyClient() {
       setOtpVerified(false);
       setOtpToken("");
       trackEvent("email_otp_sent");
+      trackEvent("otp_requested");
     } catch (err) {
       resetMsg91EmailOtpClient();
       setOtpReady(false);
@@ -225,7 +233,7 @@ export function QuickApplyClient() {
   }
 
   useEffect(() => {
-    if (step !== 3 || !result?.assessmentId || !result.accessToken) return;
+    if (!result?.assessmentId || !result.accessToken) return;
     let cancelled = false;
     async function refreshEntitlement() {
       try {
@@ -234,16 +242,33 @@ export function QuickApplyClient() {
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ assessmentId: result!.assessmentId, resultToken: result!.accessToken }),
         });
-        const data = (await response.json()) as { paid?: boolean; hasScore?: boolean; status?: string };
+        const data = (await response.json()) as {
+          paid?: boolean;
+          hasScore?: boolean;
+          status?: string;
+          paymentStatus?: "UNPAID" | "PENDING" | "PAID";
+        };
         if (!response.ok || cancelled) return;
         if (data.paid) {
-          setPaid((prev) => prev || true);
+          setPaid(true);
           setResult((prev) => {
-            if (!prev || prev.paid) return prev;
+            if (!prev) return prev;
             const next = { ...prev, paid: true, status: data.status === "COMPLETED" ? ("COMPLETED" as const) : prev.status };
             writeResultSnapshot(next);
             return next;
           });
+          if (isPostPaymentStep(step) === false && step === 3) {
+            goToStep(4);
+          }
+          return;
+        }
+        setPaid(false);
+        if (data.paymentStatus === "PENDING") {
+          trackEvent("payment_pending");
+        }
+        if (isPostPaymentStep(step) || phase === "result") {
+          setPhase("form");
+          goToStep(3);
         }
       } catch {
         /* ignore entitlement poll failures */
@@ -253,7 +278,7 @@ export function QuickApplyClient() {
     return () => {
       cancelled = true;
     };
-  }, [step, result]);
+  }, [step, result, phase]);
 
   async function verifyOtpAndContinue() {
     if (otpCode.length !== 6) {
@@ -282,6 +307,7 @@ export function QuickApplyClient() {
       setOtpVerified(true);
       setOtpToken(data.verificationToken);
       trackEvent("email_verified");
+      trackEvent("otp_verified");
       await createDraftAndOfferPayment(data.verificationToken);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not verify email.");
@@ -299,9 +325,6 @@ export function QuickApplyClient() {
         fullName: form.fullName.trim(),
         mobile: form.mobile,
         email: form.email.trim().toLowerCase(),
-        loanAmount: form.loanAmount,
-        loanPurpose: form.loanPurpose,
-        loanType: loanTypeFromPurpose(form.loanPurpose),
         source,
         referralCode: referralCode || undefined,
         utm: attribution,
@@ -332,6 +355,7 @@ export function QuickApplyClient() {
 
     if (step === 3) {
       if (paid && result) {
+        trackEvent("post_payment_assessment_started");
         goToStep(4);
         return;
       }
@@ -340,12 +364,20 @@ export function QuickApplyClient() {
         goToStep(2);
         return;
       }
+      trackEvent("booster_checkout_started", { product: USP_PRODUCT_SLUG });
       window.location.assign(checkoutHref(result.assessmentId, result.accessToken));
       return;
     }
 
+    if (step >= 4 && !paid) {
+      setError("Unlock the Credit Profile Booster before the detailed assessment.");
+      goToStep(3);
+      return;
+    }
+
     if (step === 6) {
-      trackEvent("free_result_viewed");
+      trackEvent("result_viewed");
+      trackEvent("matched_options_viewed");
       setPhase("result");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
@@ -369,6 +401,11 @@ export function QuickApplyClient() {
     }
 
     if (step === 5) {
+      if (!paid) {
+        setError("Unlock the Credit Profile Booster before the detailed assessment.");
+        goToStep(3);
+        return;
+      }
       await submitAssessment();
       return;
     }
@@ -456,6 +493,11 @@ export function QuickApplyClient() {
       setError(issue);
       return;
     }
+    if (!paid) {
+      setError("Unlock the Credit Profile Booster before the detailed assessment.");
+      goToStep(3);
+      return;
+    }
     if (!otpToken && !result?.accessToken) {
       setError("Complete email OTP verification again.");
       goToStep(2);
@@ -516,13 +558,13 @@ export function QuickApplyClient() {
 
   const ctaLabel =
     step === 1
-      ? "Send email code"
+      ? "Continue"
       : step === 2
         ? "Verify and continue"
         : step === 3
           ? paid
             ? "Continue to profile"
-            : "Unlock Credit Profile Booster — ₹116.82"
+            : "Continue to Secure Payment — ₹116.82"
           : step === 5
             ? "See my loan options"
             : step === 6
@@ -637,12 +679,12 @@ export function QuickApplyClient() {
             {step === 3 && result ? (
               <div>
                 <h1 className="font-display text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">
-                  Unlock Credit Profile Booster
+                  Unlock Your Credit Profile Booster
                 </h1>
                 <p className="mt-3 text-sm leading-7 text-slate-600">
                   {paid
                     ? "Payment is verified. Continue with your detailed profile — PAN, address and work details come after this unlock."
-                    : "Email is verified. Unlock matched loan options with the existing ₹99 + GST Credit Profile Booster before PAN and detailed work questions."}
+                    : "Email is verified. Pay ₹116.82 for the Credit Profile Booster / profile-readiness service, then complete the detailed assessment. This is not loan approval."}
                 </p>
                 <div className="mt-6">
                   {paid ? (

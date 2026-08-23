@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma, type Assessment } from "@prisma/client";
 import { assessmentSchema, COMPLETE_ASSESSMENT_EXCLUDED_ANSWER_KEYS, type AssessmentPayload } from "@/lib/domain/assessment-schema";
 import { estimateIndicativeCapacity } from "@/lib/domain/cross-field-rules";
+import { boosterCheckoutHref } from "@/lib/apply/funnel-order";
 import { buildPaymentReportSnapshot } from "@/lib/domain/early-checkout";
+import { paidAssessmentGate, readBoosterEntitlement } from "@/lib/payments/entitlement";
 import { maskPan } from "@/lib/domain/identity";
 import { calculateReadiness, incomeRangeMidpoints, type ScoreInput } from "@/lib/domain/scoring";
-import { CONSENT_VERSION, MARKETING_CONSENT_TEXT, SERVICE_CONSENT_TEXT } from "@/lib/constants";
+import { CONSENT_VERSION, MARKETING_CONSENT_TEXT, SERVICE_CONSENT_TEXT, USP_PRODUCT_SLUG } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { getPublicAppUrl, getServerEnv } from "@/lib/env";
 import { sendWhatsAppTemplate } from "@/lib/providers/whatsapp";
@@ -124,6 +126,38 @@ export async function POST(request: NextRequest) {
 
     if (!rateLimit(`assessment-submit:${auth.leadId}`, 8, 60 * 60 * 1000).allowed) {
       return NextResponse.json({ error: "Too many assessment submissions. Please try again later." }, { status: 429 });
+    }
+
+    if (!input.draftAssessmentId) {
+      return NextResponse.json(
+        {
+          error: "Unlock the Credit Profile Booster before completing the detailed assessment.",
+          code: "PAYMENT_REQUIRED",
+          checkoutUrl: "/apply/quick",
+        },
+        { status: 402 },
+      );
+    }
+
+    const entitlement = await readBoosterEntitlement(input.draftAssessmentId, auth.leadId);
+    if (!entitlement) {
+      return NextResponse.json({ error: "Draft assessment was not found." }, { status: 404 });
+    }
+    const gate = paidAssessmentGate(entitlement.paymentStatus);
+    if (!gate.allow) {
+      const accessToken = await signAccessToken("result_access", entitlement.assessmentId, { leadId: auth.leadId }, "7d");
+      return NextResponse.json(
+        {
+          error:
+            gate.code === "PAYMENT_PENDING"
+              ? "Payment is still being verified. Detailed assessment stays locked until Cashfree confirms success."
+              : "Unlock the Credit Profile Booster before completing the detailed assessment.",
+          code: gate.code,
+          paymentStatus: entitlement.paymentStatus,
+          checkoutUrl: boosterCheckoutHref(entitlement.assessmentId, accessToken, USP_PRODUCT_SLUG),
+        },
+        { status: 402 },
+      );
     }
 
     if (input.draftAssessmentId) {

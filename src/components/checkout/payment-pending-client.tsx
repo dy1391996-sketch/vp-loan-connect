@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
+import { trackEvent } from "@/lib/analytics-client";
 
 type Props = {
   orderReference: string;
@@ -19,6 +20,10 @@ export function PaymentPendingClient({ orderReference, resultToken, assessmentId
   const [statusLabel, setStatusLabel] = useState("Verifying payment…");
   const [done, setDone] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    trackEvent("payment_pending", { order: orderReference });
+  }, [orderReference]);
 
   useEffect(() => {
     if (!resultToken || done) return;
@@ -90,8 +95,8 @@ export function PaymentPendingClient({ orderReference, resultToken, assessmentId
           <ButtonLink href="/contact" variant="secondary" size="md">
             Contact support
           </ButtonLink>
-          <ButtonLink href={assessmentId ? `/result/${assessmentId}` : "/assessment"} size="md">
-            Back to assessment
+          <ButtonLink href={assessmentId ? `/apply/quick?assessment=${assessmentId}` : "/apply/quick"} size="md">
+            Back to Quick Apply
           </ButtonLink>
         </div>
       ) : null}

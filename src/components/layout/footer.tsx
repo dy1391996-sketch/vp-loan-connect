@@ -55,7 +55,6 @@ export function Footer() {
             {[
               ["Quick apply", "/apply/quick"],
               ["Personal loan", "/personal-loan"],
-              ["Free assessment", "/assessment"],
               ["Credit Profile Booster (₹99)", "/credit-health"],
               ["Full readiness report (₹299)", "/loan-readiness"],
               ["Refer & Earn", "/refer"],

@@ -5,16 +5,30 @@ import { assertSameOrigin, rateLimit, requestIpHash } from "@/lib/security/reque
 
 const allowed = [
   "homepage_visit",
+  "landing_view",
   "assessment_started",
+  "quick_apply_started",
   "mobile_otp_sent",
   "mobile_verified",
   "email_otp_sent",
+  "otp_requested",
   "email_verified",
+  "otp_verified",
+  "booster_offer_viewed",
+  "booster_checkout_started",
   "assessment_completed",
   "free_result_viewed",
+  "result_viewed",
+  "matched_options_viewed",
   "checkout_opened",
   "checkout_resumed",
+  "payment_order_created",
+  "cashfree_checkout_opened",
   "payment_completed",
+  "payment_success",
+  "payment_pending",
+  "payment_failed",
+  "post_payment_assessment_started",
   "report_downloaded",
   "referral_link_copied",
   "referral_link_shared",
@@ -23,6 +37,7 @@ const allowed = [
   "instagram_profile_click",
   "instagram_ad_landing",
   "partner_handoff_click",
+  "partner_link_clicked",
 ] as const;
 
 const schema = z.object({

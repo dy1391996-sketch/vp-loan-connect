@@ -7,7 +7,7 @@ import { assertSameOrigin, rateLimit } from "@/lib/security/request";
 import { USP_PRODUCT_SLUG, USP_SALE_PRICE } from "@/lib/constants";
 import { getPublicAppUrl, getServerEnv, missingPaymentCredentialKeys } from "@/lib/env";
 import { verifyAccessToken } from "@/lib/security/tokens";
-import { isCheckoutEligibleAssessmentStatus } from "@/lib/domain/early-checkout";
+import { continueQuickApplyHref, isCheckoutEligibleAssessmentStatus } from "@/lib/domain/early-checkout";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -86,7 +86,14 @@ export async function POST(request: NextRequest) {
       include: { reports: { select: { id: true }, take: 1 } },
     });
     if (alreadyPaid?.reports[0]) {
-      return NextResponse.json({ error: "This booster is already unlocked for your assessment." }, { status: 409 });
+      return NextResponse.json(
+        {
+          error: "This booster is already unlocked for your assessment.",
+          alreadyPaid: true,
+          continueUrl: continueQuickApplyHref(assessment.id, parsed.data.resultToken),
+        },
+        { status: 409 },
+      );
     }
 
     const subtotal = product.slug === USP_PRODUCT_SLUG ? USP_SALE_PRICE : Number(product.salePrice);

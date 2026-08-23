@@ -8,7 +8,9 @@ export default async function PaymentFailedPage({ searchParams }: { searchParams
   const query = await searchParams;
   const retry = query.assessment && query.product && query.token
     ? `/checkout?assessment=${query.assessment}&product=${query.product}&token=${encodeURIComponent(query.token)}`
-    : "/assessment";
+    : query.assessment && query.token
+      ? `/checkout?assessment=${query.assessment}&product=credit-health-action-plan&token=${encodeURIComponent(query.token)}`
+      : "/apply/quick";
 
   return (
     <section className="surface-grid grid min-h-[72vh] place-items-center bg-surface py-16">

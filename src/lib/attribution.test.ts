@@ -41,7 +41,7 @@ describe("attribution", () => {
       purpose: "Other personal need",
       attribution: { utm_source: "partnership", pid: "Partner_PA" },
     });
-    assert.match(href, /^\/assessment\?/);
+    assert.match(href, /^\/apply\/quick\?/);
     assert.match(href, /loanType=PERSONAL/);
     assert.match(href, /amount=100000/);
     assert.match(href, /utm_source=partnership/);

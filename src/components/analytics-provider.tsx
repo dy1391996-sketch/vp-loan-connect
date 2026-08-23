@@ -85,6 +85,7 @@ export function AnalyticsProvider() {
   useEffect(() => {
     if (pathname === "/") {
       trackEvent("homepage_visit");
+      trackEvent("landing_view");
     }
   }, [pathname]);
 

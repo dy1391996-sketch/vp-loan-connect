@@ -14,6 +14,16 @@ type Props = {
 /** Outbound official-platform link with session attribution appended. */
 export function PartnerHandoffLink({ href, name, className, children }: Props) {
   function onClick() {
+    trackEvent("partner_link_clicked", {
+      partner_name: name,
+      destination_host: (() => {
+        try {
+          return new URL(href).hostname;
+        } catch {
+          return "unknown";
+        }
+      })(),
+    });
     trackEvent("partner_handoff_click", {
       partner_name: name,
       destination_host: (() => {

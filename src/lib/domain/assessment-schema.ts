@@ -26,12 +26,10 @@ const identityCore = {
     .refine((value) => !isDisposableEmailDomain(value), "Unable to validate this email domain. Use a permanent email address."),
 };
 
+/** Identity + OTP only. Loan/profile fields are collected after verified ₹116.82 payment. */
 export const draftAssessmentSchema = z.object({
   otpVerificationToken: z.string({ required_error: "Complete email OTP verification first." }).min(20, "Complete email OTP verification first."),
   ...identityCore,
-  loanAmount: z.coerce.number().min(10000, "Minimum loan amount is ₹10,000.").max(1000000, "Maximum loan amount is ₹10,00,000."),
-  loanPurpose: z.string().trim().min(2).max(120),
-  loanType: z.enum(["PERSONAL", "BUSINESS", "MSME", "MUDRA_GUIDANCE", "GOLD", "PROPERTY", "CREDIT_HEALTH"]),
   source: z.string().trim().max(120).default("direct"),
   referralCode: z.string().trim().max(20).optional().or(z.literal("")),
   utm: z.record(z.string().max(200)).optional(),
