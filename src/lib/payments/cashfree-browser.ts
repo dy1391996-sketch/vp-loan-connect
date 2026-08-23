@@ -227,6 +227,13 @@ export function buildCashfreeReturnUrl(appUrl: string, internalOrderId: string):
   return `${base}/api/payments/return?order_id={order_id}&internalOrderId=${internalOrderId}`;
 }
 
+/** Official Cashfree hosted checkout form action (v3 SDK submits the same URL). */
+export function cashfreeHostedCheckoutAction(env: "sandbox" | "production"): string {
+  return env === "production"
+    ? "https://api.cashfree.com/pg/view/sessions/checkout"
+    : "https://sandbox.cashfree.com/pg/view/sessions/checkout";
+}
+
 /** User-initiated launch page after create-order (hosted redirect, not modal). */
 export function buildCashfreeLaunchPath(internalOrderId: string, resultToken: string): string {
   const params = new URLSearchParams({ internalOrderId, token: resultToken });

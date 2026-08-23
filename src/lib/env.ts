@@ -220,6 +220,9 @@ export function validateCriticalProductionEnvironment(environment: NodeJS.Proces
     if (looksLikePlaceholderCredential(config.CASHFREE_APP_ID) || looksLikePlaceholderCredential(config.CASHFREE_SECRET_KEY)) {
       throw new Error("CASHFREE credentials look like placeholders. Set real production App ID and Secret Key in Vercel.");
     }
+    if (/^TEST/i.test(config.CASHFREE_APP_ID)) {
+      throw new Error("CASHFREE_APP_ID looks like a sandbox/test key. Use Payment Gateway Production keys when CASHFREE_ENV=production.");
+    }
     if (!config.CASHFREE_WEBHOOK_SECRET) {
       console.warn(
         "[env] CASHFREE_WEBHOOK_SECRET is unset; Cashfree webhooks will verify using CASHFREE_SECRET_KEY (official PG client secret).",

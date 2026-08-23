@@ -139,7 +139,12 @@ export function CheckoutClient(props: Props) {
       }
 
       if (checkout.mode === "cashfree_checkout" || order.provider === "cashfree") {
-        router.push(buildCashfreeLaunchPath(order.internalOrderId, props.resultToken));
+        trackEvent("payment_order_created", {
+          product: props.productSlug,
+          reused: Boolean(order.reused),
+          amountPaise: order.amountPaise,
+        });
+        window.location.assign(buildCashfreeLaunchPath(order.internalOrderId, props.resultToken));
         return;
       }
 
@@ -251,7 +256,7 @@ export function CheckoutClient(props: Props) {
           </p>
         ) : null}
 
-        <Button size="lg" className="mt-6 w-full" onClick={() => void pay()} disabled={busy} aria-busy={busy}>
+        <Button type="button" size="lg" className="mt-6 w-full" onClick={() => void pay()} disabled={busy} aria-busy={busy}>
           {busy ? <Loader2 className="animate-spin" size={18} /> : <LockKeyhole size={18} />}
           {primaryLabel}
         </Button>
@@ -267,7 +272,7 @@ export function CheckoutClient(props: Props) {
           {[
             "Personalized Credit Profile Booster analysis",
             "Downloadable action plan PDF",
-            "Official partner apply links (matched first)",
+            "Official lender/LSP apply links (non-exclusive, matched first)",
             "Refund protection for duplicate payments or system failures",
           ].map((item) => (
             <p key={item} className="flex gap-3 text-sm leading-6 text-slate-300">

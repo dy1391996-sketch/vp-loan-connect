@@ -13,8 +13,8 @@ export default function LoanReadinessPage() {
     <ProductPage
       kind="readiness"
       title="Complete Loan Readiness Report"
-      heading="Application से पहले अपनी complete readiness समझें"
-      description="Income, obligations, internal readiness, documents और category fit का personalized educational report—lender sanction या processing service नहीं. यह ₹99 Credit Profile Booster से अलग, deeper readiness product है."
+      heading="Understand complete readiness before you apply"
+      description="A personalized educational report covering income, obligations, internal readiness, documents and category fit. This is not a lender sanction or processing service. It is a deeper readiness product, separate from the ₹99 Credit Profile Booster."
       regular="₹599 + GST"
       price="Launch offer ₹299 + 18% GST"
       total="₹352.82 total"

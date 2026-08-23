@@ -82,6 +82,7 @@ export function QuickApplyClient() {
   const [otpReady, setOtpReady] = useState(false);
   const [phase, setPhase] = useState<"form" | "result">("form");
   const [result, setResult] = useState<QuickApplyResultSnapshot | null>(null);
+  const [paid, setPaid] = useState(false);
   const hydrated = useRef(false);
   const submitted = useRef(false);
 
@@ -97,15 +98,14 @@ export function QuickApplyClient() {
     if (hydrated.current) return;
     hydrated.current = true;
     const snapshot = readResultSnapshot();
-    if (snapshot) {
-      setResult(snapshot);
-      setStep(6);
-    }
     const draft = readDraft();
     const amountParam = Number(searchParams.get("amount") || "");
     const purposeParam = searchParams.get("purpose") || "";
-    if (draft && !snapshot) {
-      setStep(draft.step === 6 ? 5 : draft.step);
+    const paidParam = searchParams.get("paid") === "1";
+    const assessmentParam = searchParams.get("assessment") || "";
+    const tokenParam = searchParams.get("token") || "";
+
+    if (draft) {
       setForm({
         ...draft.form,
         loanAmount: Number.isFinite(amountParam) && amountParam > 0 ? amountParam : draft.form.loanAmount,
@@ -113,6 +113,35 @@ export function QuickApplyClient() {
       });
     } else if (Number.isFinite(amountParam) && amountParam > 0) {
       setForm((prev) => ({ ...prev, loanAmount: amountParam, loanPurpose: purposeParam || prev.loanPurpose }));
+    }
+
+    if (assessmentParam && tokenParam) {
+      const resume: QuickApplyResultSnapshot = {
+        assessmentId: assessmentParam,
+        accessToken: tokenParam,
+        loanAmount: Number.isFinite(amountParam) && amountParam > 0 ? amountParam : draft?.form.loanAmount || 50_000,
+        paid: paidParam || snapshot?.paid,
+        status: snapshot?.status === "COMPLETED" ? "COMPLETED" : "STARTED",
+        indicative: snapshot?.indicative,
+      };
+      setResult(resume);
+      writeResultSnapshot(resume);
+      setPaid(Boolean(resume.paid));
+      if (resume.status === "COMPLETED" && resume.indicative) {
+        setStep(6);
+      } else {
+        setStep(resume.paid ? 4 : 3);
+      }
+    } else if (snapshot?.status === "COMPLETED" && snapshot.indicative) {
+      setResult(snapshot);
+      setPaid(Boolean(snapshot.paid));
+      setStep(6);
+    } else if (snapshot?.assessmentId) {
+      setResult(snapshot);
+      setPaid(Boolean(snapshot.paid));
+      setStep(snapshot.paid ? 4 : Math.min(Math.max(draft?.step || 3, 3), 5));
+    } else if (draft) {
+      setStep(draft.step >= 3 ? 2 : draft.step);
     }
     trackEvent("assessment_started", { source: "quick_apply" });
   }, [searchParams]);
@@ -195,6 +224,37 @@ export function QuickApplyClient() {
     }
   }
 
+  useEffect(() => {
+    if (step !== 3 || !result?.assessmentId || !result.accessToken) return;
+    let cancelled = false;
+    async function refreshEntitlement() {
+      try {
+        const response = await fetch("/api/assessments/entitlement", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ assessmentId: result!.assessmentId, resultToken: result!.accessToken }),
+        });
+        const data = (await response.json()) as { paid?: boolean; hasScore?: boolean; status?: string };
+        if (!response.ok || cancelled) return;
+        if (data.paid) {
+          setPaid((prev) => prev || true);
+          setResult((prev) => {
+            if (!prev || prev.paid) return prev;
+            const next = { ...prev, paid: true, status: data.status === "COMPLETED" ? ("COMPLETED" as const) : prev.status };
+            writeResultSnapshot(next);
+            return next;
+          });
+        }
+      } catch {
+        /* ignore entitlement poll failures */
+      }
+    }
+    void refreshEntitlement();
+    return () => {
+      cancelled = true;
+    };
+  }, [step, result]);
+
   async function verifyOtpAndContinue() {
     if (otpCode.length !== 6) {
       setAttempted(true);
@@ -222,7 +282,7 @@ export function QuickApplyClient() {
       setOtpVerified(true);
       setOtpToken(data.verificationToken);
       trackEvent("email_verified");
-      goToStep(getNextQuickApplyStep(2, form));
+      await createDraftAndOfferPayment(data.verificationToken);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not verify email.");
     } finally {
@@ -230,11 +290,57 @@ export function QuickApplyClient() {
     }
   }
 
+  async function createDraftAndOfferPayment(verificationToken: string) {
+    const draftResponse = await fetch("/api/assessments/draft", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        otpVerificationToken: verificationToken,
+        fullName: form.fullName.trim(),
+        mobile: form.mobile,
+        email: form.email.trim().toLowerCase(),
+        loanAmount: form.loanAmount,
+        loanPurpose: form.loanPurpose,
+        loanType: loanTypeFromPurpose(form.loanPurpose),
+        source,
+        referralCode: referralCode || undefined,
+        utm: attribution,
+      }),
+    });
+    const draftData = (await draftResponse.json()) as SubmitResponse & { status?: string };
+    if (!draftResponse.ok) throw new Error(draftData.error || "Could not start checkout.");
+    if (!draftData.assessmentId || !draftData.accessToken) throw new Error("Checkout access is missing. Please try again.");
+    const snapshot: QuickApplyResultSnapshot = {
+      assessmentId: draftData.assessmentId,
+      accessToken: draftData.accessToken,
+      loanAmount: form.loanAmount,
+      paid: false,
+      status: "STARTED",
+    };
+    setResult(snapshot);
+    writeResultSnapshot(snapshot);
+    goToStep(3);
+  }
+
   async function goNext() {
     setAttempted(true);
 
     if (step === 2) {
       await verifyOtpAndContinue();
+      return;
+    }
+
+    if (step === 3) {
+      if (paid && result) {
+        goToStep(4);
+        return;
+      }
+      if (!result?.assessmentId || !result.accessToken) {
+        setError("Complete email OTP verification again.");
+        goToStep(2);
+        return;
+      }
+      window.location.assign(checkoutHref(result.assessmentId, result.accessToken));
       return;
     }
 
@@ -267,7 +373,7 @@ export function QuickApplyClient() {
       return;
     }
 
-    goToStep(getNextQuickApplyStep(step, form));
+    goToStep(getNextQuickApplyStep(step, paid));
   }
 
   function goBack() {
@@ -279,7 +385,7 @@ export function QuickApplyClient() {
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-    goToStep(getPreviousQuickApplyStep(step, form));
+    goToStep(getPreviousQuickApplyStep(step));
   }
 
   function buildPayload() {
@@ -293,7 +399,9 @@ export function QuickApplyClient() {
     const pin = form.addressPinCode || form.pinCode;
 
     return {
-      otpVerificationToken: otpToken,
+      otpVerificationToken: otpToken || undefined,
+      draftAssessmentId: result?.assessmentId,
+      resultToken: result?.accessToken,
       fullName: form.fullName.trim(),
       mobile: form.mobile,
       email: form.email.trim().toLowerCase(),
@@ -348,13 +456,14 @@ export function QuickApplyClient() {
       setError(issue);
       return;
     }
-    if (!otpToken) {
+    if (!otpToken && !result?.accessToken) {
       setError("Complete email OTP verification again.");
       goToStep(2);
       return;
     }
-    if (submitted.current && result) {
+    if (submitted.current && result?.indicative) {
       goToStep(6);
+      setPhase("result");
       return;
     }
     setBusy(true);
@@ -377,6 +486,8 @@ export function QuickApplyClient() {
         assessmentId: data.assessmentId,
         accessToken: data.accessToken,
         loanAmount: form.loanAmount,
+        paid,
+        status: "COMPLETED",
         indicative: data.indicative || {
           readinessScore: 50,
           readinessLabel: "Moderate readiness",
@@ -387,6 +498,7 @@ export function QuickApplyClient() {
       writeResultSnapshot(snapshot);
       setResult(snapshot);
       goToStep(6);
+      setPhase("result");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Assessment submission failed.");
     } finally {
@@ -403,12 +515,23 @@ export function QuickApplyClient() {
       : {};
 
   const ctaLabel =
-    step === 1 ? "Send email code" : step === 2 ? "Verify and continue" : step === 5 ? "Continue to payment" : step === 6 ? "View my loan options" : "Continue";
+    step === 1
+      ? "Send email code"
+      : step === 2
+        ? "Verify and continue"
+        : step === 3
+          ? paid
+            ? "Continue to profile"
+            : "Unlock Credit Profile Booster — ₹116.82"
+          : step === 5
+            ? "See my loan options"
+            : step === 6
+              ? "View my loan options"
+              : "Continue";
 
-  const headerPhase = phase === "result" ? "result" : step === 6 ? "payment" : "form";
+  const headerPhase = phase === "result" ? "result" : step === 3 ? "payment" : "form";
 
-  if (phase === "result" && result) {
-    const checkoutUrl = checkoutHref(result.assessmentId, result.accessToken);
+  if (phase === "result" && result?.indicative) {
     const emiMin = result.indicative.comfortableEmiMin;
     const emiMax = result.indicative.comfortableEmiMax;
     return (
@@ -481,7 +604,13 @@ export function QuickApplyClient() {
             ) : null}
 
             <div className="mt-8">
-              <CreditProfileBoosterPayCard checkoutUrl={checkoutUrl} compact />
+              {paid ? (
+                <div className="rounded-2xl border border-brand-500/30 bg-brand-50 p-5 text-sm leading-6 text-navy-950">
+                  Credit Profile Booster is unlocked. Matched official lender links appear with your completed profile.
+                </div>
+              ) : result ? (
+                <CreditProfileBoosterPayCard checkoutUrl={checkoutHref(result.assessmentId, result.accessToken)} compact />
+              ) : null}
             </div>
 
             <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
@@ -490,7 +619,7 @@ export function QuickApplyClient() {
             </div>
 
             <button type="button" className="mt-6 text-sm font-bold text-brand-700 underline" onClick={goBack}>
-              Back to payment
+              Back to profile
             </button>
           </div>
         </div>
@@ -505,16 +634,24 @@ export function QuickApplyClient() {
         <div>
           <MobileTrustStrip />
           <div className="mt-4 rounded-[1.75rem] border border-line bg-white p-5 shadow-soft sm:p-8">
-            {step === 6 && result ? (
+            {step === 3 && result ? (
               <div>
                 <h1 className="font-display text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">
-                  Unlock matched loan options
+                  Unlock Credit Profile Booster
                 </h1>
                 <p className="mt-3 text-sm leading-7 text-slate-600">
-                  Your profile check is saved. Continue with the existing Credit Profile Booster checkout to see matched official lender links.
+                  {paid
+                    ? "Payment is verified. Continue with your detailed profile — PAN, address and work details come after this unlock."
+                    : "Email is verified. Unlock matched loan options with the existing ₹99 + GST Credit Profile Booster before PAN and detailed work questions."}
                 </p>
                 <div className="mt-6">
-                  <CreditProfileBoosterPayCard checkoutUrl={checkoutHref(result.assessmentId, result.accessToken)} />
+                  {paid ? (
+                    <div className="rounded-[1.5rem] border border-brand-500/30 bg-brand-50 p-6 text-sm leading-7 text-navy-950">
+                      Payment is verified. Continue to complete PAN, address and work details so we can show matched loan options.
+                    </div>
+                  ) : (
+                    <CreditProfileBoosterPayCard checkoutUrl={checkoutHref(result.assessmentId, result.accessToken)} />
+                  )}
                 </div>
               </div>
             ) : (

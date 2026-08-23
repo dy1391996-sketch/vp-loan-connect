@@ -2,18 +2,18 @@ import type { AttributionMap } from "@/lib/attribution";
 import type { incomeRangeMidpoints } from "@/lib/domain/scoring";
 
 export const QUICK_APPLY_STEPS = 6;
-export const QUICK_APPLY_DRAFT_KEY = "vplc_quick_apply_draft_v2";
-export const QUICK_APPLY_RESULT_KEY = "vplc_quick_apply_result_v1";
+export const QUICK_APPLY_DRAFT_KEY = "vplc_quick_apply_draft_v3";
+export const QUICK_APPLY_RESULT_KEY = "vplc_quick_apply_result_v2";
 export const MIN_LOAN_AMOUNT = 10_000;
 export const MAX_LOAN_AMOUNT = 1_000_000;
 
 export const QUICK_APPLY_STEP_LABELS = [
-  "Your details",
+  "Loan need & details",
   "Email verification",
-  "Loan need",
+  "Credit Profile Booster",
   "Work & credit",
   "PAN & consent",
-  "Credit Profile Booster",
+  "Loan options",
 ] as const;
 
 export const QUICK_AMOUNTS = [25_000, 50_000, 100_000, 200_000, 500_000] as const;
@@ -214,7 +214,7 @@ export type AttributionForSubmit = AttributionMap;
 export type QuickApplyResultSnapshot = {
   assessmentId: string;
   accessToken: string;
-  indicative: {
+  indicative?: {
     readinessScore: number;
     readinessLabel: string;
     comfortableEmiMin?: number;
@@ -225,6 +225,8 @@ export type QuickApplyResultSnapshot = {
     disclaimer?: string;
   };
   loanAmount: number;
+  paid?: boolean;
+  status?: "STARTED" | "COMPLETED";
 };
 
 export function readResultSnapshot(): QuickApplyResultSnapshot | null {

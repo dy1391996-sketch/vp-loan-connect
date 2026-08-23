@@ -41,7 +41,7 @@ export function CreditProfileBoosterPayCard({ checkoutUrl, compact = false }: Pr
           <p className="text-sm text-slate-300">GST (18%) ₹17.82</p>
           <p className="mt-2 text-3xl font-black text-brand-500">{USP_TOTAL_WITH_GST_LABEL}</p>
           <ButtonLink href={checkoutUrl} size="lg" className="mt-6 w-full">
-            Continue to pay {USP_TOTAL_WITH_GST_LABEL} <ArrowRight size={18} />
+            Unlock Credit Profile Booster — {USP_TOTAL_WITH_GST_LABEL} <ArrowRight size={18} />
           </ButtonLink>
           <p className="mt-3 text-xs leading-6 text-slate-400">
             Fee is for profile analysis and matched options — not a lender processing fee.

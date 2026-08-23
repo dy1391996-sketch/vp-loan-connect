@@ -55,12 +55,82 @@ export function QuickApplyStepBody({ form, patch, step, errors, otp }: Props) {
     return (
       <div>
         <h1 className="font-display text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">
-          Start with your details
+          Start with your loan need
         </h1>
         <p className="mt-3 text-sm leading-7 text-slate-600">
-          We’ll email a verification code, then check loan options for your profile. Mobile is for contact only — no SMS OTP.
+          Tell us the amount, then verify email. Credit Profile Booster checkout comes next — PAN and detailed work questions come after payment.
         </p>
         <div className="mt-8 grid gap-4">
+          <label className="block">
+            <span className="text-sm font-bold text-navy-950">Loan amount</span>
+            <div
+              className={cn(
+                "mt-2 flex min-h-[52px] items-center gap-2 rounded-2xl border bg-surface px-4",
+                errors.loanAmount ? "border-red-400" : "border-line",
+              )}
+            >
+              <span className="text-xl font-extrabold text-slate-400">₹</span>
+              <input
+                className="w-full bg-transparent py-3 text-2xl font-extrabold tracking-[-0.03em] text-navy-950 outline-none"
+                inputMode="numeric"
+                value={formatInrDigits(form.loanAmount)}
+                aria-invalid={Boolean(errors.loanAmount)}
+                aria-label="Loan amount"
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "");
+                  patch({ loanAmount: digits ? Number(digits) : 0 });
+                }}
+              />
+            </div>
+            {errors.loanAmount ? (
+              <span className="mt-2 block text-xs font-medium text-red-700" role="alert">
+                {errors.loanAmount}
+              </span>
+            ) : null}
+          </label>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {QUICK_AMOUNTS.map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => patch({ loanAmount: value })}
+                className={cn(
+                  "min-h-[48px] rounded-2xl border text-sm font-extrabold transition",
+                  form.loanAmount === value ? "border-brand-600 bg-brand-100 text-brand-800" : "border-line bg-white text-navy-950 hover:border-brand-500",
+                )}
+              >
+                {formatInr(value)}
+              </button>
+            ))}
+          </div>
+          <p className="text-sm font-bold text-navy-950">What do you need the funds for?</p>
+          {errors.loanPurpose ? (
+            <p className="text-xs font-medium text-red-700" role="alert">
+              {errors.loanPurpose}
+            </p>
+          ) : null}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {LOAN_PURPOSES.map((item) => {
+              const Icon = PURPOSE_ICONS[item.id] || Sparkles;
+              const active = form.loanPurpose === item.value;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => patch({ loanPurpose: item.value })}
+                  className={cn(
+                    "flex min-h-[52px] items-center gap-3 rounded-2xl border px-4 py-3 text-left transition",
+                    active ? "border-brand-600 bg-brand-100 text-brand-800" : "border-line bg-white text-navy-950 hover:border-brand-500",
+                  )}
+                >
+                  <span className={cn("grid h-10 w-10 place-items-center rounded-xl", active ? "bg-white text-brand-700" : "bg-surface text-slate-600")}>
+                    <Icon size={18} />
+                  </span>
+                  <span className="text-sm font-extrabold">{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
           <Field label="Email address" required error={errors.email}>
             <Input
               type="email"
@@ -89,18 +159,6 @@ export function QuickApplyStepBody({ form, patch, step, errors, otp }: Props) {
               onChange={(e) => patch({ mobile: e.target.value.replace(/\D/g, "").slice(0, 10) })}
               autoComplete="tel"
               placeholder="10-digit Indian mobile"
-            />
-          </Field>
-          <Field label="Date of birth" required error={errors.dateOfBirth}>
-            <Input type="date" value={form.dateOfBirth} aria-invalid={Boolean(errors.dateOfBirth)} onChange={(e) => patch({ dateOfBirth: e.target.value })} />
-          </Field>
-          <Field label="PIN code" required error={errors.pinCode}>
-            <Input
-              inputMode="numeric"
-              maxLength={6}
-              value={form.pinCode}
-              aria-invalid={Boolean(errors.pinCode)}
-              onChange={(e) => patch({ pinCode: e.target.value.replace(/\D/g, "").slice(0, 6) })}
             />
           </Field>
         </div>
@@ -145,85 +203,7 @@ export function QuickApplyStepBody({ form, patch, step, errors, otp }: Props) {
   }
 
   if (step === 3) {
-    return (
-      <div>
-        <h1 className="font-display text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">
-          What funding are you looking for?
-        </h1>
-        <p className="mt-3 text-sm leading-7 text-slate-600">Choose an amount and purpose so we can match relevant loan categories.</p>
-        <label className="mt-8 block">
-          <span className="text-sm font-bold text-navy-950">Loan amount</span>
-          <div
-            className={cn(
-              "mt-2 flex min-h-[52px] items-center gap-2 rounded-2xl border bg-surface px-4",
-              errors.loanAmount ? "border-red-400" : "border-line",
-            )}
-          >
-            <span className="text-xl font-extrabold text-slate-400">₹</span>
-            <input
-              className="w-full bg-transparent py-3 text-2xl font-extrabold tracking-[-0.03em] text-navy-950 outline-none"
-              inputMode="numeric"
-              value={formatInrDigits(form.loanAmount)}
-              aria-invalid={Boolean(errors.loanAmount)}
-              aria-label="Loan amount"
-              onChange={(e) => {
-                const digits = e.target.value.replace(/\D/g, "");
-                patch({ loanAmount: digits ? Number(digits) : 0 });
-              }}
-            />
-          </div>
-          {errors.loanAmount ? (
-            <span className="mt-2 block text-xs font-medium text-red-700" role="alert">
-              {errors.loanAmount}
-            </span>
-          ) : null}
-        </label>
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {QUICK_AMOUNTS.map((value) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => patch({ loanAmount: value })}
-              className={cn(
-                "min-h-[48px] rounded-2xl border text-sm font-extrabold transition",
-                form.loanAmount === value ? "border-brand-600 bg-brand-100 text-brand-800" : "border-line bg-white text-navy-950 hover:border-brand-500",
-              )}
-            >
-              {formatInr(value)}
-            </button>
-          ))}
-        </div>
-        <p className="mt-8 text-sm font-bold text-navy-950">What do you need the funds for?</p>
-        {errors.loanPurpose ? (
-          <p className="mt-2 text-xs font-medium text-red-700" role="alert">
-            {errors.loanPurpose}
-          </p>
-        ) : null}
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {LOAN_PURPOSES.map((item) => {
-            const Icon = PURPOSE_ICONS[item.id] || Sparkles;
-            const active = form.loanPurpose === item.value;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => patch({ loanPurpose: item.value })}
-                className={cn(
-                  "flex min-h-[52px] items-center gap-3 rounded-2xl border px-4 py-3 text-left transition",
-                  active ? "border-brand-600 bg-brand-100 text-brand-800" : "border-line bg-white text-navy-950 hover:border-brand-500",
-                )}
-              >
-                <span className={cn("grid h-10 w-10 place-items-center rounded-xl", active ? "bg-white text-brand-700" : "bg-surface text-slate-600")}>
-                  <Icon size={18} />
-                </span>
-                <span className="text-sm font-extrabold">{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-        <p className="mt-6 text-xs leading-6 text-slate-500">Final eligibility and amount are decided only by the relevant lender.</p>
-      </div>
-    );
+    return null;
   }
 
   if (step === 4) {
@@ -233,6 +213,11 @@ export function QuickApplyStepBody({ form, patch, step, errors, otp }: Props) {
         <p className="mt-3 text-sm leading-7 text-slate-600">
           A few details to estimate indicative affordability. This does not pull a bureau report or affect your CIBIL score.
         </p>
+        <div className="mt-6 grid gap-4">
+          <Field label="Date of birth" required error={errors.dateOfBirth}>
+            <Input type="date" value={form.dateOfBirth} aria-invalid={Boolean(errors.dateOfBirth)} onChange={(e) => patch({ dateOfBirth: e.target.value })} />
+          </Field>
+        </div>
         {errors.employmentUi ? (
           <p className="mt-4 text-xs font-medium text-red-700" role="alert">
             {errors.employmentUi}

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { randomInt } from "node:crypto";
 import { randomToken, sha256 } from "@/lib/utils";
 import { qualifiesForReferralReward } from "@/lib/domain/referrals";
+import { buildPaymentReportSnapshot, leadStageAfterPayment } from "@/lib/domain/early-checkout";
 
 export function datedReference(prefix: "VPLC-ORD" | "VPLC") {
   const now = new Date();
@@ -13,7 +14,7 @@ export function datedReference(prefix: "VPLC-ORD" | "VPLC") {
 export async function processSuccessfulPayment(input: { orderId: string; providerPaymentId: string; provider: string }) {
   return prisma.$transaction(async (tx) => {
     const order = await tx.order.findUnique({ where: { id: input.orderId }, include: { lead: true, assessment: { include: { score: true, answers: true } }, product: true, reports: true } });
-    if (!order || !order.assessment?.score) throw new Error("Order assessment is unavailable.");
+    if (!order?.assessment) throw new Error("Order assessment is unavailable.");
     if (order.status === "PAID" && order.reports[0]) return { order, report: order.reports[0], duplicate: true };
     const existingPayment = await tx.payment.findUnique({ where: { providerPaymentId: input.providerPaymentId } });
     if (existingPayment && existingPayment.orderId !== order.id) throw new Error("Payment reference is already linked to another order.");
@@ -22,21 +23,26 @@ export async function processSuccessfulPayment(input: { orderId: string; provide
       ? await tx.payment.update({ where: { id: existingPayment.id }, data: { status: "CAPTURED", capturedAt: paidAt } })
       : await tx.payment.create({ data: { orderId: order.id, provider: input.provider, providerPaymentId: input.providerPaymentId, amount: order.totalAmount, currency: order.currency, status: "CAPTURED", capturedAt: paidAt } });
     const paidOrder = await tx.order.update({ where: { id: order.id }, data: { status: "PAID", paidAt } });
-    await tx.lead.update({ where: { id: order.leadId }, data: { stage: "REPORT_PROCESSING" } });
+    await tx.lead.update({ where: { id: order.leadId }, data: { stage: leadStageAfterPayment(Boolean(order.assessment.score)) } });
     const rawToken = randomToken(32);
-    const snapshot: Prisma.InputJsonValue = JSON.parse(JSON.stringify({
-      customerName: order.lead.fullName,
-      assessmentDate: order.assessment.completedAt,
-      loanType: order.assessment.loanType,
-      loanAmount: order.assessment.loanAmount?.toString(),
-      employmentType: order.assessment.employmentType,
-      monthlyIncomeRange: order.assessment.monthlyIncomeRange,
-      existingEmi: order.assessment.existingEmi?.toString(),
-      creditRange: order.assessment.creditRange,
-      score: order.assessment.score,
-      answers: order.assessment.answers,
-      productName: order.product.name,
-    }));
+    const snapshot: Prisma.InputJsonValue = JSON.parse(
+      JSON.stringify(
+        buildPaymentReportSnapshot({
+          customerName: order.lead.fullName,
+          assessmentDate: order.assessment.completedAt,
+          loanType: order.assessment.loanType,
+          loanAmount: order.assessment.loanAmount?.toString() ?? null,
+          loanPurpose: order.assessment.loanPurpose,
+          employmentType: order.assessment.employmentType,
+          monthlyIncomeRange: order.assessment.monthlyIncomeRange,
+          existingEmi: order.assessment.existingEmi?.toString() ?? null,
+          creditRange: order.assessment.creditRange,
+          score: order.assessment.score,
+          answers: order.assessment.answers,
+          productName: order.product.name,
+        }),
+      ),
+    );
     const report = await tx.report.create({ data: { reportReference: datedReference("VPLC"), leadId: order.leadId, assessmentId: order.assessment.id, orderId: order.id, type: order.product.type, status: "QUEUED", snapshot, accessTokenHash: sha256(rawToken), accessTokenExpiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000) } });
 
     if (order.referralCode) {

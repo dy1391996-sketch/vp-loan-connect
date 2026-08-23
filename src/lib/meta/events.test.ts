@@ -34,6 +34,8 @@ describe("Meta funnel events", () => {
     assert.equal(FIRST_PARTY_TO_META.homepage_visit, undefined);
     assert.deepEqual(FIRST_PARTY_TO_META.email_verified, ["OTPVerified"]);
     assert.deepEqual(FIRST_PARTY_TO_META.checkout_opened, ["CheckoutStarted"]);
+    assert.deepEqual(FIRST_PARTY_TO_META.payment_order_created, ["CheckoutStarted"]);
+    assert.deepEqual(FIRST_PARTY_TO_META.cashfree_checkout_opened, ["CheckoutStarted"]);
     assert.deepEqual(FIRST_PARTY_TO_META.payment_completed, ["PaymentSuccess"]);
     assert.deepEqual(FIRST_PARTY_TO_META.instagram_profile_click, ["InstagramProfileClick"]);
   });

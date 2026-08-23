@@ -1,7 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "env": {
-    "PAYMENT_PROVIDER": "cashfree"
+    "PAYMENT_PROVIDER": "cashfree",
+    "CASHFREE_ENV": "production"
   },
   "buildCommand": "pnpm typecheck && pnpm lint && pnpm test && pnpm run db:deploy && pnpm exec prisma generate && pnpm run db:seed && pnpm build && pnpm verify:readiness"
 }

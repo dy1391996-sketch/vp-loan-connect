@@ -15,6 +15,11 @@ import {
 
 /** Cashfree adapter — import only from server routes / server modules (never from client components). */
 export const CASHFREE_API_VERSION_DEFAULT = "2025-01-01";
+export const CASHFREE_PG_PRODUCTION_BASE_URL = "https://api.cashfree.com/pg";
+export const CASHFREE_PG_SANDBOX_BASE_URL = "https://sandbox.cashfree.com/pg";
+export const CASHFREE_CLIENT_ID_HEADER = "x-client-id";
+export const CASHFREE_CLIENT_SECRET_HEADER = "x-client-secret";
+export const CASHFREE_API_VERSION_HEADER = "x-api-version";
 
 function cashfreeAppId(env: ServerEnv) {
   return env.CASHFREE_APP_ID;
@@ -31,20 +36,67 @@ function cashfreeMissing(env: ServerEnv) {
   return missing;
 }
 
-function cashfreeBaseUrl(env: ServerEnv) {
-  return env.CASHFREE_ENV === "production" ? "https://api.cashfree.com/pg" : "https://sandbox.cashfree.com/pg";
+/** Cashfree Payment Gateway sandbox App IDs are generated with a TEST prefix. */
+export function looksLikeCashfreeSandboxAppId(appId: string | undefined) {
+  return /^TEST/i.test(String(appId ?? "").trim());
+}
+
+/**
+ * Select sandbox vs production PG.
+ * Unset CASHFREE_ENV used to default to sandbox, which 401s when Production
+ * Payment Gateway keys (no TEST prefix) are sent to sandbox.cashfree.com.
+ * TEST-prefixed keys always use sandbox; other keys use production unless
+ * CASHFREE_ENV is explicitly production (TEST + production is a config error).
+ */
+export function resolveCashfreeEnv(env: Pick<ServerEnv, "CASHFREE_ENV" | "CASHFREE_APP_ID">): "sandbox" | "production" {
+  const explicit = env.CASHFREE_ENV === "production" || env.CASHFREE_ENV === "sandbox" ? env.CASHFREE_ENV : "";
+  const appId = String(env.CASHFREE_APP_ID || "").trim();
+  const sandboxKey = looksLikeCashfreeSandboxAppId(appId);
+
+  if (explicit === "production") return "production";
+  if (explicit === "sandbox") {
+    if (appId && !sandboxKey) return "production";
+    return "sandbox";
+  }
+  if (sandboxKey) return "sandbox";
+  return appId ? "production" : "sandbox";
+}
+
+export function cashfreeBaseUrl(env: Pick<ServerEnv, "CASHFREE_ENV" | "CASHFREE_APP_ID">) {
+  return resolveCashfreeEnv(env) === "production" ? CASHFREE_PG_PRODUCTION_BASE_URL : CASHFREE_PG_SANDBOX_BASE_URL;
 }
 
 function cashfreeApiVersion(env: ServerEnv) {
   return env.CASHFREE_API_VERSION || CASHFREE_API_VERSION_DEFAULT;
 }
 
+/** Non-secret metadata for logs and client-safe error payloads. Never include credential values. */
+export function describeCashfreeAuthContext(env: ServerEnv) {
+  const mode = resolveCashfreeEnv(env);
+  const baseUrl = cashfreeBaseUrl(env);
+  return {
+    mode,
+    hostname: new URL(baseUrl).hostname,
+    hasAppId: Boolean(cashfreeAppId(env)),
+    hasSecret: Boolean(cashfreeSecret(env)),
+    appIdLength: cashfreeAppId(env).length,
+    secretLength: cashfreeSecret(env).length,
+    apiVersion: cashfreeApiVersion(env),
+    vercelEnv: process.env.VERCEL_ENV || "",
+  };
+}
+
+export function cashfreeAuthRejectedMessage(env: ServerEnv) {
+  const context = describeCashfreeAuthContext(env);
+  return `Cashfree Payment Gateway rejected the API credentials for ${context.mode} (${context.hostname}). Use Payment Gateway App ID and Secret Key in CASHFREE_APP_ID and CASHFREE_SECRET_KEY (not Payouts or Secure ID), matching CASHFREE_ENV.`;
+}
+
 function cashfreeHeaders(env: ServerEnv) {
   return {
-    "content-type": "application/json",
-    "x-client-id": cashfreeAppId(env),
-    "x-client-secret": cashfreeSecret(env),
-    "x-api-version": cashfreeApiVersion(env),
+    "Content-Type": "application/json",
+    [CASHFREE_CLIENT_ID_HEADER]: cashfreeAppId(env),
+    [CASHFREE_CLIENT_SECRET_HEADER]: cashfreeSecret(env),
+    [CASHFREE_API_VERSION_HEADER]: cashfreeApiVersion(env),
   };
 }
 
@@ -120,6 +172,12 @@ export const cashfreePaymentProvider: PaymentProvider = {
   assertConfigured(env) {
     const missing = cashfreeMissing(env);
     if (missing.length) throw new PaymentConfigurationError("cashfree", missing);
+    if (resolveCashfreeEnv(env) === "production" && looksLikeCashfreeSandboxAppId(cashfreeAppId(env))) {
+      throw new PaymentProviderError(
+        "CASHFREE_APP_ID looks like a Cashfree TEST/sandbox key but CASHFREE_ENV selects production (api.cashfree.com/pg). Use Payment Gateway Production keys from Cashfree → Payment Gateway → Developers → API Keys.",
+        503,
+      );
+    }
   },
 
   async createOrder(input: CreateOrderInput, env: ServerEnv) {
@@ -170,7 +228,22 @@ export const cashfreePaymentProvider: PaymentProvider = {
 
     if (!response.ok) {
       const detail = await readCashfreeError(response);
-      console.error("cashfree_order_create_failed", { status: response.status, detail });
+      const auth = describeCashfreeAuthContext(env);
+      console.error("cashfree_order_create_failed", {
+        status: response.status,
+        detail,
+        mode: auth.mode,
+        hostname: auth.hostname,
+        hasAppId: auth.hasAppId,
+        hasSecret: auth.hasSecret,
+        appIdLength: auth.appIdLength,
+        secretLength: auth.secretLength,
+        apiVersion: auth.apiVersion,
+        vercelEnv: auth.vercelEnv,
+      });
+      if (response.status === 401 || response.status === 403) {
+        throw new PaymentProviderError(cashfreeAuthRejectedMessage(env), 503);
+      }
       throw new PaymentProviderError(`Cashfree order creation failed (${response.status}): ${detail}`, 502);
     }
 
@@ -187,7 +260,7 @@ export const cashfreePaymentProvider: PaymentProvider = {
       checkout: {
         mode: "cashfree_checkout" as const,
         paymentSessionId: parsed.data.payment_session_id,
-        env: env.CASHFREE_ENV === "production" ? ("production" as const) : ("sandbox" as const),
+        env: resolveCashfreeEnv(env),
       },
     };
   },

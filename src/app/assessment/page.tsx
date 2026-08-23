@@ -6,7 +6,7 @@ import { USP_PRICE_LABEL, USP_PRODUCT_NAME } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Apply — Verify, eligibility, address, unlock",
-  description: `Complete a short profile (OTP, PAN, income, address) then unlock ${USP_PRODUCT_NAME} for ${USP_PRICE_LABEL} + GST with official partner links.`,
+  description: `Complete a short profile (email OTP, PAN, income, address) then unlock ${USP_PRODUCT_NAME} for ${USP_PRICE_LABEL} + GST with official lender/LSP apply links.`,
   alternates: { canonical: "/assessment" },
 };
 

@@ -1,6 +1,6 @@
 import { CircleAlert, FileText, LockKeyhole, MessageCircle, ShieldCheck, Sparkles } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
-import { CREDIT_REPORT_DISCLAIMER, PAYMENT_DESCRIPTION, PLATFORM_DISCLAIMER } from "@/lib/constants";
+import { CREDIT_REPORT_DISCLAIMER, PAYMENT_DESCRIPTION, PLATFORM_DISCLAIMER, READINESS_PAYMENT_DESCRIPTION } from "@/lib/constants";
 
 type Props = {
   kind: "credit" | "readiness";
@@ -66,7 +66,7 @@ export function ProductPage({ kind, title, heading, description, regular, price,
           <div>
             <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-brand-700">What you receive</p>
             <h2 className="font-display mt-4 text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">
-              Personalized, practical और downloadable
+              Personalized, practical and downloadable
             </h2>
             <p className="mt-4 text-sm leading-7 text-slate-600">The report is based on your assessment inputs. It is not a generic approval certificate.</p>
           </div>
@@ -88,7 +88,7 @@ export function ProductPage({ kind, title, heading, description, regular, price,
           <div className="rounded-[1.5rem] border border-line bg-white p-7 shadow-sm">
             <ShieldCheck className="text-brand-700" />
             <h2 className="font-display mt-5 text-xl font-extrabold text-navy-950">Payment purpose</h2>
-            <p className="mt-3 text-sm leading-7 text-slate-600">{PAYMENT_DESCRIPTION}</p>
+            <p className="mt-3 text-sm leading-7 text-slate-600">{kind === "credit" ? PAYMENT_DESCRIPTION : READINESS_PAYMENT_DESCRIPTION}</p>
           </div>
           <div className="rounded-[1.5rem] border border-amber-200 bg-amber-50 p-7">
             <CircleAlert className="text-amber-700" />
@@ -104,7 +104,7 @@ export function ProductPage({ kind, title, heading, description, regular, price,
             <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-500/20 blur-3xl" />
             <MessageCircle className="relative mx-auto text-brand-500" size={30} />
             <h2 className="font-display relative mt-5 text-3xl font-extrabold tracking-[-0.045em] sm:text-4xl">
-              पहले free profile preview देखें
+              Start with a free profile preview
             </h2>
             <p className="relative mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-300">
               Choose an optional paid report only after your free result. There is no loan approval or score-increase guarantee.
