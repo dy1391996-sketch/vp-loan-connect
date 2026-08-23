@@ -72,7 +72,7 @@ function InvalidCheckout() {
       icon={LockKeyhole}
       eyebrow="Secure checkout"
       title="Secure payment link required"
-      description="Complete the short profile and unlock step first so we can open secure payment."
+      description="Verify your email first so we can open the ₹116.82 Credit Profile Booster checkout."
       action={{ href: "/apply/quick", label: "Start quick apply" }}
     />
   );

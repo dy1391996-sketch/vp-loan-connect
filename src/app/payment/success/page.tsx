@@ -5,9 +5,10 @@ import { ConnectOptionsPanel } from "@/components/connect-options-panel";
 import { PublicStatePanel } from "@/components/ui/public-state-panel";
 import { PUBLIC_SUPPORT_EMAIL } from "@/lib/constants";
 import { prisma } from "@/lib/db";
+import { continueQuickApplyHref } from "@/lib/domain/early-checkout";
 import { getServerEnv } from "@/lib/env";
 import { getPaidConnectBundle } from "@/lib/matching/match-service";
-import { verifyAccessToken } from "@/lib/security/tokens";
+import { signAccessToken, verifyAccessToken } from "@/lib/security/tokens";
 import { formatInr } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -40,21 +41,26 @@ export default async function PaymentSuccessPage({ searchParams }: { searchParam
   ) return <InvalidSuccess />;
   const env = getServerEnv();
   const score = report.assessment.score;
+  const pendingProfile = !score;
+  const continueToken = await signAccessToken("result_access", report.assessmentId, { leadId: report.leadId }, "7d");
+  const continueHref = continueQuickApplyHref(report.assessmentId, continueToken);
   const suitableCategories = Array.isArray(score?.suitableCategories)
     ? score.suitableCategories.filter((item): item is string => typeof item === "string")
     : [];
-  const { matched, more } = await getPaidConnectBundle({
-    loanAmount: Number(report.assessment.loanAmount ?? 0),
-    loanType: report.assessment.loanType ?? "PERSONAL",
-    employmentType: report.assessment.employmentType ?? "OTHER",
-    creditRange: report.assessment.creditRange ?? "UNKNOWN",
-    existingEmi: Number(report.assessment.existingEmi ?? 0),
-    monthlyIncome: Number(report.assessment.monthlyIncome ?? 0),
-    readinessScore: score?.readinessScore ?? 50,
-    emiBurden: score?.emiBurden ?? "Moderate",
-    documentationStatus: score?.documentationStatus ?? "Partial",
-    suitableCategories,
-  });
+  const { matched, more } = pendingProfile
+    ? { matched: [], more: [] }
+    : await getPaidConnectBundle({
+        loanAmount: Number(report.assessment.loanAmount ?? 0),
+        loanType: report.assessment.loanType ?? "PERSONAL",
+        employmentType: report.assessment.employmentType ?? "OTHER",
+        creditRange: report.assessment.creditRange ?? "UNKNOWN",
+        existingEmi: Number(report.assessment.existingEmi ?? 0),
+        monthlyIncome: Number(report.assessment.monthlyIncome ?? 0),
+        readinessScore: score?.readinessScore ?? 50,
+        emiBurden: score?.emiBurden ?? "Moderate",
+        documentationStatus: score?.documentationStatus ?? "Partial",
+        suitableCategories,
+      });
 
   return (
     <section className="surface-grid min-h-[75vh] bg-surface py-14 sm:py-16">
@@ -75,14 +81,32 @@ export default async function PaymentSuccessPage({ searchParams }: { searchParam
               <Info label="Service" value={report.order.product.name} />
               <Info label="Amount paid" value={formatInr(Number(report.order.totalAmount))} />
             </div>
-            <ButtonLink href={`/report/${report.id}?token=${encodeURIComponent(query.token)}`} size="lg" className="mt-7 w-full">
-              Open full booster report <FileText size={18} />
-            </ButtonLink>
+            {pendingProfile ? (
+              <ButtonLink href={continueHref} size="lg" className="mt-7 w-full">
+                Continue detailed application <FileText size={18} />
+              </ButtonLink>
+            ) : (
+              <ButtonLink href={`/report/${report.id}?token=${encodeURIComponent(query.token)}`} size="lg" className="mt-7 w-full">
+                Open full booster report <FileText size={18} />
+              </ButtonLink>
+            )}
           </div>
 
-          <div className="mt-6">
-            <ConnectOptionsPanel matched={matched} more={more} />
-          </div>
+          {pendingProfile ? (
+            <div className="mt-6 rounded-3xl border border-line bg-white p-6 shadow-sm">
+              <h2 className="font-extrabold text-navy-950">Next: complete your profile</h2>
+              <p className="mt-3 text-sm leading-7 text-slate-600">
+                Payment is verified. PAN, address, work, income and credit details are collected after this unlock so we can generate your result and matched options.
+              </p>
+              <ButtonLink href={continueHref} className="mt-5">
+                Continue application
+              </ButtonLink>
+            </div>
+          ) : (
+            <div className="mt-6">
+              <ConnectOptionsPanel matched={matched} more={more} />
+            </div>
+          )}
 
           <div className="mt-5 rounded-3xl border border-line bg-white p-6 shadow-sm">
             <h2 className="font-extrabold text-navy-950">Invoice information</h2>

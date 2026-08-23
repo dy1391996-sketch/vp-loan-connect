@@ -2,8 +2,21 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createHash, createHmac } from "node:crypto";
 import { missingPaymentCredentialKeys, type ServerEnv } from "@/lib/env";
-import { listPaymentProviders, mapPaymentError, PaymentConfigurationError } from "@/lib/payments";
-import { cashfreePaymentProvider, verifyCashfreeWebhookSignature } from "@/lib/payments/providers/cashfree";
+import { listPaymentProviders, mapPaymentError, PaymentConfigurationError, PaymentProviderError } from "@/lib/payments";
+import {
+  CASHFREE_API_VERSION_DEFAULT,
+  CASHFREE_API_VERSION_HEADER,
+  CASHFREE_CLIENT_ID_HEADER,
+  CASHFREE_CLIENT_SECRET_HEADER,
+  CASHFREE_PG_PRODUCTION_BASE_URL,
+  CASHFREE_PG_SANDBOX_BASE_URL,
+  cashfreeBaseUrl,
+  cashfreePaymentProvider,
+  describeCashfreeAuthContext,
+  looksLikeCashfreeSandboxAppId,
+  resolveCashfreeEnv,
+  verifyCashfreeWebhookSignature,
+} from "@/lib/payments/providers/cashfree";
 import { buildPayuPaymentHash, verifyPayuReverseHash } from "@/lib/payments/providers/payu";
 import { verifyRazorpayPaymentSignature, verifyRazorpayWebhookSignature } from "@/lib/payments/providers/razorpay";
 
@@ -277,6 +290,187 @@ describe("Cashfree webhook and verify helpers", () => {
       assert.equal(body.order_currency, "INR");
       assert.match(body.order_meta.return_url, /order_id=\{order_id\}/);
       assert.doesNotMatch(JSON.stringify(result), /test_secret|CASHFREE_SECRET/);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("reports missing Cashfree client ID and secret independently and does not call Cashfree", async () => {
+    const originalFetch = globalThis.fetch;
+    let called = false;
+    globalThis.fetch = (async () => {
+      called = true;
+      return new Response("{}", { status: 500 });
+    }) as typeof fetch;
+    try {
+      assert.deepEqual(
+        cashfreePaymentProvider.missingCredentials(
+          baseEnv({ PAYMENT_PROVIDER: "cashfree", CASHFREE_APP_ID: "", CASHFREE_SECRET_KEY: "secret" }),
+        ),
+        ["CASHFREE_APP_ID"],
+      );
+      assert.deepEqual(
+        cashfreePaymentProvider.missingCredentials(
+          baseEnv({ PAYMENT_PROVIDER: "cashfree", CASHFREE_APP_ID: "app", CASHFREE_SECRET_KEY: "" }),
+        ),
+        ["CASHFREE_SECRET_KEY"],
+      );
+      await assert.rejects(
+        () =>
+          cashfreePaymentProvider.createOrder(
+            {
+              amountPaise: 11682,
+              receipt: "VPLC-ORD-TEST",
+              notes: { internal_order_id: "11111111-1111-1111-1111-111111111111" },
+              customer: { name: "Rahul", email: "rahul@example.com", mobile: "9876543210" },
+            },
+            baseEnv({ PAYMENT_PROVIDER: "cashfree", CASHFREE_APP_ID: "", CASHFREE_SECRET_KEY: "should-not-leak" }),
+          ),
+        (error: unknown) => {
+          assert.equal(error instanceof PaymentConfigurationError, true);
+          if (error instanceof PaymentConfigurationError) {
+            assert.deepEqual(error.missing, ["CASHFREE_APP_ID"]);
+            assert.doesNotMatch(error.message, /should-not-leak/);
+          }
+          return true;
+        },
+      );
+      await assert.rejects(
+        () =>
+          cashfreePaymentProvider.createOrder(
+            {
+              amountPaise: 11682,
+              receipt: "VPLC-ORD-TEST",
+              notes: { internal_order_id: "11111111-1111-1111-1111-111111111111" },
+              customer: { name: "Rahul", email: "rahul@example.com", mobile: "9876543210" },
+            },
+            baseEnv({ PAYMENT_PROVIDER: "cashfree", CASHFREE_APP_ID: "app", CASHFREE_SECRET_KEY: "" }),
+          ),
+        (error: unknown) => {
+          assert.equal(error instanceof PaymentConfigurationError, true);
+          if (error instanceof PaymentConfigurationError) {
+            assert.deepEqual(error.missing, ["CASHFREE_SECRET_KEY"]);
+          }
+          return true;
+        },
+      );
+      assert.equal(called, false);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("selects production and sandbox Payment Gateway URLs and auth header names", () => {
+    assert.equal(looksLikeCashfreeSandboxAppId("TEST10241000abcd"), true);
+    assert.equal(looksLikeCashfreeSandboxAppId("1234567890"), false);
+    assert.equal(
+      resolveCashfreeEnv(baseEnv({ CASHFREE_ENV: "production", CASHFREE_APP_ID: "1234567890" })),
+      "production",
+    );
+    assert.equal(cashfreeBaseUrl(baseEnv({ CASHFREE_ENV: "production", CASHFREE_APP_ID: "1234567890" })), `${CASHFREE_PG_PRODUCTION_BASE_URL}`);
+    assert.equal(
+      cashfreeBaseUrl(baseEnv({ CASHFREE_ENV: "sandbox", CASHFREE_APP_ID: "TEST10241000abcd" })),
+      CASHFREE_PG_SANDBOX_BASE_URL,
+    );
+    // Production PG keys must not hit sandbox even if CASHFREE_ENV defaulted/set to sandbox (classic 401).
+    assert.equal(
+      resolveCashfreeEnv(baseEnv({ CASHFREE_ENV: "sandbox", CASHFREE_APP_ID: "1234567890" })),
+      "production",
+    );
+    assert.equal(CASHFREE_CLIENT_ID_HEADER, "x-client-id");
+    assert.equal(CASHFREE_CLIENT_SECRET_HEADER, "x-client-secret");
+    assert.equal(CASHFREE_API_VERSION_HEADER, "x-api-version");
+    assert.equal(CASHFREE_API_VERSION_DEFAULT, "2025-01-01");
+  });
+
+  it("creates production orders against api.cashfree.com/pg with x-client-id/x-client-secret", async () => {
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ url: String(input), init });
+      return new Response(
+        JSON.stringify({
+          order_id: "cf-prod-1",
+          payment_session_id: "session_prod",
+          order_status: "ACTIVE",
+          order_amount: 116.82,
+          order_currency: "INR",
+        }),
+        { status: 200 },
+      );
+    }) as typeof fetch;
+    try {
+      const result = await cashfreePaymentProvider.createOrder(
+        {
+          amountPaise: 11682,
+          receipt: "VPLC-ORD-PROD",
+          notes: { internal_order_id: "11111111-1111-1111-1111-111111111111", product: "credit-health-action-plan" },
+          customer: { name: "Rahul", email: "rahul@example.com", mobile: "9876543210" },
+        },
+        baseEnv({
+          PAYMENT_PROVIDER: "cashfree",
+          CASHFREE_APP_ID: "1234567890",
+          CASHFREE_SECRET_KEY: "prod_secret_value",
+          CASHFREE_ENV: "production",
+        }),
+      );
+      assert.equal(calls[0]!.url, `${CASHFREE_PG_PRODUCTION_BASE_URL}/orders`);
+      const headers = new Headers(calls[0]!.init?.headers);
+      assert.equal(headers.get(CASHFREE_CLIENT_ID_HEADER), "1234567890");
+      assert.equal(headers.get(CASHFREE_CLIENT_SECRET_HEADER), "prod_secret_value");
+      if (result.checkout.mode === "cashfree_checkout") {
+        assert.equal(result.checkout.env, "production");
+      }
+      assert.doesNotMatch(JSON.stringify(result), /prod_secret_value/);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("maps Cashfree 401 authentication Failed to a configuration error without leaking secrets", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ message: "authentication Failed", code: "request_failed" }), { status: 401 })) as typeof fetch;
+    const secret = "super-secret-cashfree-key";
+    const env = baseEnv({
+      PAYMENT_PROVIDER: "cashfree",
+      CASHFREE_APP_ID: "1234567890",
+      CASHFREE_SECRET_KEY: secret,
+      CASHFREE_ENV: "production",
+    });
+    try {
+      await assert.rejects(
+        () =>
+          cashfreePaymentProvider.createOrder(
+            {
+              amountPaise: 11682,
+              receipt: "VPLC-ORD-TEST",
+              notes: { internal_order_id: "11111111-1111-1111-1111-111111111111" },
+              customer: { name: "Rahul", email: "rahul@example.com", mobile: "9876543210" },
+            },
+            env,
+          ),
+        (error: unknown) => {
+          assert.equal(error instanceof PaymentProviderError, true);
+          if (error instanceof PaymentProviderError) {
+            assert.equal(error.statusHint, 503);
+            assert.match(error.message, /CASHFREE_APP_ID/);
+            assert.match(error.message, /CASHFREE_SECRET_KEY/);
+            assert.match(error.message, /Payment Gateway/);
+            assert.doesNotMatch(error.message, new RegExp(secret));
+            assert.doesNotMatch(error.message, /1234567890/);
+          }
+          const mapped = mapPaymentError(error);
+          assert.equal(mapped.status, 503);
+          assert.doesNotMatch(mapped.error, new RegExp(secret));
+          return true;
+        },
+      );
+      const context = describeCashfreeAuthContext(env);
+      assert.equal(context.hasAppId, true);
+      assert.equal(context.hasSecret, true);
+      assert.equal(context.hostname, "api.cashfree.com");
+      assert.doesNotMatch(JSON.stringify(context), new RegExp(secret));
     } finally {
       globalThis.fetch = originalFetch;
     }

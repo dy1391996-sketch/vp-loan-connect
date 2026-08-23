@@ -23,22 +23,25 @@ function form(overrides: Partial<ReturnType<typeof defaultQuickApplyForm>> = {})
 }
 
 describe("quick apply identity and OTP order", () => {
-  it("validates profile fields and age 21–60 on step 1", () => {
+  it("validates loan need plus contact fields on step 1 and does not require PAN, DOB or address", () => {
     const base = form({
       fullName: "Rahul Sharma",
       email: "rahul@gmail.com",
       mobile: "9876512345",
-      dateOfBirth: "1995-06-15",
-      pinCode: "201301",
+      loanAmount: 50_000,
+      loanPurpose: "Personal expenses",
     });
     assert.equal(validateQuickApplyStep(1, base), "");
-    assert.match(validateQuickApplyStep(1, form({ ...base, dateOfBirth: "2010-01-01" })), /21 and 60/);
-    assert.match(validateQuickApplyStep(1, form({ ...base, pinCode: "123" })), /PIN/);
+    assert.equal(validateQuickApplyStepFields(1, base).panNumber, undefined);
+    assert.equal(validateQuickApplyStepFields(1, base).dateOfBirth, undefined);
+    assert.equal(validateQuickApplyStepFields(1, base).residentialAddress, undefined);
+    assert.match(validateQuickApplyStep(1, form({ ...base, loanAmount: 5000 })), /10,000/);
+    assert.match(validateQuickApplyStep(1, form({ ...base, loanPurpose: "" })), /funds for/i);
   });
 
   it("trims and lowercases email and shows inline email errors", () => {
     assert.equal(normalizeEmailInput("  Rahul@Gmail.com  "), "rahul@gmail.com");
-    const errors = validateQuickApplyStepFields(1, form({ email: "not-an-email", fullName: "Rahul Sharma", mobile: "9876512345", dateOfBirth: "1995-06-15", pinCode: "201301" }));
+    const errors = validateQuickApplyStepFields(1, form({ email: "not-an-email", fullName: "Rahul Sharma", mobile: "9876512345", loanAmount: 50_000, loanPurpose: "Personal expenses" }));
     assert.match(errors.email || "", /valid email/i);
   });
 
@@ -49,8 +52,8 @@ describe("quick apply identity and OTP order", () => {
         fullName: "Rahul Sharma",
         email: "rahul@gmail.com",
         mobile: "12345",
-        dateOfBirth: "1995-06-15",
-        pinCode: "201301",
+        loanAmount: 50_000,
+        loanPurpose: "Personal expenses",
       }),
     );
     assert.match(errors.mobile || "", /10-digit/);
@@ -58,36 +61,38 @@ describe("quick apply identity and OTP order", () => {
 });
 
 describe("quick apply amount and purpose", () => {
-  it("requires amount within 10k–10L and rejects malformed values", () => {
-    assert.match(validateQuickApplyStep(3, form({ loanAmount: 0, loanPurpose: "Education expense" })), /valid loan amount/i);
-    assert.match(validateQuickApplyStep(3, form({ loanAmount: 5000, loanPurpose: "Education expense" })), /10,000/);
-    assert.equal(validateQuickApplyStep(3, form({ loanAmount: MIN_LOAN_AMOUNT, loanPurpose: "Education expense" })), "");
-    assert.equal(validateQuickApplyStep(3, form({ loanAmount: MAX_LOAN_AMOUNT, loanPurpose: "Education expense" })), "");
-    assert.match(validateQuickApplyStep(3, form({ loanAmount: MAX_LOAN_AMOUNT + 1, loanPurpose: "Education expense" })), /Maximum/);
+  it("requires amount within 10k–10L on step 1", () => {
+    const identity = { fullName: "Rahul Sharma", email: "rahul@gmail.com", mobile: "9876512345" };
+    assert.match(validateQuickApplyStep(1, form({ ...identity, loanAmount: 0, loanPurpose: "Education expense" })), /valid loan amount/i);
+    assert.match(validateQuickApplyStep(1, form({ ...identity, loanAmount: 5000, loanPurpose: "Education expense" })), /10,000/);
+    assert.equal(validateQuickApplyStep(1, form({ ...identity, loanAmount: MIN_LOAN_AMOUNT, loanPurpose: "Education expense" })), "");
+    assert.equal(validateQuickApplyStep(1, form({ ...identity, loanAmount: MAX_LOAN_AMOUNT, loanPurpose: "Education expense" })), "");
+    assert.match(validateQuickApplyStep(1, form({ ...identity, loanAmount: MAX_LOAN_AMOUNT + 1, loanPurpose: "Education expense" })), /Maximum/);
   });
 
   it("requires a purpose and maps business loan type", () => {
-    assert.match(validateQuickApplyStep(3, form({ loanAmount: 50_000 })), /funds for/i);
-    assert.equal(validateQuickApplyStep(3, form({ loanAmount: 50_000, loanPurpose: "Education expense" })), "");
+    assert.match(validateQuickApplyStep(1, form({ fullName: "Rahul Sharma", email: "rahul@gmail.com", mobile: "9876512345", loanAmount: 50_000 })), /funds for/i);
+    assert.equal(validateQuickApplyStep(1, form({ fullName: "Rahul Sharma", email: "rahul@gmail.com", mobile: "9876512345", loanAmount: 50_000, loanPurpose: "Education expense" })), "");
     assert.equal(loanTypeFromPurpose("Business working capital"), "BUSINESS");
     assert.equal(loanTypeFromPurpose("Personal expenses"), "PERSONAL");
   });
 });
 
 describe("quick apply work, credit, PAN and consent", () => {
-  it("requires conditional salaried fields and credit commitments on step 4", () => {
+  it("requires DOB 21–60 plus conditional salaried fields and credit commitments on step 4", () => {
     const employed = form({
       employmentUi: "SALARIED",
       monthlyIncome: "45000",
       employerOrBusinessName: "Acme Private Limited",
       durationMonths: "24",
     });
-    assert.match(validateQuickApplyStep(4, employed), /salary|EMI|loans|outstanding|overdue|CIBIL/i);
+    assert.match(validateQuickApplyStep(4, employed), /date of birth|21 and 60|salary|EMI|loans|outstanding|overdue|CIBIL/i);
     assert.equal(
       validateQuickApplyStep(
         4,
         form({
           ...employed,
+          dateOfBirth: "1995-06-15",
           salaryCreditMode: "bank",
           salaryDate: "1",
           existingEmi: "0",
@@ -139,15 +144,16 @@ describe("quick apply work, credit, PAN and consent", () => {
 });
 
 describe("funnel routing after OTP", () => {
-  it("skips loan-need when amount and purpose are already valid", () => {
-    const prefilled = form({ loanAmount: 50_000, loanPurpose: "Personal expenses" });
-    assert.equal(getNextQuickApplyStep(2, prefilled), 4);
-    assert.equal(getPreviousQuickApplyStep(4, prefilled), 2);
+  it("sends OTP-verified users to Credit Profile Booster payment, not PAN or work details", () => {
+    assert.equal(getNextQuickApplyStep(2), 3);
+    assert.equal(getNextQuickApplyStep(3, false), 3);
+    assert.equal(getNextQuickApplyStep(3, true), 4);
+    assert.equal(getPreviousQuickApplyStep(4), 3);
+    assert.equal(getPreviousQuickApplyStep(3), 2);
   });
 
-  it("keeps loan-need when purpose is missing", () => {
-    const incomplete = form({ loanAmount: 50_000, loanPurpose: "" });
-    assert.equal(getNextQuickApplyStep(2, incomplete), 3);
+  it("does not skip payment when purpose is already filled", () => {
+    assert.equal(getNextQuickApplyStep(2), 3);
   });
 });
 
@@ -157,8 +163,8 @@ describe("no SMS OTP contract for quick apply validation helpers", () => {
       fullName: "Rahul Sharma",
       email: "rahul@gmail.com",
       mobile: "9876512345",
-      dateOfBirth: "1995-06-15",
-      pinCode: "201301",
+      loanAmount: 50_000,
+      loanPurpose: "Personal expenses",
     });
     assert.equal(validateQuickApplyStep(1, payload), "");
     assert.equal("smsOtp" in payload, false);

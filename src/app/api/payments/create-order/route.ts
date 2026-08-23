@@ -7,6 +7,7 @@ import { assertSameOrigin, rateLimit } from "@/lib/security/request";
 import { USP_PRODUCT_SLUG, USP_SALE_PRICE } from "@/lib/constants";
 import { getPublicAppUrl, getServerEnv, missingPaymentCredentialKeys } from "@/lib/env";
 import { verifyAccessToken } from "@/lib/security/tokens";
+import { isCheckoutEligibleAssessmentStatus } from "@/lib/domain/early-checkout";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,7 +52,12 @@ export async function POST(request: NextRequest) {
       prisma.product.findUnique({ where: { slug: parsed.data.productSlug } }),
       prisma.lead.findUnique({ where: { id: token.leadId }, select: { fullName: true, mobile: true } }),
     ]);
-    if (!assessment || assessment.leadId !== token.leadId || assessment.status !== "COMPLETED" || !product?.active) {
+    if (
+      !assessment ||
+      assessment.leadId !== token.leadId ||
+      !isCheckoutEligibleAssessmentStatus(assessment.status) ||
+      !product?.active
+    ) {
       return NextResponse.json({ error: "Assessment or product is unavailable." }, { status: 404 });
     }
 
@@ -106,7 +112,7 @@ export async function POST(request: NextRequest) {
 
     if (existingPending?.providerOrderId && env.PAYMENT_PROVIDER === "cashfree") {
       try {
-        const { fetchCashfreeOrder } = await import("@/lib/payments/providers/cashfree");
+        const { fetchCashfreeOrder, resolveCashfreeEnv } = await import("@/lib/payments/providers/cashfree");
         const { classifyCashfreeOrderStatus, isReusableCashfreeOrderStatus, isTerminalUnpaidCashfreeOrderStatus } = await import(
           "@/lib/payments/cashfree-browser"
         );
@@ -133,7 +139,7 @@ export async function POST(request: NextRequest) {
             checkout: {
               mode: "cashfree_checkout" as const,
               paymentSessionId: snapshot.payment_session_id,
-              env: env.CASHFREE_ENV === "production" ? ("production" as const) : ("sandbox" as const),
+              env: resolveCashfreeEnv(env),
             },
           });
         }

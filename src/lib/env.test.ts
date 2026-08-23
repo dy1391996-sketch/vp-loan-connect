@@ -171,6 +171,24 @@ test("critical production gate rejects placeholder Cashfree credentials", () => 
   );
 });
 
+test("critical production gate rejects Cashfree TEST/sandbox keys", () => {
+  assert.throws(
+    () =>
+      validateCriticalProductionEnvironment({
+        ...validEnvironment,
+        PAYMENT_PROVIDER: "cashfree",
+        CASHFREE_APP_ID: "TEST10241000abcd",
+        CASHFREE_SECRET_KEY: "sandbox-secret",
+        CASHFREE_ENV: "production",
+        OTP_PROVIDER: "custom",
+        OTP_API_KEY: "otp-secret",
+        NEXT_PUBLIC_MSG91_WIDGET_ID: "widget-id",
+        NEXT_PUBLIC_MSG91_WIDGET_TOKEN: "widget-token",
+      }),
+    /sandbox\/test key/i,
+  );
+});
+
 test("production environment rejects incomplete legal identity", () => {
   assert.throws(() => validateProductionEnvironment({ ...validEnvironment, BUSINESS_ADDRESS: "" }), /BUSINESS_ADDRESS/);
 });

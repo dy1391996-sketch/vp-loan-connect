@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { CheckCircle2, Download, FileText, LockKeyhole } from "lucide-react";
 import { prisma } from "@/lib/db";
-import { verifyAccessToken } from "@/lib/security/tokens";
+import { continueQuickApplyHref } from "@/lib/domain/early-checkout";
+import { signAccessToken, verifyAccessToken } from "@/lib/security/tokens";
 import { PublicStatePanel } from "@/components/ui/public-state-panel";
 import { ReportActions } from "@/components/report-actions";
 import { ConnectOptionsPanel } from "@/components/connect-options-panel";
@@ -27,14 +28,19 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
     include: { lead: true, assessment: { include: { score: true } }, order: { include: { product: true } } },
   });
   if (!report || report.order.status !== "PAID" || access.leadId !== report.leadId || access.orderId !== report.orderId) return <InvalidReport />;
-  if (report.status === "QUEUED") await prisma.report.update({ where: { id }, data: { status: "READY", generatedAt: new Date() } });
+  if (report.status === "QUEUED" && report.assessment.score) await prisma.report.update({ where: { id }, data: { status: "READY", generatedAt: new Date() } });
 
   const score = report.assessment.score;
+  const pendingProfile = !score;
+  const continueToken = await signAccessToken("result_access", report.assessmentId, { leadId: report.leadId }, "7d");
+  const continueHref = continueQuickApplyHref(report.assessmentId, continueToken);
   const suitableCategories = Array.isArray(score?.suitableCategories)
     ? score.suitableCategories.filter((item): item is string => typeof item === "string")
     : [];
 
-  const { matched, more } = await getPaidConnectBundle({
+  const { matched, more } = pendingProfile
+    ? { matched: [], more: [] }
+    : await getPaidConnectBundle({
     loanAmount: Number(report.assessment.loanAmount ?? 0),
     loanType: report.assessment.loanType ?? "PERSONAL",
     employmentType: report.assessment.employmentType ?? "OTHER",
@@ -60,20 +66,46 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
             </div>
             <p className="mt-7 text-xs font-extrabold uppercase tracking-[0.2em] text-brand-700">Secure profile report</p>
             <h1 className="font-display mt-3 text-3xl font-black tracking-[-0.045em] text-navy-950 sm:text-5xl">
-              Your loan-connect options are ready.
+              {pendingProfile ? "Booster unlocked — finish your profile" : "Your loan-connect options are ready."}
             </h1>
             <p className="mt-3 text-sm leading-7 text-slate-600">{report.order.product.name} · Reference: {report.reportReference}</p>
-            <a
-              href={`/api/reports/${id}/download?token=${encodeURIComponent(token)}`}
-              className="mt-7 flex min-h-15 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 px-6 font-extrabold text-white shadow-[0_12px_32px_rgba(10,146,101,0.27)] transition hover:-translate-y-0.5 hover:bg-brand-700"
-            >
-              <Download size={18} />Download detailed action plan
-            </a>
-            <ReportActions reportId={id} token={token} />
+            {pendingProfile ? (
+              <a
+                href={continueHref}
+                className="mt-7 flex min-h-15 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 px-6 font-extrabold text-white shadow-[0_12px_32px_rgba(10,146,101,0.27)] transition hover:-translate-y-0.5 hover:bg-brand-700"
+              >
+                Continue detailed application
+              </a>
+            ) : (
+              <>
+                <a
+                  href={`/api/reports/${id}/download?token=${encodeURIComponent(token)}`}
+                  className="mt-7 flex min-h-15 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 px-6 font-extrabold text-white shadow-[0_12px_32px_rgba(10,146,101,0.27)] transition hover:-translate-y-0.5 hover:bg-brand-700"
+                >
+                  <Download size={18} />Download detailed action plan
+                </a>
+                <ReportActions reportId={id} token={token} />
+              </>
+            )}
           </div>
 
           <div className="mt-6">
-            <ConnectOptionsPanel matched={matched} more={more} />
+            {pendingProfile ? (
+              <div className="rounded-[2rem] border border-line bg-white p-7 shadow-soft">
+                <h2 className="text-2xl font-extrabold text-navy-950">Complete your profile to unlock matches</h2>
+                <p className="mt-3 text-sm leading-7 text-slate-600">
+                  Payment is verified. Finish PAN, address and work details so we can generate your result and matched official lender links.
+                </p>
+                <a
+                  href={continueHref}
+                  className="mt-6 inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand-600 px-6 font-extrabold text-white"
+                >
+                  Continue detailed application
+                </a>
+              </div>
+            ) : (
+              <ConnectOptionsPanel matched={matched} more={more} />
+            )}
           </div>
         </div>
       </div>

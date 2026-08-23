@@ -172,4 +172,55 @@ describe("assessmentSchema server validation", () => {
     assert.equal(assessmentSchema.safeParse(validPayload({ residentialAddress: "abc" })).success, false);
     assert.equal(assessmentSchema.safeParse(validPayload({ dateOfBirth: "2099-01-01" })).success, false);
   });
+
+  it("rejects a full assessment without OTP unless a draft result token is supplied", () => {
+    const missing = assessmentSchema.safeParse(validPayload({ otpVerificationToken: undefined }));
+    assert.equal(missing.success, false);
+    const withDraftAccess = assessmentSchema.safeParse(
+      validPayload({
+        otpVerificationToken: undefined,
+        draftAssessmentId: "11111111-1111-4111-8111-111111111111",
+        resultToken: "r".repeat(40),
+      }),
+    );
+    assert.equal(withDraftAccess.success, true);
+  });
+
+  it("still requires PAN, address and work fields to complete after payment", () => {
+    const withoutPan = assessmentSchema.safeParse(
+      validPayload({
+        draftAssessmentId: "11111111-1111-4111-8111-111111111111",
+        resultToken: "r".repeat(40),
+        otpVerificationToken: undefined,
+        panNumber: "",
+      }),
+    );
+    assert.equal(withoutPan.success, false);
+  });
+});
+
+describe("draftAssessmentSchema", () => {
+  it("accepts OTP-verified loan-need identity without PAN, address or work details", async () => {
+    const { draftAssessmentSchema } = await import("./assessment-schema");
+    const parsed = draftAssessmentSchema.safeParse({
+      otpVerificationToken: "x".repeat(40),
+      fullName: "Rahul Sharma",
+      mobile: "9876512345",
+      email: "rahul.sharma@gmail.com",
+      loanAmount: 50000,
+      loanPurpose: "Personal expenses",
+      loanType: "PERSONAL",
+    });
+    assert.equal(parsed.success, true);
+    assert.equal(draftAssessmentSchema.safeParse({ ...parsed.data, panNumber: "ABCPT1234F" }).success, true);
+    const missingOtp = draftAssessmentSchema.safeParse({
+      fullName: "Rahul Sharma",
+      mobile: "9876512345",
+      email: "rahul.sharma@gmail.com",
+      loanAmount: 50000,
+      loanPurpose: "Personal expenses",
+      loanType: "PERSONAL",
+    });
+    assert.equal(missingOtp.success, false);
+  });
 });

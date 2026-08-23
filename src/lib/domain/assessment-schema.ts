@@ -6,8 +6,7 @@ import { incomeRangeMidpoints } from "./scoring";
 
 const yesNo = z.boolean();
 
-const baseAssessmentSchema = z.object({
-  otpVerificationToken: z.string({ required_error: "Complete email OTP verification first." }).min(20, "Complete email OTP verification first."),
+const identityCore = {
   fullName: z
     .string()
     .trim()
@@ -25,6 +24,24 @@ const baseAssessmentSchema = z.object({
     .max(254)
     .transform(normalizeEmail)
     .refine((value) => !isDisposableEmailDomain(value), "Unable to validate this email domain. Use a permanent email address."),
+};
+
+export const draftAssessmentSchema = z.object({
+  otpVerificationToken: z.string({ required_error: "Complete email OTP verification first." }).min(20, "Complete email OTP verification first."),
+  ...identityCore,
+  loanAmount: z.coerce.number().min(10000, "Minimum loan amount is ₹10,000.").max(1000000, "Maximum loan amount is ₹10,00,000."),
+  loanPurpose: z.string().trim().min(2).max(120),
+  loanType: z.enum(["PERSONAL", "BUSINESS", "MSME", "MUDRA_GUIDANCE", "GOLD", "PROPERTY", "CREDIT_HEALTH"]),
+  source: z.string().trim().max(120).default("direct"),
+  referralCode: z.string().trim().max(20).optional().or(z.literal("")),
+  utm: z.record(z.string().max(200)).optional(),
+});
+
+const baseAssessmentSchema = z.object({
+  otpVerificationToken: z.string().min(20, "Complete email OTP verification first.").optional(),
+  draftAssessmentId: z.string().uuid().optional(),
+  resultToken: z.string().min(20).optional(),
+  ...identityCore,
   dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a valid date of birth."),
   state: z.string().trim().min(2, "Enter your state.").max(80),
   city: z.string().trim().min(2, "Enter your city.").max(80),
@@ -93,7 +110,28 @@ const baseAssessmentSchema = z.object({
   utm: z.record(z.string().max(200)).optional(),
 });
 
+function hasAccessSecret(value: string | undefined): boolean {
+  return Boolean(value && value.length >= 20);
+}
+
 export const assessmentSchema = baseAssessmentSchema.superRefine((data, ctx) => {
+  const hasOtp = hasAccessSecret(data.otpVerificationToken);
+  const hasResult = hasAccessSecret(data.resultToken);
+  if (!data.draftAssessmentId && !hasOtp) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["otpVerificationToken"],
+      message: "Complete email OTP verification first.",
+    });
+  }
+  if (data.draftAssessmentId && !hasOtp && !hasResult) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["resultToken"],
+      message: "Secure assessment access required to finish this profile.",
+    });
+  }
+
   if (data.panVerificationStatus === "verified_authorised_provider" && data.panFormatValidated !== true) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -132,7 +170,26 @@ export const assessmentSchema = baseAssessmentSchema.superRefine((data, ctx) => 
 });
 
 export type AssessmentPayload = z.infer<typeof assessmentSchema>;
+export type DraftAssessmentPayload = z.infer<typeof draftAssessmentSchema>;
 
 export function formatAssessmentFieldErrors(error: z.ZodError): Record<string, string[]> {
   return error.flatten().fieldErrors as Record<string, string[]>;
 }
+
+export const COMPLETE_ASSESSMENT_EXCLUDED_ANSWER_KEYS = [
+  "otpVerificationToken",
+  "resultToken",
+  "draftAssessmentId",
+  "serviceConsent",
+  "marketingConsent",
+  "fullName",
+  "mobile",
+  "state",
+  "city",
+  "loanAmount",
+  "loanPurpose",
+  "loanType",
+  "source",
+  "referralCode",
+  "utm",
+] as const;
