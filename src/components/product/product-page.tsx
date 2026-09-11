@@ -7,7 +7,7 @@ type Props = {
   title: string;
   heading: string;
   description: string;
-  regular: string;
+  regular?: string;
   price: string;
   total: string;
   badge: string;
@@ -48,8 +48,8 @@ export function ProductPage({ kind, title, heading, description, regular, price,
                     Launch offer
                   </span>
                 </div>
-                <p className="mt-7 text-sm text-slate-500 line-through">Regular {regular}</p>
-                <p className="font-display mt-1 text-3xl font-black tracking-[-0.045em] sm:text-4xl">{price}</p>
+                {regular ? <p className="mt-7 text-sm text-slate-500 line-through">Regular {regular}</p> : null}
+                <p className={`font-display text-3xl font-black tracking-[-0.045em] sm:text-4xl ${regular ? "mt-1" : "mt-7"}`}>{price}</p>
                 <p className="mt-2 text-sm font-bold text-brand-700">{total}</p>
                 <div className="mt-7 flex gap-3 rounded-2xl bg-surface p-4 text-xs leading-6 text-slate-600">
                   <LockKeyhole className="shrink-0 text-brand-700" size={17} />
@@ -66,7 +66,7 @@ export function ProductPage({ kind, title, heading, description, regular, price,
           <div>
             <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-brand-700">What you receive</p>
             <h2 className="font-display mt-4 text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">
-              Personalized, practical और downloadable
+              Personalized, practical and downloadable
             </h2>
             <p className="mt-4 text-sm leading-7 text-slate-600">The report is based on your assessment inputs. It is not a generic approval certificate.</p>
           </div>
@@ -104,7 +104,7 @@ export function ProductPage({ kind, title, heading, description, regular, price,
             <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-500/20 blur-3xl" />
             <MessageCircle className="relative mx-auto text-brand-500" size={30} />
             <h2 className="font-display relative mt-5 text-3xl font-extrabold tracking-[-0.045em] sm:text-4xl">
-              पहले free profile preview देखें
+              View your free profile preview first
             </h2>
             <p className="relative mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-300">
               Choose an optional paid report only after your free result. There is no loan approval or score-increase guarantee.

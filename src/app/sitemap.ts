@@ -8,7 +8,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/personal-loan",
     "/assessment",
     "/credit-health",
-    "/loan-readiness",
     "/refer",
     "/privacy",
     "/terms",

@@ -49,13 +49,13 @@ const trustItems = [
 ] as const;
 
 const categories = [
-  ["Personal Loan", "Income aur EMI ke hisaab se personal-loan readiness.", Banknote, "/personal-loan"],
-  ["Business Loan", "Vintage, cash flow aur document readiness review.", BriefcaseBusiness, "/assessment?loanType=BUSINESS"],
-  ["MSME Loan", "Growing businesses ke liye relevant profile factors.", Building2, "/assessment?loanType=BUSINESS"],
-  ["Gold Loan", "Gold available ho to secured-loan readiness explore karo.", Gem, "/assessment?loanType=GOLD"],
-  ["Loan Against Property", "Property-backed route ke liye profile readiness.", Home, "/assessment?loanType=PROPERTY"],
-  ["Education Loan", "Income, co-applicant aur education docs prepare karo.", GraduationCap, "/assessment?loanType=PERSONAL&purpose=Education%20expense"],
-  ["Working Capital", "Business working-capital readiness samjho.", WalletCards, "/assessment?loanType=BUSINESS&purpose=Business%20working%20capital"],
+  ["Personal Loan", "Review personal-loan readiness based on income and existing EMIs.", Banknote, "/personal-loan"],
+  ["Business Loan", "Review business vintage, cash flow and document readiness.", BriefcaseBusiness, "/assessment?loanType=BUSINESS"],
+  ["MSME Loan", "Understand the profile factors relevant to growing businesses.", Building2, "/assessment?loanType=BUSINESS"],
+  ["Gold Loan", "Explore secured-loan readiness when eligible gold is available.", Gem, "/assessment?loanType=GOLD"],
+  ["Loan Against Property", "Review readiness for a property-backed loan route.", Home, "/assessment?loanType=PROPERTY"],
+  ["Education Loan", "Prepare income, co-applicant and education documents.", GraduationCap, "/assessment?loanType=PERSONAL&purpose=Education%20expense"],
+  ["Working Capital", "Understand business working-capital readiness.", WalletCards, "/assessment?loanType=BUSINESS&purpose=Business%20working%20capital"],
 ] as const;
 
 const rejectionReasons = [

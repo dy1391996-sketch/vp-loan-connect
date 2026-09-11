@@ -75,7 +75,7 @@ export default async function ResultPage({ params, searchParams }: { params: Pro
               <div className="p-7 sm:p-10">
                 <span className="inline-flex items-center gap-2 rounded-full bg-brand-100 px-4 py-2 text-xs font-extrabold text-brand-700"><Sparkles size={15} />Recommended next step</span>
                 <h2 className="mt-5 text-balance text-3xl font-black tracking-[-0.045em] text-navy-950 sm:text-4xl">Unlock your ₹99 Credit Profile Booster</h2>
-                <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">Samjhein apni credit profile, loan readiness analyse karein, aur apne profile ke hisaab se relevant bank / NBFC / fintech options pehle dekhein. Yeh score instantly change nahi karta aur approval guarantee nahi hai.</p>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">Understand your credit profile, review loan readiness and see relevant bank, NBFC and fintech options for your profile. This does not instantly change a credit score or guarantee approval.</p>
                 <div className="mt-7 grid gap-3 sm:grid-cols-2">
                   {["Credit profile explained simply", "Loan-readiness analysis", "Best-fit lenders shown first", "Official apply links — no random sites"].map((item) => <p key={item} className="flex items-start gap-2 text-sm font-semibold text-slate-700"><Check className="mt-0.5 shrink-0 text-brand-600" size={17} />{item}</p>)}
                 </div>

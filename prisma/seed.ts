@@ -66,9 +66,10 @@ async function main() {
     where: { slug: "credit-health-action-plan" },
     update: {
       name: "Credit Profile Booster",
-      regularPrice: 299,
+      regularPrice: 99,
       salePrice: 99,
       gstRate: 18,
+      active: true,
       deliverables: [
         "Credit profile explanation in simple language",
         "Loan-readiness analysis for your profile",
@@ -83,9 +84,10 @@ async function main() {
       slug: "credit-health-action-plan",
       name: "Credit Profile Booster",
       type: ProductType.CREDIT_HEALTH_ACTION_PLAN,
-      regularPrice: 299,
+      regularPrice: 99,
       salePrice: 99,
       gstRate: 18,
+      active: true,
       deliverables: [
         "Credit profile explanation in simple language",
         "Loan-readiness analysis for your profile",
@@ -100,7 +102,7 @@ async function main() {
 
   await prisma.product.upsert({
     where: { slug: "complete-loan-readiness-report" },
-    update: {},
+    update: { active: false },
     create: {
       slug: "complete-loan-readiness-report",
       name: "Complete Loan Readiness Report",
@@ -108,6 +110,7 @@ async function main() {
       regularPrice: 599,
       salePrice: 299,
       gstRate: 18,
+      active: false,
       deliverables: [
         "Financial-profile and monthly obligation analysis",
         "Internal loan-readiness score",

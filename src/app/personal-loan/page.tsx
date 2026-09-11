@@ -83,7 +83,7 @@ export default function PersonalLoanPage() {
               <span className="mt-2 block text-brand-500">before you apply</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300 sm:text-xl">
-              Amount चुनो, income और CIBIL range बताओ — free indicative eligibility, bina document upload ya bank password.
+              Choose an amount and provide your income and CIBIL range to view an indicative result without uploading documents or sharing a bank password.
             </p>
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
               <ButtonLink href="/assessment?loanType=PERSONAL&purpose=Other%20personal%20need" size="lg">
