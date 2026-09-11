@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 const schema = z.object({
   assessmentId: z.string().uuid(),
-  productSlug: z.enum(["credit-health-action-plan", "complete-loan-readiness-report"]),
+  productSlug: z.literal("credit-health-action-plan"),
   resultToken: z.string().min(20),
   referralCode: z.string().max(20).optional(),
 });

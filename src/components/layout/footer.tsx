@@ -57,7 +57,6 @@ export function Footer() {
               ["Personal loan", "/personal-loan"],
               ["Free assessment", "/assessment"],
               ["Credit Profile Booster (₹99)", "/credit-health"],
-              ["Full readiness report (₹299)", "/loan-readiness"],
               ["Refer & Earn", "/refer"],
             ].map(([label, href]) => (
               <Link key={href} href={href} className="inline-flex min-h-11 items-center text-sm text-slate-300 transition hover:text-white">

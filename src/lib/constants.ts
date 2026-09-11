@@ -14,7 +14,6 @@ export const PUBLIC_CONTACT_ROUTES = ["Quick Apply", "Instagram Direct", "Offici
 export const USP_PRODUCT_SLUG = "credit-health-action-plan";
 export const USP_PRODUCT_NAME = "Credit Profile Booster";
 export const USP_SALE_PRICE = 99;
-export const USP_REGULAR_PRICE = 299;
 export const USP_PRICE_LABEL = "₹99";
 export const USP_TOTAL_WITH_GST_LABEL = "₹116.82";
 

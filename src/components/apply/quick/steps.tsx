@@ -150,7 +150,12 @@ export function QuickApplyStepBody({ form, patch, step, errors, otp }: Props) {
               autoComplete="name"
             />
           </Field>
-          <Field label="Mobile number" hint="Collected as profile information only. We do not send SMS OTP." required error={errors.mobile}>
+          <Field
+            label="Mobile number"
+            hint="Collected privately because Cashfree requires it for payment processing. We do not send SMS OTP or display this number publicly."
+            required
+            error={errors.mobile}
+          >
             <Input
               inputMode="numeric"
               maxLength={10}

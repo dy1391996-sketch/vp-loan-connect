@@ -13,9 +13,8 @@ export default function CreditHealthPage() {
     <ProductPage
       kind="credit"
       title={`VP ${USP_PRODUCT_NAME}`}
-      heading="₹99 mein samjhein apni Credit Profile aur profile-matched options"
-      description="Credit profile explanation, loan-readiness analysis, aur aapke profile ke hisaab se banks, NBFCs aur fintechs ke relevant options pehle — random loan websites nahi."
-      regular="₹299 + GST"
+      heading="Understand your credit profile and see profile-matched options for ₹99"
+      description="Get a clear credit-profile explanation, loan-readiness analysis and relevant bank, NBFC and fintech options for your profile—without being sent to random loan websites."
       price={`Launch price ${USP_PRICE_LABEL} + 18% GST`}
       total={`${USP_TOTAL_WITH_GST_LABEL} total`}
       badge="Credit Profile Booster • Profile-matched options"
