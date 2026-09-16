@@ -211,3 +211,18 @@ Do not run database migrations concurrently from multiple Vercel builds. Use one
 - Legal review of all policies, consent text, refund process and lender-referral workflow
 - Referral milestone bonus amounts (seeded as zero until approved)
 - Any future lender must pass verified, contract-active, logo-permitted and product-approved flags before publication
+
+## Personal Video Agent (isolated)
+
+The loan product is unchanged. A local Video Agent lives in `video-agent/` and
+reuses the Maya Video #1 pipeline in `maya-video-pipeline/` (approved start
+frame, dry-run generator, identity lock). It is not part of the public site.
+
+```bash
+cd video-agent
+./scripts/setup.sh
+./scripts/run.sh
+```
+
+Open [http://127.0.0.1:7860](http://127.0.0.1:7860). See `video-agent/README.md`.
+
