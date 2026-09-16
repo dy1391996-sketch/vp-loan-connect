@@ -884,8 +884,10 @@ def main() -> int:
     settings = selected_settings(provider)
     auth = provider["auth"] if provider else "NO PROVIDER KEYS FOUND"
     balance = provider["balance"] if provider else "NO CONFIGURED VIDEO PROVIDER"
-    image_to_video = "YES" if provider and provider.get("image_to_video") else "NO"
-    portrait = "YES" if provider and provider.get("portrait_9_16") else "NO"
+    image_to_video = (
+        "YES" if provider and provider.get("image_to_video") else "NO (no usable provider)"
+    )
+    portrait = "YES (requested)"
 
     ready = bool(
         prompt_ready
