@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Video Agent</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <p class="kicker">Personal · local · free-first</p>
+      <h1>Video Agent</h1>
+      <p class="lede">
+        Text or a reference image in, 9:16 MP4 out. Neural image-to-video needs a GPU;
+        this machine uses identity-preserving FFmpeg motion unless you later add one.
+      </p>
+    </header>
+
+    <section class="panel" id="hardware-panel">
+      <h2>This machine</h2>
+      <pre id="hardware">Detecting…</pre>
+    </section>
+
+    <section class="panel">
+      <h2>Generate</h2>
+      <form id="gen-form">
+        <label>
+          Prompt
+          <textarea id="prompt" name="prompt" rows="6" required placeholder="Describe the motion. For Maya, keep identity lock language."></textarea>
+        </label>
+
+        <label>
+          Reference image
+          <input id="image" name="image" type="file" accept="image/png,image/jpeg,image/webp" />
+        </label>
+
+        <fieldset>
+          <legend>Mode</legend>
+          <label class="inline"><input type="radio" name="mode" value="image_to_video" checked /> Image to Video</label>
+          <label class="inline"><input type="radio" name="mode" value="text_to_video" /> Text to Video</label>
+        </fieldset>
+
+        <label class="inline">
+          <input type="checkbox" id="maya" name="maya" />
+          Use Maya Video #1 approved start frame (do not replace identity)
+        </label>
+
+        <div class="row">
+          <label>
+            Aspect ratio
+            <select id="aspect_ratio" name="aspect_ratio">
+              <option value="9:16" selected>9:16 vertical</option>
+            </select>
+          </label>
+          <label>
+            Duration (seconds)
+            <input id="duration" name="duration" type="number" min="1" max="12" step="1" value="6" />
+          </label>
+          <label>
+            Quality
+            <select id="quality" name="quality">
+              <option value="480p">480p</option>
+              <option value="720p" selected>720p</option>
+              <option value="1080p">1080p</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="inline">
+          <input type="checkbox" id="dry_run" name="dry_run" />
+          Dry-run (validate + 1s encode, no heavy generation, no paid APIs)
+        </label>
+
+        <div class="actions">
+          <button type="submit" id="generate">Generate</button>
+          <button type="button" id="cancel" disabled>Cancel</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>Status</h2>
+      <p id="status-label" class="status">idle</p>
+      <div class="bar"><span id="bar"></span></div>
+      <p id="status-msg">Ready.</p>
+      <pre id="job-json" class="muted"></pre>
+    </section>
+
+    <section class="panel">
+      <h2>Output</h2>
+      <video id="preview" controls playsinline></video>
+      <p id="file-loc" class="muted">No file yet.</p>
+      <p><a id="download" class="hidden" href="#">Download MP4</a></p>
+    </section>
+
+    <section class="panel">
+      <h2>Maya Video #1</h2>
+      <pre id="maya-status">Loading…</pre>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

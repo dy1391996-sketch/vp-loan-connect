@@ -487,7 +487,8 @@ def print_preflight(
     print("MODEL:", settings["model"])
     print("AUTH:", auth)
     print("BALANCE/ACCESS:", balance)
-    print("IMAGE-TO-VIDEO:", image_to_video)
+    print("IMAGE-TO-VIDEO (paid neural):", image_to_video)
+    print("IMAGE-TO-VIDEO (local free):", "YES (ffmpeg identity-preserving motion)" if ffmpeg.startswith("ffmpeg version") else "NO")
     print("9:16:", portrait)
     print("DURATION:", settings["duration"])
     print("RESOLUTION:", settings["resolution"])
@@ -498,8 +499,13 @@ def print_preflight(
     print("READY TO GENERATE:", "YES" if ready else "NO")
     if ready and dry_run:
         print()
-        print("NEXT COMMAND:")
+        print("NEXT COMMAND (paid, optional):")
         print("python scripts/generate_video01.py --execute --confirm VIDEO01")
+    elif dry_run:
+        print()
+        print("LOCAL FREE PATH (no paid APIs):")
+        print("video-agent/scripts/run.sh")
+        print("PYTHONPATH=video-agent/src python3 -m video_agent generate --maya --dry-run")
 
 
 def save_error(payload: dict[str, Any]) -> None:
