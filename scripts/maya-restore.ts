@@ -1,3 +1,4 @@
+import "./load-local-env";
 import { readFileSync } from "node:fs";
 import { restoreBackup } from "../src/lib/maya/io";
 import { InMemoryMayaStore } from "../src/lib/maya/store";

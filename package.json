@@ -21,7 +21,9 @@
     "maya:backup": "tsx scripts/maya-backup.ts",
     "maya:restore": "tsx scripts/maya-restore.ts",
     "maya:seed": "tsx scripts/maya-import-seed.ts",
-    "maya:consolidate": "tsx scripts/maya-consolidate.ts"
+    "maya:consolidate": "tsx scripts/maya-consolidate.ts",
+    "maya:verify-persistence": "tsx scripts/maya-persistence-verify.ts",
+    "maya:http-persistence": "tsx scripts/maya-http-persistence.ts"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.3.0",

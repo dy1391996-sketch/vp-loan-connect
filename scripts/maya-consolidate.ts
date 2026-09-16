@@ -1,3 +1,4 @@
+import "./load-local-env";
 import { consolidateOwnerMemory } from "../src/lib/maya/consolidation";
 import { InMemoryMayaStore } from "../src/lib/maya/store";
 import { loadMayaSnapshotFromPrisma, saveMayaSnapshotToPrisma } from "../src/lib/maya/prisma-persist";

@@ -10,11 +10,17 @@ export async function POST(request: NextRequest) {
   const token = request.cookies.get(MAYA_COOKIE)?.value;
   const body = (await request.json()) as MayaSeedDocument;
   if (body.source !== "SYSTEM_SEED") return NextResponse.json({ error: "Seed source must be SYSTEM_SEED." }, { status: 400 });
-  const result = await withMayaRuntime(async ({ store }) => {
-    const auth = await ownerFromToken(store, token);
-    if (!auth) return null;
-    return importSeed(store, auth.owner.ownerId, body);
-  });
-  if (!result) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
-  return NextResponse.json(result);
+  try {
+    const result = await withMayaRuntime(async ({ store }) => {
+      const auth = await ownerFromToken(store, token);
+      if (!auth) return null;
+      return importSeed(store, auth.owner.ownerId, body);
+    });
+    if (!result) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+    return NextResponse.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.startsWith("SEED_")) return NextResponse.json({ error: "Seed import rejected." }, { status: 400 });
+    throw error;
+  }
 }

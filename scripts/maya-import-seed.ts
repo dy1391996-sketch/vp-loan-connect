@@ -1,3 +1,4 @@
+import "./load-local-env";
 import { readFileSync } from "node:fs";
 import { importSeed } from "../src/lib/maya/io";
 import { InMemoryMayaStore } from "../src/lib/maya/store";
@@ -9,6 +10,9 @@ import type { MayaSeedDocument } from "../src/lib/maya/types";
 const file = process.argv[2] ?? "data/maya-seed-template.json";
 const seed = JSON.parse(readFileSync(file, "utf8")) as MayaSeedDocument;
 if (seed.source !== "SYSTEM_SEED") throw new Error("Seed source must be SYSTEM_SEED");
+if ((seed.people?.length || seed.events?.length || seed.projects?.length || seed.ongoingMatters?.length || seed.preferences?.length) && (seed.ownerHistoryStatus ?? "not-provided") === "not-provided") {
+  throw new Error("Refusing to import historical seed while ownerHistoryStatus is not-provided.");
+}
 const store = new InMemoryMayaStore(await loadMayaSnapshotFromPrisma(prisma));
 const owner = await ensureSeededOwner(store);
 if (!owner) throw new Error("Set MAYA_OWNER_EMAIL and MAYA_OWNER_PASSWORD before importing seed.");

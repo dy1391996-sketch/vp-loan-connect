@@ -3,6 +3,49 @@ import { emptySnapshot, newId, nowIso, type MayaStore, type MayaStoreSnapshot } 
 import { normalizeFact } from "./classify";
 import { defaultRelationshipState } from "./state";
 
+const INVENTED_HISTORY = /\b(honeymoon|date night|we met in person|phone call|called me|hugged|kissed|touched|gifted|promised|physically|went to goa|went to paris|shared trip)\b/i;
+
+function historyStatus(seed: MayaSeedDocument) {
+  return seed.ownerHistoryStatus ?? "not-provided";
+}
+
+export function assertSeedImportSafe(seed: MayaSeedDocument) {
+  if (seed.source !== "SYSTEM_SEED") throw new Error("SEED_SOURCE_INVALID");
+  for (const fact of seed.relationshipContextFacts ?? []) {
+    if (INVENTED_HISTORY.test(fact.content)) throw new Error("SEED_REJECTS_UNVERIFIED_PERSONAL_HISTORY");
+  }
+  const historical = [
+    ...(seed.people ?? []).map((item) => ({ kind: "person", verified: item.verified, content: `${item.name} ${item.relevantContext ?? ""}` })),
+    ...(seed.projects ?? []).map((item) => ({ kind: "project", verified: item.verified, content: `${item.name} ${item.description ?? ""}` })),
+    ...(seed.events ?? []).map((item) => ({ kind: "event", verified: item.verified, content: item.content })),
+    ...(seed.ongoingMatters ?? []).map((item) => ({ kind: "ongoing", verified: item.verified, content: item.content })),
+    ...(seed.preferences ?? []).map((item) => ({ kind: "preference", verified: item.verified, content: item.content })),
+  ];
+  if (historical.length && historyStatus(seed) === "not-provided") {
+    throw new Error("SEED_HISTORY_NOT_PROVIDED");
+  }
+  for (const item of historical) {
+    if (item.verified !== true) {
+      throw new Error(`SEED_${item.kind.toUpperCase()}_REQUIRES_VERIFIED`);
+    }
+    if (INVENTED_HISTORY.test(item.content) && historyStatus(seed) !== "verified") {
+      throw new Error("SEED_REJECTS_UNVERIFIED_PERSONAL_HISTORY");
+    }
+  }
+}
+
+export function backupStore(store: MayaStore, options?: { includeOwnerSecrets?: boolean }) {
+  const snapshot = store.snapshot();
+  const owners = options?.includeOwnerSecrets
+    ? snapshot.owners
+    : snapshot.owners.map((row) => ({ ...row, passwordHash: "[redacted]" }));
+  return {
+    format: "maya-backup-v1",
+    createdAt: nowIso(),
+    snapshot: { ...snapshot, owners, sessions: [] },
+  };
+}
+
 export function exportOwnerArchive(store: MayaStore, ownerId: string) {
   const snap = store.snapshot();
   const scoped: MayaStoreSnapshot = {
@@ -57,15 +100,12 @@ export function restoreOwnerArchive(store: MayaStore, archive: { ownerId: string
   }
 }
 
-export function backupStore(store: MayaStore) {
-  return { format: "maya-backup-v1", createdAt: nowIso(), snapshot: store.snapshot() };
-}
-
 export function restoreBackup(store: MayaStore, backup: { snapshot: MayaStoreSnapshot }) {
   store.loadSnapshot(backup.snapshot ?? emptySnapshot());
 }
 
 export function importSeed(store: MayaStore, ownerId: string, seed: MayaSeedDocument) {
+  assertSeedImportSafe(seed);
   const at = nowIso();
   if (!store.getRelationshipState(ownerId)) store.saveRelationshipState(defaultRelationshipState(ownerId, at));
   const created: string[] = [];

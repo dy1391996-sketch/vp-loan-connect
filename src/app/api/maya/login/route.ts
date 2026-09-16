@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { assertSameOrigin, rateLimit, requestIpHash } from "@/lib/security/request";
-import { authenticateOwner, MAYA_COOKIE } from "@/lib/maya/owner";
+import { authenticateOwner, MAYA_COOKIE, ownerAuthConfigured } from "@/lib/maya/owner";
 import { withMayaRuntime } from "@/lib/maya/runtime";
 
 const schema = z.object({
@@ -15,6 +15,9 @@ export async function POST(request: NextRequest) {
     const ipHash = requestIpHash(request) ?? "unknown";
     if (!rateLimit(`maya-login:${ipHash}`, 8, 15 * 60 * 1000).allowed) {
       return NextResponse.json({ error: "Too many login attempts." }, { status: 429 });
+    }
+    if (!ownerAuthConfigured()) {
+      return NextResponse.json({ error: "Owner authentication is not configured." }, { status: 503 });
     }
     const parsed = schema.safeParse(await request.json());
     if (!parsed.success) return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });

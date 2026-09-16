@@ -8,41 +8,36 @@ import { defaultRelationshipState } from "./state";
 
 export const MAYA_COOKIE = "maya_owner";
 
-export async function ensureSeededOwner(store: MayaStore) {
+export function ownerAuthConfigured(env = getMayaEnv()) {
+  if (!env.MAYA_OWNER_EMAIL) return false;
+  if (env.MAYA_OWNER_PASSWORD_HASH.startsWith("$2")) return true;
+  return env.MAYA_OWNER_PASSWORD.length >= 12;
+}
+
+async function createOwnerFromEnv(store: MayaStore) {
   const env = getMayaEnv();
-  if (env.MAYA_OWNER_EMAIL && env.MAYA_OWNER_PASSWORD_HASH) {
-    const existing = store.getOwnerByEmail(env.MAYA_OWNER_EMAIL);
-    if (existing) return existing;
-    const owner = store.upsertOwner({
-      ownerId: env.MAYA_OWNER_ID || newId(),
-      email: env.MAYA_OWNER_EMAIL.toLowerCase(),
-      passwordHash: env.MAYA_OWNER_PASSWORD_HASH,
-      instagramAccountIds: env.MAYA_INSTAGRAM_OWNER_IDS.split(/[\s,]+/).filter(Boolean),
-      active: true,
-      createdAt: nowIso(),
-      updatedAt: nowIso(),
-    });
-    store.saveRelationshipState(defaultRelationshipState(owner.ownerId, nowIso()));
-    ensureMasterVisualAsset(store, owner.ownerId);
-    return owner;
-  }
-  if (env.MAYA_OWNER_EMAIL && env.MAYA_OWNER_PASSWORD) {
-    const existing = store.getOwnerByEmail(env.MAYA_OWNER_EMAIL);
-    if (existing) return existing;
-    const owner = store.upsertOwner({
-      ownerId: env.MAYA_OWNER_ID || newId(),
-      email: env.MAYA_OWNER_EMAIL.toLowerCase(),
-      passwordHash: await bcrypt.hash(env.MAYA_OWNER_PASSWORD, 12),
-      instagramAccountIds: env.MAYA_INSTAGRAM_OWNER_IDS.split(/[\s,]+/).filter(Boolean),
-      active: true,
-      createdAt: nowIso(),
-      updatedAt: nowIso(),
-    });
-    store.saveRelationshipState(defaultRelationshipState(owner.ownerId, nowIso()));
-    ensureMasterVisualAsset(store, owner.ownerId);
-    return owner;
-  }
-  return store.listOwners()[0];
+  if (!ownerAuthConfigured(env)) return undefined;
+  const existing = store.getOwnerByEmail(env.MAYA_OWNER_EMAIL);
+  if (existing) return existing;
+  const passwordHash = env.MAYA_OWNER_PASSWORD_HASH.startsWith("$2")
+    ? env.MAYA_OWNER_PASSWORD_HASH
+    : await bcrypt.hash(env.MAYA_OWNER_PASSWORD, 12);
+  const owner = store.upsertOwner({
+    ownerId: env.MAYA_OWNER_ID || newId(),
+    email: env.MAYA_OWNER_EMAIL.toLowerCase(),
+    passwordHash,
+    instagramAccountIds: env.MAYA_INSTAGRAM_OWNER_IDS.split(/[\s,]+/).filter(Boolean),
+    active: true,
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  });
+  store.saveRelationshipState(defaultRelationshipState(owner.ownerId, nowIso()));
+  ensureMasterVisualAsset(store, owner.ownerId);
+  return owner;
+}
+
+export async function ensureSeededOwner(store: MayaStore) {
+  return (await createOwnerFromEnv(store)) ?? store.listOwners()[0];
 }
 
 export async function authenticateOwner(store: MayaStore, email: string, password: string) {
