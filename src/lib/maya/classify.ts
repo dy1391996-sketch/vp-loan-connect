@@ -67,6 +67,13 @@ const OPEN_LOOP_HINTS = [
   /kal kar/,
 ];
 
+export function isQuestionFollowUp(text: string) {
+  const trimmed = text.trim();
+  if (trimmed.length > 120) return false;
+  if (!/(\?|क्या|kya |kaisa |kab |status kya)/i.test(trimmed)) return false;
+  return !/\b(i |i'm |i will |maine |mera |meri |मैं|मेरा|मेरी|started|शुरू)/i.test(trimmed);
+}
+
 export function isTransientSmallTalk(text: string) {
   const trimmed = text.trim();
   if (trimmed.length < 8) return true;
@@ -116,7 +123,7 @@ export function classifyProvenance(text: string, conversationRoleplay: boolean):
 
 export function shouldPersist(text: string, provenance: MayaProvenance, importance: number) {
   if (provenance === "ROLEPLAY" || provenance === "FICTION") return false;
-  if (isTransientSmallTalk(text)) return false;
+  if (isTransientSmallTalk(text) || isQuestionFollowUp(text)) return false;
   return importance >= 0.45;
 }
 
@@ -160,8 +167,8 @@ export function extractLikelyPersonNames(text: string) {
 }
 
 export function extractProjectName(text: string) {
-  const match = text.match(/\b(?:project|business|company)\s+([A-Za-z0-9\u0900-\u097F][A-Za-z0-9\u0900-\u097F\s]{1,40})/i);
-  if (match?.[1]) return match[1].trim();
+  const labeled = text.match(/\b(?:project|business|company)\s+(?:named\s+|called\s+)?([A-Z][A-Za-z0-9]{1,30}(?:\s+[A-Z][A-Za-z0-9]{1,30}){0,3})\b/);
+  if (labeled?.[1] && !/^(I|The|A|An|This|That|My)$/.test(labeled[1])) return labeled[1].trim();
   const started = text.match(/(?:नया business|new business)\s+([A-Za-z0-9\u0900-\u097F][A-Za-z0-9\u0900-\u097F\s]{1,40})/i);
   return started?.[1]?.trim();
 }
