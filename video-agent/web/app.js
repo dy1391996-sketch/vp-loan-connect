@@ -29,20 +29,26 @@ function setStatus(ui, pct, message, ok) {
 }
 
 async function loadMeta() {
-  const [hw, maya] = await Promise.all([
+  const [hw, maya, engines] = await Promise.all([
     getJson("/api/hardware"),
     getJson("/api/maya"),
+    getJson("/api/engines"),
   ]);
+  const localAi = hw.local_ai || engines.local_ai || {};
   document.getElementById("hardware").textContent = [
-    `${hw.os} ${hw.arch} · ${hw.cpu}`,
+    `Execution: ${(hw.execution && hw.execution.kind) || "unknown"} · ${hw.os} ${hw.arch}`,
+    `${hw.cpu}`,
     `CPU ${hw.cpu_count} · RAM ${hw.ram_gb} GB · disk ${hw.disk_free_gb} GB free`,
     `GPU: ${hw.gpu ? hw.gpu.name : "none"} · Apple Silicon / Metal: ${hw.apple_silicon}`,
     `Python ${hw.python} · Node ${hw.node}`,
     hw.ffmpeg.version,
     `H.264: ${hw.ffmpeg.h264}`,
-    `Engine: ${hw.recommended_engine}`,
-    hw.reason,
+    hw.execution ? hw.execution.summary : hw.reason,
   ].join("\n");
+  const aiEl = document.getElementById("local-ai-status");
+  const avail = localAi.available || localAi.label === "AVAILABLE";
+  aiEl.textContent = `LOCAL AI VIDEO: ${localAi.label || (avail ? "AVAILABLE" : "NOT AVAILABLE")}\n${localAi.reason || ""}\nModel: ${localAi.model || "LTX-Video 2B"}`;
+  aiEl.className = avail ? "ok" : "bad";
   document.getElementById("maya-status").textContent = [
     `Clip: ${maya.clip}`,
     `Source: ${maya.source}`,
@@ -63,7 +69,18 @@ function showOutput(job) {
   if (job.status === "COMPLETED" && job.output_path) {
     const url = `/api/jobs/${job.id}/video?t=${Date.now()}`;
     preview.src = url;
-    fileLoc.textContent = job.output_path;
+    const engineBit = job.engine_label
+      ? "Engine: " + job.engine_label
+      : job.engine
+        ? "Engine: " + job.engine
+        : "";
+    const aiBit =
+      job.ai_generated === false
+        ? " · not AI generated video"
+        : job.ai_generated
+          ? " · neural image-to-video"
+          : "";
+    fileLoc.textContent = (engineBit ? engineBit + aiBit + " · " : "") + job.output_path;
     download.href = `/api/jobs/${job.id}/video?download=1`;
     download.classList.remove("hidden");
   } else {
@@ -83,6 +100,9 @@ async function poll() {
       ui_status: job.ui_status,
       progress: job.progress,
       provider: job.provider,
+      engine: job.engine,
+      engine_label: job.engine_label,
+      ai_generated: job.ai_generated,
       dry_run: job.dry_run,
       error: job.error,
       output_path: job.output_path,

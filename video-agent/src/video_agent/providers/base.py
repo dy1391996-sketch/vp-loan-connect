@@ -49,3 +49,12 @@ class VideoProvider(ABC):
     def cancel(self, job_id: str) -> None:
         """Optional. Default is cooperative cancel via the job runner."""
         return None
+
+    def cancel_generation(self, job_id: str) -> None:
+        return self.cancel(job_id)
+
+    def check_environment(self) -> dict[str, Any]:
+        return self.get_status()
+
+    def estimate_requirements(self) -> dict[str, Any]:
+        return {"paid": self.paid}

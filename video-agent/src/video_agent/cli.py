@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -19,7 +20,11 @@ def _print(payload: object) -> None:
 
 
 def cmd_hardware(_: argparse.Namespace) -> int:
-    _print(detect_hardware())
+    from .neural_env import check_neural_environment
+
+    hw = detect_hardware()
+    hw["local_ai"] = check_neural_environment()
+    _print(hw)
     return 0
 
 
@@ -48,7 +53,8 @@ def cmd_generate(args: argparse.Namespace) -> int:
             "dry_run": bool(args.dry_run),
             "maya": bool(args.maya),
             "image_path": str(image) if image else None,
-            "provider_id": "local_ffmpeg",
+            "engine": args.engine,
+            "seed": args.seed,
         }
     )
     if args.maya and not args.prompt:
@@ -65,6 +71,14 @@ def cmd_serve(args: argparse.Namespace) -> int:
     from .server import serve
 
     serve(host=args.host, port=args.port)
+    return 0
+
+
+def cmd_worker(args: argparse.Namespace) -> int:
+    os.environ["VIDEO_AGENT_IS_WORKER"] = "1"
+    from .worker import serve as serve_worker
+
+    serve_worker(host=args.host, port=args.port)
     return 0
 
 
@@ -100,6 +114,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--mode", choices=["text_to_video", "image_to_video"], default="image_to_video")
     p.add_argument("--duration", type=float, default=6)
     p.add_argument("--quality", choices=["480p", "720p", "1080p"], default="720p")
+    p.add_argument("--engine", choices=["auto", "local_ai", "ffmpeg_motion"], default="auto")
+    p.add_argument("--seed", type=int, default=42)
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--maya", action="store_true", help="Use the approved Maya Video #1 start frame")
     p.set_defaults(func=cmd_generate)
@@ -108,6 +124,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=7860)
     p.set_defaults(func=cmd_serve)
+
+    p = sub.add_parser("worker", help="Start the localhost neural video worker")
+    p.add_argument("--host", default="127.0.0.1")
+    p.add_argument("--port", type=int, default=7861)
+    p.set_defaults(func=cmd_worker)
 
     p = sub.add_parser("wait", help="Wait for a job id")
     p.add_argument("job_id")

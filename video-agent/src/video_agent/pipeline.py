@@ -25,8 +25,9 @@ from .hardware import detect_hardware
 from .images import aspect_warning_or_error, require_image
 from .maya import require_maya_source
 from .paths import OUTPUTS, TMP, ensure_dirs
-from .providers import get_provider
+from .engine import ENGINE_FFMPEG, ENGINE_LABELS, resolve_engine
 from .providers.base import GenerateRequest
+from .providers.local_ffmpeg import LocalFFmpegProvider
 
 
 def _progress(job_id: str, status: str, pct: int, message: str) -> None:
@@ -73,7 +74,7 @@ def parse_request(body: dict[str, Any], image_path: Path | None) -> GenerateRequ
         quality=quality,
         dry_run=bool(body.get("dry_run")),
         identity_lock=bool(body.get("maya") or body.get("identity_lock")),
-        extra={"maya": bool(body.get("maya"))},
+        extra={"maya": bool(body.get("maya")), "seed": body.get("seed"), "low_memory": True},
     )
 
 
@@ -86,7 +87,7 @@ def run_job(job_id: str) -> dict[str, Any]:
     try:
         _progress(job_id, "PREPARING", 8, "Preparing job directories and hardware profile.")
         hardware = detect_hardware(OUTPUTS)
-        jobs.update_job(job_id, hardware_summary=hardware["reason"], engine=hardware["recommended_engine"])
+        jobs.update_job(job_id, hardware_summary=hardware["reason"])
 
         _progress(job_id, "VALIDATING", 18, "Validating prompt, image, aspect ratio, and dependencies.")
         request = parse_request(job, Path(job["image_path"]) if job.get("image_path") else None)
@@ -106,21 +107,64 @@ def run_job(job_id: str) -> dict[str, Any]:
             jobs.update_job(job_id, aspect_warning=warning)
 
         require_ffmpeg()
-        provider = get_provider(job.get("provider_id"), hardware["recommended_engine"])
+        engine_id, provider, engine_reason = resolve_engine(
+            job.get("engine"),
+            provider_id=job.get("provider_id"),
+            recommended_engine=hardware["recommended_engine"],
+        )
         if provider.paid:
             raise ModelUnavailableError(
                 "Paid providers are not selected by the Video Agent. Use the free local engine."
             )
+        if engine_id == ENGINE_FFMPEG and request.identity_lock and request.mode == "image_to_video":
+            # Keep Maya identity lock language; FFmpeg still does not redesign pixels.
+            pass
+        if request.identity_lock and engine_id != ENGINE_FFMPEG:
+            from .neural_spec import MAYA_NEURAL_NEGATIVE, MAYA_NEURAL_PROMPT
+
+            if job.get("maya"):
+                request.prompt = MAYA_NEURAL_PROMPT if not job.get("keep_original_prompt") else request.prompt
+                if not request.negative_prompt:
+                    request.negative_prompt = MAYA_NEURAL_NEGATIVE
+            request.extra["low_memory"] = True
+            request.extra["seed"] = int(job.get("seed") or 42)
         validated = provider.validate(request)
-        jobs.update_job(job_id, provider=provider.id, provider_name=provider.name, validation=validated)
+        jobs.update_job(
+            job_id,
+            provider=provider.id,
+            provider_name=provider.name,
+            validation=validated,
+            engine=engine_id,
+            engine_label=ENGINE_LABELS.get(engine_id, engine_id),
+            engine_reason=engine_reason,
+            ai_generated=engine_id != ENGINE_FFMPEG,
+        )
 
-        if request.dry_run:
-            _progress(job_id, "LOADING_MODEL", 30, "Dry-run: checking engine wiring without a full-length encode.")
-        else:
-            _progress(job_id, "LOADING_MODEL", 30, f"Loading engine: {provider.name}.")
+        if request.dry_run and engine_id != ENGINE_FFMPEG:
+            provider = LocalFFmpegProvider()
+            engine_id = ENGINE_FFMPEG
+            engine_reason = "Dry-run skipped neural generate; FFmpeg validation encode only."
+            jobs.update_job(
+                job_id,
+                engine=engine_id,
+                engine_label="Dry-run FFmpeg validation (Local AI not executed)",
+                engine_reason=engine_reason,
+                ai_generated=False,
+                provider=provider.id,
+                provider_name=provider.name,
+                dry_run_skipped_neural=True,
+            )
 
-        _progress(job_id, "RUNNING", 40, "Generating video.")
+        _progress(
+            job_id,
+            "LOADING_MODEL",
+            30,
+            "Dry-run: checking engine wiring without a full-length encode."
+            if request.dry_run
+            else f"Loading engine: {provider.name}.",
+        )
         dest.parent.mkdir(parents=True, exist_ok=True)
+        _progress(job_id, "RUNNING", 40, "Generating video.")
 
         def gen_progress(stage: str, pct: int, message: str) -> None:
             _progress(job_id, "RUNNING", pct, message)
@@ -191,6 +235,7 @@ def _fail(job_id: str, dest: Path, tmp_dir: Path, exc: VideoAgentError) -> dict[
 
 def dry_run_report() -> dict[str, Any]:
     """Validate pipeline wiring without a heavy generation. Used by CLI + tests."""
+    from .engine import engine_public_status
     from .ffmpeg_tools import ffmpeg_version, still_to_motion
     from .images import describe_image
     from .maya import maya_status
@@ -224,6 +269,7 @@ def dry_run_report() -> dict[str, Any]:
         },
         "sample_mp4_bytes": size,
         "engine": "local_ffmpeg",
-        "image_to_video": "wired (local FFmpeg motion; neural I2V unavailable without GPU)",
+        "image_to_video": "wired (AUTO uses Local AI when available, otherwise FFmpeg motion)",
         "portrait_9_16": True,
+        "local_ai": engine_public_status(),
     }

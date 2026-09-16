@@ -9,6 +9,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from .execution import classify_execution
+
 
 def _run(cmd: list[str], timeout: int = 8) -> str:
     try:
@@ -93,23 +95,38 @@ def detect_hardware(data_root: Path | None = None) -> dict[str, Any]:
     cpu_count = os.cpu_count() or 1
     neural_viable = bool(gpu) or (apple and ram_gb >= 16)
     if neural_viable and gpu:
-        engine = "local_diffusion"
-        reason = f"NVIDIA GPU detected ({gpu['name']}). Local neural image-to-video may be attempted."
+        engine = "local_neural"
+        reason = (
+            f"NVIDIA GPU detected ({gpu['name']}). Local LTX-Video 2B may be attempted "
+            "after scripts/install-neural.sh."
+        )
     elif neural_viable and apple:
-        engine = "local_diffusion"
-        reason = "Apple Silicon with enough RAM detected. A Metal-backed local model may be attempted on this Mac."
+        engine = "local_neural"
+        reason = (
+            "Apple Silicon with enough unified memory detected. Local LTX-Video 2B "
+            "(MPS) may be attempted after scripts/install-neural.sh."
+        )
     else:
         engine = "local_ffmpeg"
         if not gpu and not apple:
             reason = (
                 "No GPU and not Apple Silicon. Neural image-to-video is not realistic here. "
-                "The free local engine is FFmpeg identity-preserving motion from a still (camera move, not face redesign)."
+                "The free local engine is FFmpeg identity-preserving motion from a still "
+                "(camera move, not face redesign, not AI-generated video)."
             )
         else:
             reason = (
-                "Hardware is borderline for local diffusion. "
+                "Hardware is borderline for local neural I2V. "
                 "Defaulting to the free FFmpeg motion engine."
             )
+    execution = classify_execution()
+    if execution.get("cursor_cloud"):
+        reason = (
+            "This Python process is a Cursor Cloud Linux container (KVM, CPU-only), "
+            "not the physical Mac. Neural I2V must run on the Mac via "
+            "scripts/install-neural.sh and scripts/start-local-video-worker.sh "
+            "(localhost only). FFmpeg motion remains the fallback in this VM."
+        )
     return {
         "os": platform.system(),
         "os_release": platform.release(),
@@ -127,4 +144,5 @@ def detect_hardware(data_root: Path | None = None) -> dict[str, Any]:
         "recommended_engine": engine,
         "neural_i2v_viable": neural_viable,
         "reason": reason,
+        "execution": execution,
     }

@@ -13,9 +13,11 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 from . import jobs
+from .engine import engine_public_status
 from .errors import JobNotFoundError, VideoAgentError
 from .hardware import detect_hardware
 from .maya import maya_status
+from .neural_env import check_neural_environment
 from .paths import AGENT_ROOT, UPLOADS, WEB_ROOT, ensure_dirs
 from .pipeline import run_job
 from .providers import PROVIDERS
@@ -118,7 +120,9 @@ def _enqueue(fields: dict[str, str], image: Path | None) -> dict:
             "dry_run": _bool(fields.get("dry_run")),
             "maya": maya,
             "image_path": str(image) if image else None,
-            "provider_id": fields.get("provider_id") or "local_ffmpeg",
+            "provider_id": fields.get("provider_id") or "",
+            "engine": fields.get("engine") or "auto",
+            "seed": fields.get("seed") or "42",
         }
     )
     thread = threading.Thread(target=_run_safe, args=(job["id"],), daemon=True)
@@ -153,7 +157,18 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/health":
                 return _json(self, 200, {"ok": True, "service": "video-agent", "busy": _busy})
             if path == "/api/hardware":
-                return _json(self, 200, detect_hardware())
+                hw = detect_hardware()
+                neural = check_neural_environment()
+                hw["local_ai"] = {
+                    "available": neural["available"],
+                    "label": neural["ui_label"],
+                    "reason": neural["reason"],
+                    "model": (neural.get("model") or {}).get("model_name"),
+                }
+                hw["worker"] = neural.get("worker")
+                return _json(self, 200, hw)
+            if path == "/api/engines":
+                return _json(self, 200, engine_public_status())
             if path == "/api/providers":
                 statuses = [p.get_status() for p in PROVIDERS.values()]
                 return _json(self, 200, {"providers": statuses, "optional_cloud_probes": probe_optional_cloud()})

@@ -12,8 +12,8 @@
       <p class="kicker">Personal · local · free-first</p>
       <h1>Video Agent</h1>
       <p class="lede">
-        Text or a reference image in, 9:16 MP4 out. Neural image-to-video needs a GPU;
-        this machine uses identity-preserving FFmpeg motion unless you later add one.
+        Text or a reference image in, 9:16 MP4 out. AUTO uses Local AI (LTX-Video) when a
+        capable Mac/GPU worker is ready; otherwise FFmpeg motion (not AI generated).
       </p>
     </header>
 
@@ -45,6 +45,18 @@
           <input type="checkbox" id="maya" name="maya" />
           Use Maya Video #1 approved start frame (do not replace identity)
         </label>
+
+        <fieldset>
+          <legend>Engine</legend>
+          <label class="inline"><input type="radio" name="engine" value="auto" checked /> AUTO</label>
+          <label class="inline"><input type="radio" name="engine" value="local_ai" /> LOCAL AI</label>
+          <label class="inline"><input type="radio" name="engine" value="ffmpeg_motion" /> FFMPEG MOTION</label>
+        </fieldset>
+        <p class="muted">
+          AUTO uses Local AI when the neural backend or localhost worker is ready.
+          FFmpeg motion is camera movement from a still — not AI generated video.
+        </p>
+        <p id="local-ai-status" class="muted">LOCAL AI VIDEO: detecting…</p>
 
         <div class="row">
           <label>

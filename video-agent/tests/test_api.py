@@ -50,14 +50,24 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("Video Agent", html)
         self.assertIn("Image to Video", html)
+        self.assertIn("LOCAL AI", html)
+        self.assertIn("FFMPEG MOTION", html)
+        self.assertIn("AUTO", html)
 
     def test_hardware_and_maya(self) -> None:
         status, hw = self._get("/api/hardware")
         self.assertEqual(status, 200)
         self.assertIn("recommended_engine", hw)
+        self.assertIn("execution", hw)
+        self.assertIn("local_ai", hw)
+        self.assertIn(hw["local_ai"]["label"], {"AVAILABLE", "NOT AVAILABLE"})
         status, maya = self._get("/api/maya")
         self.assertEqual(status, 200)
         self.assertTrue(maya["identity_lock"])
+        status, engines = self._get("/api/engines")
+        self.assertEqual(status, 200)
+        self.assertTrue(engines["ffmpeg_motion"]["available"])
+        self.assertIn(engines["auto_would_choose"], {"local_ai", "ffmpeg_motion"})
 
     def test_create_job_and_status(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

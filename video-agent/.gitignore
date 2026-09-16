@@ -16,4 +16,10 @@ __pycache__/
 .pytest_cache/
 .venv/
 venv/
+.venv-neural/
 *.egg-info/
+
+output/*.mp4
+output/*.json
+!output/.gitkeep
+models/huggingface/

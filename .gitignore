@@ -22,6 +22,10 @@ video-agent/data/outputs/*
 video-agent/data/jobs/*
 video-agent/data/tmp/*
 !video-agent/data/**/.gitkeep
+video-agent/.venv-neural/
+video-agent/models/huggingface/
+video-agent/output/*.mp4
+video-agent/output/*.json
 
 # logs and local files
 *.log

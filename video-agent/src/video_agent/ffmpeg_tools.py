@@ -268,6 +268,50 @@ def text_to_motion(
     return dest
 
 
+def transcode_vertical_h264(
+    source: Path,
+    dest: Path,
+    *,
+    width: int,
+    height: int,
+    min_duration: float = 0.5,
+) -> dict[str, Any]:
+    """Normalize any generated clip to 9:16 H.264 without stretching identity."""
+    require_ffmpeg()
+    ensure_disk_space(dest.parent)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if not source.is_file():
+        raise InvalidOutputError(f"Neural/raw video is missing: {source}")
+    vf = (
+        f"scale={width}:{height}:force_original_aspect_ratio=decrease,"
+        f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,fps=24,format=yuv420p"
+    )
+    _run_ffmpeg(
+        [
+            "ffmpeg",
+            "-y",
+            "-i",
+            str(source),
+            "-vf",
+            vf,
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "20",
+            "-movflags",
+            "+faststart",
+            "-an",
+            str(dest),
+        ],
+        label="9:16 H.264 post-process",
+    )
+    return validate_mp4(dest, expect_w=width, expect_h=height, min_duration=min_duration)
+
+
 def concat_clips(clips: list[Path], dest: Path, *, width: int, height: int) -> Path:
     require_ffmpeg()
     ensure_disk_space(dest.parent)

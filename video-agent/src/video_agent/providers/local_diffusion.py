@@ -37,11 +37,10 @@ class LocalDiffusionProvider(VideoProvider):
         if not hw.get("neural_i2v_viable"):
             raise self._unavailable()
         raise ModelUnavailableError(
-            "A GPU/Apple Silicon path was detected, but no local diffusion weights "
-            "are installed in this project. The agent will not download multi-GB "
-            "models unless you add them yourself. Use the free FFmpeg engine, or "
-            "install a local model on a capable machine.",
-            details={"recommended_engine": "local_ffmpeg"},
+            "A GPU/Apple Silicon path was detected. Use LocalNeuralVideoProvider "
+            "(scripts/install-neural.sh, LTX-Video 2B) instead of this legacy alias. "
+            "FFmpeg motion remains the free fallback.",
+            details={"recommended_engine": "local_neural"},
         )
 
     def generate_from_text(self, request: GenerateRequest, dest: Path, progress: ProgressCb | None = None) -> Path:

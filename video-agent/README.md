@@ -34,9 +34,25 @@ Modes:
 
 | Provider | Paid | When it runs |
 |---|---|---|
-| `local_ffmpeg` | No | Default on this machine. Identity-preserving camera motion from a still. |
-| `local_diffusion` | No | Only if a GPU / Apple Silicon path is actually viable **and** weights are installed. Refuses otherwise. |
-| `optional_cloud` | Yes | **Never** selected by the UI. Paid execute stays CLI-only: `maya-video-pipeline/scripts/generate_video01.py --execute --confirm VIDEO01` |
+| `local_ffmpeg` | No | FFmpeg motion fallback. Not labeled as AI-generated. |
+| `local_neural` | No | LTX-Video 2B local inference (Apple Silicon MPS or NVIDIA). |
+| `local_diffusion` | No | Legacy alias; still refuses unless hardware can run neural weights. |
+| `optional_cloud` | Yes | **Never** selected by the UI. |
+
+Engine selector in the UI: **AUTO** / **LOCAL AI** / **FFMPEG MOTION**.
+AUTO uses Local AI when the neural venv+weights or a localhost worker is ready.
+
+## Local AI on a Mac (not this Cloud VM)
+
+Cursor Cloud is a Linux container. Neural I2V runs on the physical Mac:
+
+```bash
+cd video-agent
+./scripts/install-neural.sh          # ~6.5 GB LTX-Video 2B, Apple Silicon / NVIDIA only
+./scripts/start-local-video-worker.sh  # http://127.0.0.1:7861
+./scripts/run.sh                     # UI at http://127.0.0.1:7860
+PYTHONPATH=src python3 scripts/maya_neural_i2v_test.py
+```
 
 This Cloud/CI Linux host has no NVIDIA GPU and is not Apple Silicon.
 Neural image-to-video is **not** realistic here. The agent does not pretend otherwise.
