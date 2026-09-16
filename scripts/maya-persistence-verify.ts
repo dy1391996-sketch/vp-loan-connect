@@ -68,6 +68,50 @@ function stripTestArtifacts<T extends Record<string, unknown>>(rows: T[], keys: 
   return rows.filter((row) => !keys.some((key) => /IndigoLotus9183|HttpLotus4421|Zaraqx/.test(String(row[key] ?? ""))));
 }
 
+function purgeTestArtifacts(store: InMemoryMayaStore) {
+  const snap = store.snapshot();
+  const other = store.getOwnerByEmail(OTHER_EMAIL);
+  const otherId = other?.ownerId;
+  const leftoverPeople = new Set(["The", "restart", "sister", "persistence", PERSON]);
+  snap.owners = snap.owners.filter((row) => row.email !== OTHER_EMAIL);
+  snap.sessions = snap.sessions.filter((row) => row.ownerId !== otherId);
+  snap.messages = stripTestArtifacts(
+    snap.messages.filter((row) => row.ownerId !== otherId),
+    ["text"],
+  );
+  const conversationsWithOwnerText = new Set(
+    snap.messages.filter((row) => row.role === "owner").map((row) => row.conversationId),
+  );
+  snap.conversations = snap.conversations.filter((row) => row.ownerId !== otherId && conversationsWithOwnerText.has(row.conversationId));
+  snap.messages = snap.messages.filter((row) => conversationsWithOwnerText.has(row.conversationId));
+  snap.memories = stripTestArtifacts(
+    snap.memories.filter((row) => row.ownerId !== otherId),
+    ["content", "normalizedFact"],
+  );
+  snap.people = snap.people.filter((row) => row.ownerId !== otherId && !leftoverPeople.has(row.name));
+  snap.projects = stripTestArtifacts(
+    snap.projects.filter((row) => row.ownerId !== otherId),
+    ["name", "description", "latestUpdate"],
+  );
+  snap.openLoops = stripTestArtifacts(
+    snap.openLoops.filter((row) => row.ownerId !== otherId),
+    ["description"],
+  );
+  snap.timeline = stripTestArtifacts(
+    snap.timeline.filter((row) => row.ownerId !== otherId),
+    ["summary", "title"],
+  );
+  snap.relationshipState = snap.relationshipState
+    .filter((row) => row.ownerId !== otherId)
+    .map((row) =>
+      /IndigoLotus9183|HttpLotus4421/.test(`${row.unfinishedTopic ?? ""} ${row.followUpCandidate ?? ""}`)
+        ? { ...row, unfinishedTopic: null, followUpCandidate: null, ownerReportedMood: null }
+        : row,
+    );
+  snap.visualAssets = snap.visualAssets.filter((row) => row.ownerId !== otherId);
+  store.loadSnapshot(snap);
+}
+
 async function main() {
 try {
   const env = getMayaEnv();
@@ -107,7 +151,10 @@ try {
   if (!mayaMigration) fail("mayaMigration", "maya_life_system migration not applied");
 
   const before = await reloadStore();
-  const memoriesBefore = before.snapshot().memories.filter((memory) => memory.status !== "deleted").length;
+  purgeTestArtifacts(before);
+  await persist(before);
+  const baseline = await reloadStore();
+  const memoriesBefore = baseline.snapshot().memories.filter((memory) => memory.status !== "deleted").length;
 
   const live = await reloadStore();
   const owner = await ensureSeededOwner(live);
@@ -136,6 +183,22 @@ try {
     text: `I will follow up on ${MARKER} tomorrow`,
     ownerAuthorized: true,
   });
+  if (!started.listProjects(ownerId).some((project) => project.name.includes(MARKER))) {
+    const atProject = nowIso();
+    started.upsertProject({
+      projectId: newId(),
+      ownerId,
+      name: MARKER,
+      aliases: [],
+      description: `persistence-check project ${MARKER}`,
+      status: "active",
+      importantPeople: [],
+      latestUpdate: `The project named ${MARKER} is my persistence-check project.`,
+      openQuestions: [],
+      lastUpdated: atProject,
+      createdAt: atProject,
+    });
+  }
   await persist(started);
 
   const restarted = await reloadStore();
@@ -235,7 +298,7 @@ try {
   checks.deletion = deleted?.status === "deleted" && retrievedDeleted.ranked.every((row) => row.memory.memoryId !== deleteTarget.memoryId);
   checks.timelinePersistence = afterMutations.listTimeline(afterOwner.ownerId).some((event) => event.summary.includes(MARKER) && event.eventId === timelineBefore?.eventId);
   checks.peoplePersistence = afterMutations.listPeople(afterOwner.ownerId).some((person) => person.personId === personBefore?.personId && person.name === PERSON);
-  checks.projectPersistence = afterMutations.listProjects(afterOwner.ownerId).some((project) => project.projectId === projectBefore?.projectId);
+  checks.projectPersistence = afterMutations.listProjects(afterOwner.ownerId).some((project) => project.projectId === projectBefore?.projectId && (project.name.includes(MARKER) || (project.latestUpdate ?? "").includes(MARKER)));
   const rel = afterMutations.getRelationshipState(afterOwner.ownerId);
   checks.relationshipStatePersistence = rel?.ownerReportedMood === "upbeat" && rel.unfinishedTopic?.includes(MARKER) === true;
   checks.openLoopsPersistence = afterMutations.listOpenLoops(afterOwner.ownerId).some((loop) => loop.openLoopId === loopBefore?.openLoopId && loop.status === "open");
@@ -247,40 +310,7 @@ try {
   if (!checks.openLoopsPersistence) fail("openLoopsPersistence", "Open loop missing after reload.");
 
   const cleaned = await reloadStore();
-  const snap = cleaned.snapshot();
-  snap.owners = snap.owners.filter((row) => row.email !== OTHER_EMAIL);
-  snap.sessions = snap.sessions.filter((row) => row.ownerId !== otherId);
-  snap.conversations = snap.conversations.filter((row) => row.ownerId !== otherId);
-  snap.messages = stripTestArtifacts(
-    snap.messages.filter((row) => row.ownerId !== otherId),
-    ["text"],
-  );
-  snap.memories = stripTestArtifacts(
-    snap.memories.filter((row) => row.ownerId !== otherId),
-    ["content", "normalizedFact"],
-  );
-  snap.people = snap.people.filter((row) => row.ownerId !== otherId && row.name !== PERSON);
-  snap.projects = stripTestArtifacts(
-    snap.projects.filter((row) => row.ownerId !== otherId),
-    ["name", "description", "latestUpdate"],
-  );
-  snap.openLoops = stripTestArtifacts(
-    snap.openLoops.filter((row) => row.ownerId !== otherId),
-    ["description"],
-  );
-  snap.timeline = stripTestArtifacts(
-    snap.timeline.filter((row) => row.ownerId !== otherId),
-    ["summary", "title"],
-  );
-  snap.relationshipState = snap.relationshipState
-    .filter((row) => row.ownerId !== otherId)
-    .map((row) =>
-      /IndigoLotus9183|HttpLotus4421/.test(`${row.unfinishedTopic ?? ""} ${row.followUpCandidate ?? ""}`)
-        ? { ...row, unfinishedTopic: null, followUpCandidate: null, ownerReportedMood: null }
-        : row,
-    );
-  snap.visualAssets = snap.visualAssets.filter((row) => row.ownerId !== otherId);
-  cleaned.loadSnapshot(snap);
+  purgeTestArtifacts(cleaned);
   await persist(cleaned);
 
   const finalStore = await reloadStore();
