@@ -5,12 +5,30 @@ import { sha256 } from "@/lib/utils";
 type Bucket = { count: number; resetsAt: number };
 const buckets = new Map<string, Bucket>();
 
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+
+function canonicalHost(hostname: string) {
+  const host = hostname.replace(/^\[|\]$/g, "").replace(/^www\./i, "").toLowerCase();
+  return LOOPBACK_HOSTS.has(host) ? "localhost" : host;
+}
+
 function canonicalOrigin(value: string) {
   try {
     const url = new URL(value);
-    return `${url.protocol}//${url.hostname.replace(/^www\./i, "").toLowerCase()}`;
+    const port = url.port || (url.protocol === "https:" ? "443" : url.protocol === "http:" ? "80" : "");
+    return `${url.protocol}//${canonicalHost(url.hostname)}${port ? `:${port}` : ""}`;
   } catch {
     return value;
+  }
+}
+
+function originFromHostHeader(request: NextRequest, origin: string) {
+  const host = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() || request.headers.get("host");
+  if (!host) return "";
+  try {
+    return `${new URL(origin).protocol}//${host}`;
+  } catch {
+    return "";
   }
 }
 
@@ -24,9 +42,9 @@ export function assertSameOrigin(request: NextRequest) {
   }
   const expected = new URL(getPublicAppUrl()).origin;
   const requestOrigin = request.nextUrl.origin;
-  if (origin === expected || origin === requestOrigin) return;
-  // Accept www/apex variants of the public app host (common on Vercel).
-  if (canonicalOrigin(origin) === canonicalOrigin(expected) || canonicalOrigin(origin) === canonicalOrigin(requestOrigin)) return;
+  const hostOrigin = originFromHostHeader(request, origin);
+  const originCanon = canonicalOrigin(origin);
+  if ([expected, requestOrigin, hostOrigin].some((value) => value && (value === origin || canonicalOrigin(value) === originCanon))) return;
   throw new Error("INVALID_ORIGIN");
 }
 

@@ -11,7 +11,7 @@ CLI (requires `DATABASE_URL`):
 pnpm maya:backup
 ```
 
-Writes `data/maya/backups/maya-backup-<timestamp>.json` (gitignored).
+Writes `data/maya/backups/maya-backup-<timestamp>.json` (gitignored). CLI backups include owner password hashes for restore; they must stay local and must never be printed. HTTP `POST /api/maya/backup` redacts password hashes.
 
 ## Restore
 
@@ -32,7 +32,7 @@ Restore replaces Maya tables from the snapshot. It does not drop loan-product ta
 
 `data/maya-seed-template.json` plus `POST /api/maya/seed` / `pnpm maya:seed -- file.json`.
 
-Every seeded item is `SYSTEM_SEED`. Do not invent romantic events. Relationship *style* may be seeded; specific history requires verified owner information.
+Every seeded item is `SYSTEM_SEED`. Do not invent romantic events, meetings, dates, calls, trips, physical interactions, promises, or shared experiences. Relationship *style* may be seeded. People, projects, events, preferences, and ongoing matters require `verified: true` and `ownerHistoryStatus` other than `not-provided`. The checked-in template is empty of owner history on purpose.
 
 ## Schema backup before this feature
 

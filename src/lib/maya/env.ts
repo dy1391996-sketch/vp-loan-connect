@@ -29,7 +29,7 @@ export function getMayaEnv(environment: NodeJS.ProcessEnv = process.env): MayaEn
     MAYA_OWNER_ID: environment.MAYA_OWNER_ID ?? "",
     MAYA_OWNER_EMAIL: environment.MAYA_OWNER_EMAIL ?? "",
     MAYA_OWNER_PASSWORD: environment.MAYA_OWNER_PASSWORD ?? "",
-    MAYA_OWNER_PASSWORD_HASH: environment.MAYA_OWNER_PASSWORD_HASH ?? "",
+    MAYA_OWNER_PASSWORD_HASH: (environment.MAYA_OWNER_PASSWORD_HASH ?? "").replaceAll("$$", "$"),
     MAYA_LLM_PROVIDER: environment.MAYA_LLM_PROVIDER || "mock",
     MAYA_LLM_MODEL: environment.MAYA_LLM_MODEL ?? "",
     MAYA_OPENAI_API_KEY: environment.MAYA_OPENAI_API_KEY ?? "",

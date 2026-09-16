@@ -8,7 +8,11 @@ import { defaultRelationshipState } from "./state";
 import { retrieveRelevantContext } from "./retrieval";
 import { correctMemory, forgetMemory } from "./correction";
 import { consolidateOwnerMemory } from "./consolidation";
-import { backupStore, exportOwnerArchive, importSeed, restoreBackup } from "./io";
+import { readFileSync } from "node:fs";
+import { backupStore, exportOwnerArchive, importSeed, restoreBackup, assertSeedImportSafe } from "./io";
+import { redactSecrets } from "./secrets";
+import { authenticateOwner, ensureSeededOwner, ownerAuthConfigured } from "./owner";
+import bcrypt from "bcryptjs";
 import { handleInstagramMessage } from "./channels/instagram";
 import { resetMayaEnvCacheForTests } from "./env";
 import { ensureMasterVisualAsset, MASTER_MAYA_RELATIVE_PATH, registerVisualGeneration } from "./visual";
@@ -234,10 +238,11 @@ describe("export backup restore seed visual", () => {
     importSeed(store, owner.ownerId, {
       version: "1.0.0",
       source: "SYSTEM_SEED",
+      ownerHistoryStatus: "verified",
       relationshipContextFacts: [{ category: "relationship-style", content: "Established girlfriend/best-friend style.", confidence: "KNOWN" }],
-      people: [{ name: "Neha", relationshipToOwner: "client" }],
-      projects: [{ name: "VP Nest", status: "active" }],
-      ongoingMatters: [{ content: "Neha invoice follow-up" }],
+      people: [{ name: "Neha", relationshipToOwner: "client", verified: true }],
+      projects: [{ name: "VP Nest", status: "active", verified: true }],
+      ongoingMatters: [{ content: "Neha invoice follow-up", verified: true }],
     });
     const exported = exportOwnerArchive(store, owner.ownerId);
     assert.match(exported.markdown, /Neha/);
@@ -379,5 +384,165 @@ describe("personality regression", () => {
     assert.ok(![intro, no, short].every((turn) => turn.text.includes("?")));
     assert.equal(isTransientSmallTalk("मैंने चाय पी"), true);
     assert.equal(estimateConfidence("shayad Tuesday"), "UNCERTAIN");
+  });
+});
+
+describe("owner env auth and secret redaction", () => {
+  it("requires env credentials and never logs secret values", () => {
+    const previous = { ...process.env };
+    process.env.MAYA_OWNER_EMAIL = "owner@example.test";
+    process.env.MAYA_OWNER_PASSWORD = "twelve chars";
+    process.env.MAYA_OWNER_PASSWORD_HASH = "";
+    resetMayaEnvCacheForTests();
+    assert.equal(ownerAuthConfigured(), true);
+    process.env.MAYA_OWNER_PASSWORD = "short";
+    resetMayaEnvCacheForTests();
+    assert.equal(ownerAuthConfigured(), false);
+    process.env.MAYA_OWNER_PASSWORD = "";
+    process.env.MAYA_OWNER_PASSWORD_HASH = "$2a$12$abcdefghijklmnopqrstuv";
+    resetMayaEnvCacheForTests();
+    assert.equal(ownerAuthConfigured(), true);
+    const redacted = redactSecrets({ password: "secret-value", MAYA_OWNER_PASSWORD_HASH: "$2a$12$nope", ownerId: "abc" });
+    assert.equal(redacted.password, "[redacted]");
+    assert.equal(redacted.MAYA_OWNER_PASSWORD_HASH, "[redacted]");
+    assert.equal(redacted.ownerId, "abc");
+    process.env = previous;
+    resetMayaEnvCacheForTests();
+  });
+
+  it("prefers a bcrypt hash and authenticates without keeping plaintext in env", async () => {
+    const previous = { ...process.env };
+    const { store } = setup();
+    const password = "owner-hash-only-password";
+    const passwordHash = await bcrypt.hash(password, 4);
+    store.upsertOwner({
+      ...store.listOwners()[0],
+      email: "hash-owner@example.test",
+      passwordHash,
+    });
+    process.env.MAYA_OWNER_EMAIL = "hash-owner@example.test";
+    process.env.MAYA_OWNER_PASSWORD = "";
+    process.env.MAYA_OWNER_PASSWORD_HASH = passwordHash;
+    resetMayaEnvCacheForTests();
+    assert.equal(ownerAuthConfigured(), true);
+    const auth = await authenticateOwner(store, "hash-owner@example.test", password);
+    assert.ok(auth);
+    assert.equal(auth.owner.email, "hash-owner@example.test");
+    const denied = await authenticateOwner(store, "hash-owner@example.test", "wrong-password-12");
+    assert.equal(denied, null);
+    process.env = previous;
+    resetMayaEnvCacheForTests();
+  });
+
+  it("synchronizes an existing owner's hash from env without duplicating or deleting memory", async () => {
+    const previous = { ...process.env };
+    const { store, owner } = setup();
+    const oldPassword = "previous-owner-pass";
+    const newPassword = "current-owner-pass";
+    const oldHash = await bcrypt.hash(oldPassword, 4);
+    const newHash = await bcrypt.hash(newPassword, 4);
+    const memoryId = newId();
+    const sessionId = newId();
+    const at = nowIso();
+    store.upsertOwner({ ...owner, email: "sync-owner@example.test", passwordHash: oldHash });
+    store.addMemory({
+      memoryId,
+      ownerId: owner.ownerId,
+      type: "SEMANTIC",
+      content: "keep this memory",
+      createdAt: at,
+      eventTimePrecision: "unknown",
+      learnedAt: at,
+      confidence: "KNOWN",
+      importance: 0.7,
+      emotionalWeight: 0,
+      sensitivity: "normal",
+      status: "active",
+      relatedPeople: [],
+      relatedProjects: [],
+      relatedEvents: [],
+      tags: [],
+      provenance: "REAL_USER_REPORTED",
+    });
+    store.createSession({
+      sessionId,
+      ownerId: owner.ownerId,
+      tokenHash: "old-session-hash",
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      createdAt: at,
+    });
+    process.env.MAYA_OWNER_EMAIL = "sync-owner@example.test";
+    process.env.MAYA_OWNER_PASSWORD = "";
+    process.env.MAYA_OWNER_PASSWORD_HASH = newHash;
+    resetMayaEnvCacheForTests();
+    const seeded = await ensureSeededOwner(store);
+    assert.equal(seeded?.ownerId, owner.ownerId);
+    assert.equal(store.listOwners().length, 1);
+    assert.equal(store.getOwner(owner.ownerId)?.passwordHash, newHash);
+    assert.equal(store.listMemories({ ownerId: owner.ownerId }).some((memory) => memory.memoryId === memoryId), true);
+    assert.ok(store.snapshot().sessions.find((session) => session.sessionId === sessionId)?.revokedAt);
+    const accepted = await authenticateOwner(store, "sync-owner@example.test", newPassword);
+    assert.ok(accepted);
+    assert.equal(accepted.owner.ownerId, owner.ownerId);
+    assert.equal(await authenticateOwner(store, "sync-owner@example.test", oldPassword), null);
+    process.env = previous;
+    resetMayaEnvCacheForTests();
+  });
+});
+
+describe("seed importer safety", () => {
+  it("keeps the template empty of invented owner history", () => {
+    const seed = JSON.parse(readFileSync("data/maya-seed-template.json", "utf8"));
+    assert.equal(seed.ownerHistoryStatus, "not-provided");
+    assert.equal(seed.people.length, 0);
+    assert.equal(seed.projects.length, 0);
+    assert.equal(seed.events.length, 0);
+    assert.equal(seed.ongoingMatters.length, 0);
+    assert.equal(seed.preferences.length, 0);
+    assertSeedImportSafe(seed);
+  });
+
+  it("refuses unverified or not-provided historical imports", () => {
+    assert.throws(
+      () =>
+        assertSeedImportSafe({
+          version: "1.0.0",
+          source: "SYSTEM_SEED",
+          ownerHistoryStatus: "verified",
+          people: [{ name: "Neha" }],
+        }),
+      /SEED_PERSON_REQUIRES_VERIFIED/,
+    );
+    assert.throws(
+      () =>
+        assertSeedImportSafe({
+          version: "1.0.0",
+          source: "SYSTEM_SEED",
+          ownerHistoryStatus: "not-provided",
+          people: [{ name: "Neha", verified: true }],
+        }),
+      /SEED_HISTORY_NOT_PROVIDED/,
+    );
+    assert.throws(
+      () =>
+        assertSeedImportSafe({
+          version: "1.0.0",
+          source: "SYSTEM_SEED",
+          ownerHistoryStatus: "verified-partial",
+          events: [{ content: "We met in person in Goa", verified: true }],
+        }),
+      /SEED_REJECTS_UNVERIFIED_PERSONAL_HISTORY/,
+    );
+  });
+});
+
+describe("backup redacts owner secrets by default", () => {
+  it("omits sessions and password hashes unless explicitly requested", () => {
+    const { store, owner } = setup();
+    const safe = backupStore(store);
+    assert.equal(safe.snapshot.sessions.length, 0);
+    assert.equal(safe.snapshot.owners.find((row) => row.ownerId === owner.ownerId)?.passwordHash, "[redacted]");
+    const full = backupStore(store, { includeOwnerSecrets: true });
+    assert.equal(full.snapshot.owners.find((row) => row.ownerId === owner.ownerId)?.passwordHash, "hash");
   });
 });
