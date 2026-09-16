@@ -68,6 +68,7 @@ function stripTestArtifacts<T extends Record<string, unknown>>(rows: T[], keys: 
   return rows.filter((row) => !keys.some((key) => /IndigoLotus9183|HttpLotus4421|Zaraqx/.test(String(row[key] ?? ""))));
 }
 
+async function main() {
 try {
   const env = getMayaEnv();
   checks.ownerAuth = ownerAuthConfigured(env) && env.MAYA_LLM_PROVIDER === "mock" && env.MAYA_STORE === "prisma";
@@ -326,3 +327,9 @@ try {
   await prisma.$disconnect();
   process.exit(1);
 }
+}
+
+main().catch(() => {
+  console.error("persistence verify failed");
+  process.exit(1);
+});

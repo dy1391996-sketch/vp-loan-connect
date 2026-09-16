@@ -8,10 +8,6 @@ const ORIGIN = new URL(BASE).origin;
 const email = process.env.MAYA_OWNER_EMAIL ?? "";
 const password = process.env.MAYA_OWNER_PASSWORD ?? "";
 
-if (!email || password.length < 12) {
-  throw new Error("Owner authentication is not configured.");
-}
-
 function cookieHeader(setCookie: string | null) {
   if (!setCookie) throw new Error("Login did not set a session cookie.");
   return setCookie.split(";").at(0) ?? "";
@@ -40,19 +36,31 @@ async function chat(cookie: string, text: string) {
   return body as { text: string; conversationId: string };
 }
 
-if (PHASE === "store") {
-  const auth = await login();
-  const reply = await chat(auth.cookie, `The project named ${MARKER} is my restart-persistence project.`);
-  writeFileSync("/tmp/maya-http-persistence.json", JSON.stringify({ marker: MARKER, stored: true, replyPreview: reply.text.slice(0, 160) }));
-  console.info(JSON.stringify({ phase: "store", stored: true, replyPreview: reply.text.slice(0, 160) }));
-} else if (PHASE === "recall") {
-  const auth = await login();
-  const reply = await chat(auth.cookie, `${MARKER} project kaisa chal raha hai?`);
-  const recalled = /HttpLotus4421|restart-persistence/i.test(reply.text);
-  const natural = !/मुझे याद है|मेरी memory|database/i.test(reply.text);
-  writeFileSync("/tmp/maya-http-recall.json", JSON.stringify({ phase: "recall", recalled, natural, replyPreview: reply.text.slice(0, 160) }));
-  console.info(JSON.stringify({ phase: "recall", recalled, natural, replyPreview: reply.text.slice(0, 160) }));
-  if (!recalled || !natural) process.exit(1);
-} else {
+async function main() {
+  if (!email || password.length < 12) {
+    throw new Error("Owner authentication is not configured.");
+  }
+  if (PHASE === "store") {
+    const auth = await login();
+    const reply = await chat(auth.cookie, `The project named ${MARKER} is my restart-persistence project.`);
+    writeFileSync("/tmp/maya-http-persistence.json", JSON.stringify({ marker: MARKER, stored: true, replyPreview: reply.text.slice(0, 160) }));
+    console.info(JSON.stringify({ phase: "store", stored: true, replyPreview: reply.text.slice(0, 160) }));
+    return;
+  }
+  if (PHASE === "recall") {
+    const auth = await login();
+    const reply = await chat(auth.cookie, `${MARKER} project kaisa chal raha hai?`);
+    const recalled = /HttpLotus4421|restart-persistence/i.test(reply.text);
+    const natural = !/मुझे याद है|मेरी memory|database/i.test(reply.text);
+    writeFileSync("/tmp/maya-http-recall.json", JSON.stringify({ phase: "recall", recalled, natural, replyPreview: reply.text.slice(0, 160) }));
+    console.info(JSON.stringify({ phase: "recall", recalled, natural, replyPreview: reply.text.slice(0, 160) }));
+    if (!recalled || !natural) process.exit(1);
+    return;
+  }
   throw new Error(`Unknown phase ${PHASE}`);
 }
+
+main().catch(() => {
+  console.error("http persistence failed");
+  process.exit(1);
+});
