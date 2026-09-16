@@ -1,9 +1,13 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 import { CONTENT_SECURITY_POLICY } from "./src/lib/security/csp";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   serverExternalPackages: ["@react-pdf/renderer"],
+  turbopack: {
+    root: path.join(__dirname),
+  },
   async redirects() {
     return [
       {

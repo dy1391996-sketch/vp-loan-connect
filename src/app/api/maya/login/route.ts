@@ -3,6 +3,7 @@ import { z } from "zod";
 import { assertSameOrigin, rateLimit, requestIpHash } from "@/lib/security/request";
 import { authenticateOwner, MAYA_COOKIE, ownerAuthConfigured } from "@/lib/maya/owner";
 import { withMayaRuntime } from "@/lib/maya/runtime";
+import { redactSecrets } from "@/lib/maya/secrets";
 
 const schema = z.object({
   email: z.string().email().transform((value) => value.trim().toLowerCase()),
@@ -32,7 +33,16 @@ export async function POST(request: NextRequest) {
       expires: auth.expiresAt,
     });
     return response;
-  } catch {
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    if (err.message === "INVALID_ORIGIN") {
+      return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+    }
+    const failing = (err.stack ?? "").split("\n").map((line) => line.trim()).find((line) => line.startsWith("at ")) ?? "";
+    const message = err.message
+      .replace(/postgres(?:ql)?:\/\/\S+/gi, "postgresql://***")
+      .replace(/\$2[aby]?\$\d{2}\$[./A-Za-z0-9]+/g, "[bcrypt]");
+    console.error("maya_login_failed", redactSecrets({ name: err.name, message, failing }));
     return NextResponse.json({ error: "Unable to sign in." }, { status: 500 });
   }
 }
