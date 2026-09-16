@@ -47,4 +47,4 @@ function mayaUnauthorized(request: NextRequest, isApi: boolean) {
   return NextResponse.redirect(new URL(`/maya/login?next=${encodeURIComponent(request.nextUrl.pathname)}`, request.url));
 }
 
-export const config = { matcher: ["/admin/:path*", "/api/admin/:path*", "/maya/:path*", "/api/maya/:path*"] };
+export const config = { matcher: ["/admin/:path*", "/api/admin/:path*", "/maya", "/maya/:path*", "/api/maya/:path*"] };

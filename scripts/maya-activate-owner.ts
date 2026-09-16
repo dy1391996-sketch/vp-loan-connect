@@ -7,6 +7,11 @@ import { getMayaEnv, resetMayaEnvCacheForTests } from "../src/lib/maya/env";
 
 resetMayaEnvCacheForTests();
 
+function quoteEnvValue(value: string) {
+  if (/[$\s"'\\]/.test(value)) return `'${value.replaceAll("'", `'\\''`)}'`;
+  return `"${value.replaceAll('"', '\\"')}"`;
+}
+
 function upsertEnvLocal(updates: Record<string, string | null>) {
   const path = resolve(process.cwd(), ".env.local");
   const current = existsSync(path) ? readFileSync(path, "utf8") : "";
@@ -27,11 +32,11 @@ function upsertEnvLocal(updates: Record<string, string | null>) {
     seen.add(key);
     const value = updates[key];
     if (value === null) continue;
-    next.push(`${key}="${value.replaceAll('"', '\\"')}"`);
+    next.push(`${key}=${quoteEnvValue(value)}`);
   }
   for (const [key, value] of Object.entries(updates)) {
     if (seen.has(key) || value === null) continue;
-    next.push(`${key}="${value.replaceAll('"', '\\"')}"`);
+    next.push(`${key}=${quoteEnvValue(value)}`);
   }
   writeFileSync(path, `${next.filter((line, index, all) => !(line === "" && all[index - 1] === "")).join("\n").trim()}\n`);
 }

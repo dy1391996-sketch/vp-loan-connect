@@ -88,6 +88,21 @@ async function main() {
     session: sessionOk ? "PASS" : "FAIL",
     logout: logoutOk ? "PASS" : "FAIL",
     ownerIdScoping: ownerScoped ? "PASS" : "FAIL",
+    statuses: {
+      loginPage: loginPage.status,
+      unauthMaya: unauthMaya.status,
+      unauthMemoryPage: unauthMemoryPage.status,
+      unauthApi: unauthApi.status,
+      invalid: invalid.status,
+      valid: valid.status,
+      hasCookie: Boolean(cookie),
+      navChat: navChat.status,
+      navMemory: navMemory.status,
+      navPage: navPage.status,
+      logout: logout.status,
+      afterLogout: afterLogout.status,
+      afterLogoutPage: afterLogoutPage.status,
+    },
   };
   writeFileSync("/tmp/maya-owner-auth-report.json", JSON.stringify(report, null, 2));
   console.info(JSON.stringify(report));
