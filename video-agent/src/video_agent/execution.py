@@ -22,7 +22,7 @@ def classify_execution() -> dict[str, Any]:
     hostname = platform.node()
     system = platform.system()
     machine = platform.machine()
-    if cursor_agent and (docker or hypervisor or hostname == "cursor"):
+    if (cursor_agent or hostname == "cursor") and (docker or hypervisor):
         kind = "cursor_cloud_container"
         physical_host = False
         summary = (

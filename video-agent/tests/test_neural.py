@@ -31,6 +31,9 @@ class NeuralProviderTests(unittest.TestCase):
             "linux_or_other_host",
         })
         self.assertTrue(exe["summary"])
+        if Path("/.dockerenv").exists() and exe["hostname"] == "cursor":
+            self.assertEqual(exe["kind"], "cursor_cloud_container")
+            self.assertFalse(exe["physical_host"])
 
     def test_model_spec_is_2b_not_14b(self) -> None:
         spec = estimate_requirements()
