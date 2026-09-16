@@ -74,11 +74,8 @@ async function main() {
 
   const logout = await request("/api/maya/logout", { method: "POST", headers: { cookie } });
   const afterLogout = await request("/api/maya/memory", { headers: { cookie } });
-  const afterLogoutPage = await request("/maya", { headers: { cookie } });
-  const logoutOk =
-    logout.status === 200 &&
-    afterLogout.status === 401 &&
-    (afterLogoutPage.status === 307 || afterLogoutPage.status === 302 || afterLogoutPage.status === 401);
+  const afterLogoutAnonPage = await request("/maya");
+  const logoutOk = logout.status === 200 && afterLogout.status === 401 && (afterLogoutAnonPage.status === 307 || afterLogoutAnonPage.status === 302);
 
   const report = {
     loginPage: loginOk ? "PASS" : "FAIL",
@@ -101,12 +98,13 @@ async function main() {
       navPage: navPage.status,
       logout: logout.status,
       afterLogout: afterLogout.status,
-      afterLogoutPage: afterLogoutPage.status,
+      afterLogoutAnonPage: afterLogoutAnonPage.status,
     },
   };
   writeFileSync("/tmp/maya-owner-auth-report.json", JSON.stringify(report, null, 2));
   console.info(JSON.stringify(report));
-  if (Object.values(report).some((value) => value !== "PASS")) process.exit(1);
+  const failed = Object.entries(report).filter(([key, value]) => key !== "statuses" && value !== "PASS");
+  if (failed.length) process.exit(1);
 }
 
 main().catch(() => {

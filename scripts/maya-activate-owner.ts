@@ -8,8 +8,9 @@ import { getMayaEnv, resetMayaEnvCacheForTests } from "../src/lib/maya/env";
 resetMayaEnvCacheForTests();
 
 function quoteEnvValue(value: string) {
-  if (/[$\s"'\\]/.test(value)) return `'${value.replaceAll("'", `'\\''`)}'`;
-  return `"${value.replaceAll('"', '\\"')}"`;
+  const escaped = value.startsWith("$2") ? value.replaceAll("$", "$$$$") : value;
+  if (/[$\s"'\\]/.test(escaped)) return `'${escaped.replaceAll("'", `'\\''`)}'`;
+  return `"${escaped.replaceAll('"', '\\"')}"`;
 }
 
 function upsertEnvLocal(updates: Record<string, string | null>) {
@@ -92,7 +93,7 @@ async function main() {
 
   console.info(JSON.stringify({
     ownerEmailConfigured: true,
-    passwordHashConfigured: true,
+    passwordHashConfigured: hash.startsWith("$2"),
     plaintextPasswordStored: false,
     ownerIdPinned: Boolean(ownerId),
     existingOwner: Boolean(existing),
