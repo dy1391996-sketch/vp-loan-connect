@@ -11,7 +11,8 @@ import { consolidateOwnerMemory } from "./consolidation";
 import { readFileSync } from "node:fs";
 import { backupStore, exportOwnerArchive, importSeed, restoreBackup, assertSeedImportSafe } from "./io";
 import { redactSecrets } from "./secrets";
-import { ownerAuthConfigured } from "./owner";
+import { authenticateOwner, ownerAuthConfigured } from "./owner";
+import bcrypt from "bcryptjs";
 import { handleInstagramMessage } from "./channels/instagram";
 import { resetMayaEnvCacheForTests } from "./env";
 import { ensureMasterVisualAsset, MASTER_MAYA_RELATIVE_PATH, registerVisualGeneration } from "./visual";
@@ -405,6 +406,30 @@ describe("owner env auth and secret redaction", () => {
     assert.equal(redacted.password, "[redacted]");
     assert.equal(redacted.MAYA_OWNER_PASSWORD_HASH, "[redacted]");
     assert.equal(redacted.ownerId, "abc");
+    process.env = previous;
+    resetMayaEnvCacheForTests();
+  });
+
+  it("prefers a bcrypt hash and authenticates without keeping plaintext in env", async () => {
+    const previous = { ...process.env };
+    const { store } = setup();
+    const password = "owner-hash-only-password";
+    const passwordHash = await bcrypt.hash(password, 4);
+    store.upsertOwner({
+      ...store.listOwners()[0],
+      email: "hash-owner@example.test",
+      passwordHash,
+    });
+    process.env.MAYA_OWNER_EMAIL = "hash-owner@example.test";
+    process.env.MAYA_OWNER_PASSWORD = "";
+    process.env.MAYA_OWNER_PASSWORD_HASH = passwordHash;
+    resetMayaEnvCacheForTests();
+    assert.equal(ownerAuthConfigured(), true);
+    const auth = await authenticateOwner(store, "hash-owner@example.test", password);
+    assert.ok(auth);
+    assert.equal(auth.owner.email, "hash-owner@example.test");
+    const denied = await authenticateOwner(store, "hash-owner@example.test", "wrong-password-12");
+    assert.equal(denied, null);
     process.env = previous;
     resetMayaEnvCacheForTests();
   });

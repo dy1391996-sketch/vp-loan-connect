@@ -16,7 +16,7 @@ async function main() {
   }
   const store = new InMemoryMayaStore(await loadMayaSnapshotFromPrisma(prisma));
   const owner = await ensureSeededOwner(store);
-  if (!owner) throw new Error("Set MAYA_OWNER_EMAIL and MAYA_OWNER_PASSWORD before importing seed.");
+  if (!owner) throw new Error("Set MAYA_OWNER_EMAIL and MAYA_OWNER_PASSWORD_HASH before importing seed.");
   const result = importSeed(store, owner.ownerId, seed);
   await saveMayaSnapshotToPrisma(prisma, store.snapshot());
   console.info("imported", file, result);

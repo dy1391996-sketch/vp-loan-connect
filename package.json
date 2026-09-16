@@ -23,7 +23,9 @@
     "maya:seed": "tsx scripts/maya-import-seed.ts",
     "maya:consolidate": "tsx scripts/maya-consolidate.ts",
     "maya:verify-persistence": "tsx scripts/maya-persistence-verify.ts",
-    "maya:http-persistence": "tsx scripts/maya-http-persistence.ts"
+    "maya:http-persistence": "tsx scripts/maya-http-persistence.ts",
+    "maya:activate-owner": "tsx scripts/maya-activate-owner.ts",
+    "maya:verify-owner-auth": "tsx scripts/maya-owner-auth-verify.ts"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.3.0",
