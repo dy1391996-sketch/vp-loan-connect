@@ -16,6 +16,7 @@ resetMayaEnvCacheForTests();
 const MARKER = "IndigoLotus9183";
 const PERSON = "Zaraqx";
 const OTHER_EMAIL = "isolation-other@example.test";
+const FIXTURE_RE = /TEST_FIXTURE-|IndigoLotus9183|HttpLotus4421|Zaraqx/;
 
 type CheckName =
   | "ownerAuth"
@@ -65,7 +66,7 @@ function brain(store: InMemoryMayaStore) {
 }
 
 function stripTestArtifacts<T extends Record<string, unknown>>(rows: T[], keys: Array<keyof T>) {
-  return rows.filter((row) => !keys.some((key) => /IndigoLotus9183|HttpLotus4421|Zaraqx/.test(String(row[key] ?? ""))));
+  return rows.filter((row) => !keys.some((key) => FIXTURE_RE.test(String(row[key] ?? ""))));
 }
 
 function purgeTestArtifacts(store: InMemoryMayaStore) {
@@ -104,7 +105,7 @@ function purgeTestArtifacts(store: InMemoryMayaStore) {
   snap.relationshipState = snap.relationshipState
     .filter((row) => row.ownerId !== otherId)
     .map((row) =>
-      /IndigoLotus9183|HttpLotus4421/.test(`${row.unfinishedTopic ?? ""} ${row.followUpCandidate ?? ""}`)
+      FIXTURE_RE.test(`${row.unfinishedTopic ?? ""} ${row.followUpCandidate ?? ""}`)
         ? { ...row, unfinishedTopic: null, followUpCandidate: null, ownerReportedMood: null }
         : row,
     );
@@ -183,23 +184,28 @@ try {
     text: `I will follow up on ${MARKER} tomorrow`,
     ownerAuthorized: true,
   });
-  if (!started.listProjects(ownerId).some((project) => project.name.includes(MARKER))) {
-    const atProject = nowIso();
-    started.upsertProject({
-      projectId: newId(),
-      ownerId,
-      name: MARKER,
-      aliases: [],
-      description: `persistence-check project ${MARKER}`,
-      status: "active",
-      importantPeople: [],
-      latestUpdate: `The project named ${MARKER} is my persistence-check project.`,
-      openQuestions: [],
-      lastUpdated: atProject,
-      createdAt: atProject,
-    });
-  }
+  const fixtureId = newId();
+  const atProject = nowIso();
+  const fixtureProject = {
+    projectId: fixtureId,
+    ownerId,
+    name: `TEST_FIXTURE-${fixtureId}`,
+    aliases: ["TEST_FIXTURE"],
+    description: `TEST_FIXTURE persistence row ${fixtureId}`,
+    status: "active" as const,
+    importantPeople: [],
+    currentGoal: "verify prisma project roundtrip",
+    latestUpdate: `TEST_FIXTURE ${fixtureId} created`,
+    openQuestions: ["none"],
+    nextAction: "delete after verify",
+    lastUpdated: atProject,
+    createdAt: atProject,
+  };
+  started.upsertProject(fixtureProject);
   await persist(started);
+
+  const fixtureRow = await prisma.mayaProject.findUnique({ where: { id: fixtureId } });
+  if (!fixtureRow) fail("projectPersistence", "TEST_FIXTURE project was not written to PostgreSQL.");
 
   const restarted = await reloadStore();
   const restartedOwner = restarted.getOwnerByEmail(env.MAYA_OWNER_EMAIL);
@@ -275,7 +281,7 @@ try {
 
   const loopBefore = corrected.listOpenLoops(correctedOwner.ownerId, ["open"]).find((loop) => loop.description.includes(MARKER));
   const personBefore = corrected.listPeople(correctedOwner.ownerId).find((person) => person.name === PERSON);
-  const projectBefore = corrected.listProjects(correctedOwner.ownerId).find((project) => project.name.includes(MARKER) || (project.latestUpdate ?? "").includes(MARKER));
+  const projectBefore = corrected.listProjects(correctedOwner.ownerId).find((project) => project.projectId === fixtureId);
   const timelineBefore = corrected.listTimeline(correctedOwner.ownerId).find((event) => event.summary.includes(MARKER));
   const relationshipBefore = corrected.getRelationshipState(correctedOwner.ownerId);
   if (!relationshipBefore) fail("relationshipStatePersistence", "Relationship state missing.");
@@ -298,7 +304,22 @@ try {
   checks.deletion = deleted?.status === "deleted" && retrievedDeleted.ranked.every((row) => row.memory.memoryId !== deleteTarget.memoryId);
   checks.timelinePersistence = afterMutations.listTimeline(afterOwner.ownerId).some((event) => event.summary.includes(MARKER) && event.eventId === timelineBefore?.eventId);
   checks.peoplePersistence = afterMutations.listPeople(afterOwner.ownerId).some((person) => person.personId === personBefore?.personId && person.name === PERSON);
-  checks.projectPersistence = afterMutations.listProjects(afterOwner.ownerId).some((project) => project.projectId === projectBefore?.projectId && (project.name.includes(MARKER) || (project.latestUpdate ?? "").includes(MARKER)));
+  const reloadedFixture = afterMutations.listProjects(afterOwner.ownerId).find((project) => project.projectId === fixtureId);
+  const dbFixture = await prisma.mayaProject.findUnique({ where: { id: fixtureId } });
+  checks.projectPersistence = Boolean(
+    projectBefore &&
+      reloadedFixture &&
+      dbFixture &&
+      reloadedFixture.projectId === fixtureId &&
+      reloadedFixture.name === `TEST_FIXTURE-${fixtureId}` &&
+      reloadedFixture.description === fixtureProject.description &&
+      reloadedFixture.status === "active" &&
+      reloadedFixture.currentGoal === fixtureProject.currentGoal &&
+      reloadedFixture.latestUpdate === fixtureProject.latestUpdate &&
+      reloadedFixture.nextAction === fixtureProject.nextAction &&
+      dbFixture.name === reloadedFixture.name &&
+      dbFixture.description === reloadedFixture.description,
+  );
   const rel = afterMutations.getRelationshipState(afterOwner.ownerId);
   checks.relationshipStatePersistence = rel?.ownerReportedMood === "upbeat" && rel.unfinishedTopic?.includes(MARKER) === true;
   checks.openLoopsPersistence = afterMutations.listOpenLoops(afterOwner.ownerId).some((loop) => loop.openLoopId === loopBefore?.openLoopId && loop.status === "open");
@@ -314,8 +335,12 @@ try {
   await persist(cleaned);
 
   const finalStore = await reloadStore();
-  const leftover = /IndigoLotus9183|HttpLotus4421|Zaraqx/.test(JSON.stringify(finalStore.snapshot())) || Boolean(finalStore.getOwnerByEmail(OTHER_EMAIL));
-  if (leftover) fail("deletion", "Test artifacts remained after cleanup.");
+  const leftover = FIXTURE_RE.test(JSON.stringify(finalStore.snapshot())) || Boolean(finalStore.getOwnerByEmail(OTHER_EMAIL));
+  const leftoverFixtures = await prisma.mayaProject.count({
+    where: { OR: [{ name: { startsWith: "TEST_FIXTURE-" } }, { aliases: { has: "TEST_FIXTURE" } }] },
+  });
+  if (leftover || leftoverFixtures > 0) fail("deletion", "TEST_FIXTURE rows remained after cleanup.");
+  const fixturesCleaned = leftoverFixtures === 0 && !leftover;
 
   checks.seedImporterReady = true;
   const memoriesAfter = finalStore.snapshot().memories.filter((memory) => memory.status !== "deleted").length;
@@ -334,8 +359,10 @@ try {
     relationshipStatePersistence: checks.relationshipStatePersistence ? "PASS" : "FAIL",
     openLoopsPersistence: checks.openLoopsPersistence ? "PASS" : "FAIL",
     seedImporterReady: checks.seedImporterReady ? "PASS" : "FAIL",
+    testFixturesCleaned: fixturesCleaned ? "PASS" : "FAIL",
     paidApiUsed: "NO",
     instagramActivated: "NO",
+    mayaStore: env.MAYA_STORE,
     database: "postgresql://127.0.0.1:5432/vploanconnect",
     mayaTables: found,
     migrations: migrations.map((row) => row.migration_name),
