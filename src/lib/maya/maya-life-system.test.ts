@@ -11,7 +11,7 @@ import { consolidateOwnerMemory } from "./consolidation";
 import { readFileSync } from "node:fs";
 import { backupStore, exportOwnerArchive, importSeed, restoreBackup, assertSeedImportSafe } from "./io";
 import { redactSecrets } from "./secrets";
-import { authenticateOwner, ownerAuthConfigured } from "./owner";
+import { authenticateOwner, ensureSeededOwner, ownerAuthConfigured } from "./owner";
 import bcrypt from "bcryptjs";
 import { handleInstagramMessage } from "./channels/instagram";
 import { resetMayaEnvCacheForTests } from "./env";
@@ -430,6 +430,61 @@ describe("owner env auth and secret redaction", () => {
     assert.equal(auth.owner.email, "hash-owner@example.test");
     const denied = await authenticateOwner(store, "hash-owner@example.test", "wrong-password-12");
     assert.equal(denied, null);
+    process.env = previous;
+    resetMayaEnvCacheForTests();
+  });
+
+  it("synchronizes an existing owner's hash from env without duplicating or deleting memory", async () => {
+    const previous = { ...process.env };
+    const { store, owner } = setup();
+    const oldPassword = "previous-owner-pass";
+    const newPassword = "current-owner-pass";
+    const oldHash = await bcrypt.hash(oldPassword, 4);
+    const newHash = await bcrypt.hash(newPassword, 4);
+    const memoryId = newId();
+    const sessionId = newId();
+    const at = nowIso();
+    store.upsertOwner({ ...owner, email: "sync-owner@example.test", passwordHash: oldHash });
+    store.addMemory({
+      memoryId,
+      ownerId: owner.ownerId,
+      type: "SEMANTIC",
+      content: "keep this memory",
+      createdAt: at,
+      eventTimePrecision: "unknown",
+      learnedAt: at,
+      confidence: "KNOWN",
+      importance: 0.7,
+      emotionalWeight: 0,
+      sensitivity: "normal",
+      status: "active",
+      relatedPeople: [],
+      relatedProjects: [],
+      relatedEvents: [],
+      tags: [],
+      provenance: "REAL_USER_REPORTED",
+    });
+    store.createSession({
+      sessionId,
+      ownerId: owner.ownerId,
+      tokenHash: "old-session-hash",
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      createdAt: at,
+    });
+    process.env.MAYA_OWNER_EMAIL = "sync-owner@example.test";
+    process.env.MAYA_OWNER_PASSWORD = "";
+    process.env.MAYA_OWNER_PASSWORD_HASH = newHash;
+    resetMayaEnvCacheForTests();
+    const seeded = await ensureSeededOwner(store);
+    assert.equal(seeded?.ownerId, owner.ownerId);
+    assert.equal(store.listOwners().length, 1);
+    assert.equal(store.getOwner(owner.ownerId)?.passwordHash, newHash);
+    assert.equal(store.listMemories({ ownerId: owner.ownerId }).some((memory) => memory.memoryId === memoryId), true);
+    assert.ok(store.snapshot().sessions.find((session) => session.sessionId === sessionId)?.revokedAt);
+    const accepted = await authenticateOwner(store, "sync-owner@example.test", newPassword);
+    assert.ok(accepted);
+    assert.equal(accepted.owner.ownerId, owner.ownerId);
+    assert.equal(await authenticateOwner(store, "sync-owner@example.test", oldPassword), null);
     process.env = previous;
     resetMayaEnvCacheForTests();
   });

@@ -14,7 +14,8 @@ export async function POST(request: NextRequest) {
   try {
     assertSameOrigin(request);
     const ipHash = requestIpHash(request) ?? "unknown";
-    if (!rateLimit(`maya-login:${ipHash}`, 8, 15 * 60 * 1000).allowed) {
+    const loginLimit = process.env.NODE_ENV === "production" ? 8 : 40;
+    if (!rateLimit(`maya-login:${ipHash}`, loginLimit, 15 * 60 * 1000).allowed) {
       return NextResponse.json({ error: "Too many login attempts." }, { status: 429 });
     }
     if (!ownerAuthConfigured()) {
@@ -39,10 +40,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
     }
     const failing = (err.stack ?? "").split("\n").map((line) => line.trim()).find((line) => line.startsWith("at ")) ?? "";
-    const message = err.message
-      .replace(/postgres(?:ql)?:\/\/\S+/gi, "postgresql://***")
-      .replace(/\$2[aby]?\$\d{2}\$[./A-Za-z0-9]+/g, "[bcrypt]");
-    console.error("maya_login_failed", redactSecrets({ name: err.name, message, failing }));
+    const redacted = (value: string) =>
+      value.replace(/postgres(?:ql)?:\/\/\S+/gi, "postgresql://***").replace(/\$2[aby]?\$\d{2}\$[./A-Za-z0-9]+/g, "[bcrypt]");
+    console.error(
+      "maya_login_failed",
+      redactSecrets({ name: err.name, message: redacted(err.message), failing, stack: redacted(err.stack ?? "") }),
+    );
     return NextResponse.json({ error: "Unable to sign in." }, { status: 500 });
   }
 }

@@ -18,12 +18,18 @@ function MayaLoginForm() {
     setError("");
     const response = await fetch("/api/maya/login", {
       method: "POST",
+      credentials: "same-origin",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
     setPending(false);
     if (!response.ok) {
-      setError("Could not sign in.");
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      if (response.status === 401) setError(payload?.error || "Invalid email or password.");
+      else if (response.status === 403) setError(payload?.error || "Invalid request origin.");
+      else if (response.status === 429) setError(payload?.error || "Too many login attempts.");
+      else if (response.status === 503) setError(payload?.error || "Owner authentication is not configured.");
+      else setError(payload?.error || "Unable to sign in.");
       return;
     }
     router.replace(next.startsWith("/maya") ? next : "/maya");

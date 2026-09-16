@@ -6,7 +6,6 @@ import { assertSameOrigin } from "./request";
 const ORIGINAL_ENV = { ...process.env };
 
 before(() => {
-  process.env.NODE_ENV = "development";
   process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
 });
 
@@ -23,6 +22,7 @@ describe("assertSameOrigin loopback aliases", () => {
     assert.doesNotThrow(() => assertSameOrigin(post("http://127.0.0.1:3000/api/maya/login", "http://127.0.0.1:3000")));
     assert.doesNotThrow(() => assertSameOrigin(post("http://localhost:3000/api/maya/login", "http://127.0.0.1:3000")));
     assert.doesNotThrow(() => assertSameOrigin(post("http://localhost:3000/api/maya/login", "http://localhost:3000")));
+    assert.doesNotThrow(() => assertSameOrigin(post("http://127.0.0.1:3000/api/maya/login", "http://[::1]:3000")));
   });
 
   it("rejects a different host", () => {

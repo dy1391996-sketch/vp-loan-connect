@@ -65,7 +65,7 @@ function brain(store: InMemoryMayaStore) {
   return new MayaBrain({ store, provider: createMockMayaProvider() });
 }
 
-function stripTestArtifacts<T extends Record<string, unknown>>(rows: T[], keys: Array<keyof T>) {
+function stripTestArtifacts<T extends object>(rows: T[], keys: Array<keyof T>) {
   return rows.filter((row) => !keys.some((key) => FIXTURE_RE.test(String(row[key] ?? ""))));
 }
 

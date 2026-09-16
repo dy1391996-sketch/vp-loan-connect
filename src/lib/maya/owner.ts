@@ -14,16 +14,44 @@ export function ownerAuthConfigured(env = getMayaEnv()) {
   return env.MAYA_OWNER_PASSWORD.length >= 12;
 }
 
+function configuredOwnerHash(env = getMayaEnv()) {
+  return env.MAYA_OWNER_PASSWORD_HASH.startsWith("$2") ? env.MAYA_OWNER_PASSWORD_HASH : "";
+}
+
+function revokeOwnerSessions(store: MayaStore, ownerId: string) {
+  const at = nowIso();
+  for (const session of store.snapshot().sessions) {
+    if (session.ownerId === ownerId && !session.revokedAt) store.revokeSession(session.sessionId, at);
+  }
+}
+
 async function createOwnerFromEnv(store: MayaStore) {
   const env = getMayaEnv();
   if (!ownerAuthConfigured(env)) return undefined;
+  const passwordHash = configuredOwnerHash(env) || (env.MAYA_OWNER_PASSWORD.length >= 12 ? await bcrypt.hash(env.MAYA_OWNER_PASSWORD, 12) : "");
+  if (!passwordHash) return undefined;
   const existing = store.getOwnerByEmail(env.MAYA_OWNER_EMAIL);
-  if (existing) return existing;
-  const passwordHash = env.MAYA_OWNER_PASSWORD_HASH.startsWith("$2")
-    ? env.MAYA_OWNER_PASSWORD_HASH
-    : await bcrypt.hash(env.MAYA_OWNER_PASSWORD, 12);
+  if (existing) {
+    const hashChanged = existing.passwordHash !== passwordHash;
+    if (hashChanged || !existing.active) {
+      store.upsertOwner({
+        ...existing,
+        passwordHash,
+        active: true,
+        updatedAt: nowIso(),
+      });
+      if (hashChanged) revokeOwnerSessions(store, existing.ownerId);
+    }
+    if (!store.getRelationshipState(existing.ownerId)) {
+      store.saveRelationshipState(defaultRelationshipState(existing.ownerId, nowIso()));
+    }
+    ensureMasterVisualAsset(store, existing.ownerId);
+    return store.getOwner(existing.ownerId);
+  }
+  const claimed = env.MAYA_OWNER_ID ? store.getOwner(env.MAYA_OWNER_ID) : undefined;
+  const ownerId = claimed ? newId() : env.MAYA_OWNER_ID || newId();
   const owner = store.upsertOwner({
-    ownerId: env.MAYA_OWNER_ID || newId(),
+    ownerId,
     email: env.MAYA_OWNER_EMAIL.toLowerCase(),
     passwordHash,
     instagramAccountIds: env.MAYA_INSTAGRAM_OWNER_IDS.split(/[\s,]+/).filter(Boolean),
