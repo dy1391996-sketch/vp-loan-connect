@@ -7,7 +7,16 @@ import { Header } from "@/components/layout/header";
 /** Hides marketing chrome inside conversion funnels (Quick Apply). */
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "";
-  const isFunnel = pathname.startsWith("/apply") || pathname.startsWith("/maya");
+  const isMaya = pathname.startsWith("/maya");
+  const isFunnel = pathname.startsWith("/apply") || isMaya;
+
+  if (isMaya) {
+    return (
+      <main id="main-content" className="h-screen overflow-hidden">
+        {children}
+      </main>
+    );
+  }
 
   if (isFunnel) {
     return <main id="main-content">{children}</main>;

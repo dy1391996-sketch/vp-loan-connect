@@ -55,6 +55,9 @@ function ownerReply(context: CompiledContext, lastUser: string) {
 
   const known = context.memories.find((memory) => memory.confidence === "KNOWN" && memory.type !== "CONVERSATION_SUMMARY");
   if (known && relevant(lastUser, known.content)) {
+    if (normalizeLoose(known.content) === normalizeLoose(lastUser)) {
+      return mix(lastUser, context.relationshipState.affectionContext);
+    }
     return weave(known.content, lastUser, context.relationshipState.affectionContext);
   }
 
@@ -114,6 +117,10 @@ function mentions(text: string, name: string) {
 
 function trimFact(value: string) {
   return value.replace(/\s+/g, " ").trim().slice(0, 160);
+}
+
+function normalizeLoose(value: string) {
+  return value.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
 }
 
 export function violatesPersonality(text: string) {

@@ -41,7 +41,7 @@ export default function MayaMemoryPage() {
   }, []);
 
   return (
-    <section className="mx-auto max-w-5xl px-4 py-8">
+    <section className="mx-auto h-full max-w-5xl overflow-y-auto px-4 py-8">
       <div className="flex items-center justify-between">
         <div>
           <Link href="/maya" className="text-sm text-[#e7b7c8]">

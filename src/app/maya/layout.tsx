@@ -6,5 +6,5 @@ export const metadata: Metadata = {
 };
 
 export default function MayaLayout({ children }: { children: React.ReactNode }) {
-  return <div className="maya-shell min-h-screen bg-[#120b10] text-[#f6efe8]">{children}</div>;
+  return <div className="maya-shell h-screen overflow-hidden bg-[#120b10] text-[#f6efe8]">{children}</div>;
 }

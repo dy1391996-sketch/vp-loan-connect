@@ -6,13 +6,26 @@ import Link from "next/link";
 type ChatItem = { role: "owner" | "maya"; text: string };
 
 export default function MayaChatPage() {
-  const [items, setItems] = useState<ChatItem[]>([
-    { role: "maya", text: "Hey. I'm here." },
-  ]);
+  const [items, setItems] = useState<ChatItem[]>([]);
   const [text, setText] = useState("");
   const [conversationId, setConversationId] = useState<string>();
   const [pending, setPending] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    void (async () => {
+      const saved = window.sessionStorage.getItem("mayaConversationId") ?? "";
+      const response = await fetch(`/api/maya/chat${saved ? `?conversationId=${saved}` : ""}`);
+      if (!response.ok) return;
+      const data = (await response.json()) as { conversationId: string | null; messages: ChatItem[] };
+      if (data.conversationId) {
+        setConversationId(data.conversationId);
+        window.sessionStorage.setItem("mayaConversationId", data.conversationId);
+      }
+      const history = data.messages.filter((message) => message.role === "owner" || message.role === "maya");
+      setItems(history.length ? history : [{ role: "maya", text: "Hey. I'm here." }]);
+    })();
+  }, []);
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
@@ -37,12 +50,13 @@ export default function MayaChatPage() {
     }
     const data = (await response.json()) as { text: string; conversationId: string };
     setConversationId(data.conversationId);
+    window.sessionStorage.setItem("mayaConversationId", data.conversationId);
     setItems((current) => [...current, { role: "maya", text: data.text }]);
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-3xl flex-col">
-      <header className="flex items-center gap-3 border-b border-[#3a2a31] px-4 py-3">
+    <div className="mx-auto flex h-full max-w-3xl flex-col">
+      <header className="flex shrink-0 items-center gap-3 border-b border-[#3a2a31] px-4 py-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/api/maya/visual" alt="Maya" className="h-12 w-12 rounded-full object-cover" />
         <div>
@@ -55,6 +69,7 @@ export default function MayaChatPage() {
             type="button"
             onClick={async () => {
               await fetch("/api/maya/logout", { method: "POST" });
+              window.sessionStorage.removeItem("mayaConversationId");
               window.location.href = "/maya/login";
             }}
           >
@@ -62,7 +77,7 @@ export default function MayaChatPage() {
           </button>
         </div>
       </header>
-      <div ref={scroller} className="flex-1 space-y-4 overflow-y-auto px-4 py-6">
+      <div ref={scroller} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-6">
         {items.map((item, index) => (
           <div key={`${item.role}-${index}`} className={item.role === "owner" ? "ml-auto max-w-[80%] rounded-3xl bg-[#3a2a31] px-4 py-3" : "max-w-[80%] rounded-3xl bg-[#241820] px-4 py-3"}>
             <p className="whitespace-pre-wrap leading-relaxed">{item.text}</p>
@@ -70,7 +85,7 @@ export default function MayaChatPage() {
         ))}
         {pending ? <p className="text-sm text-[#d7c4c8]">…</p> : null}
       </div>
-      <form onSubmit={onSubmit} className="border-t border-[#3a2a31] p-4">
+      <form onSubmit={onSubmit} className="shrink-0 border-t border-[#3a2a31] bg-[#120b10] p-4">
         <div className="flex gap-2">
           <input
             value={text}

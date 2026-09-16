@@ -9,6 +9,24 @@ const schema = z.object({
   conversationId: z.string().uuid().optional(),
 });
 
+export async function GET(request: NextRequest) {
+  const token = request.cookies.get(MAYA_COOKIE)?.value;
+  const result = await withMayaRuntime(async ({ store }) => {
+    const auth = await ownerFromToken(store, token);
+    if (!auth) return null;
+    const requested = request.nextUrl.searchParams.get("conversationId");
+    const conversation = (requested ? store.getConversation(auth.owner.ownerId, requested) : undefined) ?? store.listConversations(auth.owner.ownerId)[0];
+    if (!conversation) return { conversationId: null, messages: [] as Array<{ role: "owner" | "maya"; text: string }> };
+    const messages = store.listMessages(auth.owner.ownerId, conversation.conversationId, 80).map((message) => ({
+      role: message.role,
+      text: message.text,
+    }));
+    return { conversationId: conversation.conversationId, messages };
+  });
+  if (!result) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  return NextResponse.json(result);
+}
+
 export async function POST(request: NextRequest) {
   try {
     assertSameOrigin(request);

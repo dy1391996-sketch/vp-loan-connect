@@ -13,7 +13,7 @@ export default function MayaDebugPage() {
   }
 
   return (
-    <section className="mx-auto max-w-4xl px-4 py-8">
+    <section className="mx-auto h-full max-w-4xl overflow-y-auto px-4 py-8">
       <Link href="/maya" className="text-sm text-[#e7b7c8]">
         ← Chat
       </Link>
