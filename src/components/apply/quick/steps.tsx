@@ -58,7 +58,7 @@ export function QuickApplyStepBody({ form, patch, step, errors, otp }: Props) {
           Start with your loan need
         </h1>
         <p className="mt-3 text-sm leading-7 text-slate-600">
-          Tell us the amount, then verify email. Credit Profile Booster checkout comes next — PAN and detailed work questions come after payment.
+          Tell us the amount and verify your email. Work, income and PAN come next. Your result and matched options appear before the optional Credit Profile Booster.
         </p>
         <div className="mt-8 grid gap-4">
           <label className="block">
@@ -208,10 +208,6 @@ export function QuickApplyStepBody({ form, patch, step, errors, otp }: Props) {
   }
 
   if (step === 3) {
-    return null;
-  }
-
-  if (step === 4) {
     return (
       <div>
         <h1 className="font-display text-3xl font-extrabold tracking-[-0.045em] text-navy-950">Work, income and commitments</h1>
@@ -362,7 +358,7 @@ export function QuickApplyStepBody({ form, patch, step, errors, otp }: Props) {
     );
   }
 
-  if (step === 5) {
+  if (step === 4) {
     const creditLabel = CREDIT_OPTIONS.find((item) => item.id === form.creditRange)?.label || "—";
     const employmentLabel = EMPLOYMENT_OPTIONS.find((item) => item.id === form.employmentUi)?.label || "—";
     return (

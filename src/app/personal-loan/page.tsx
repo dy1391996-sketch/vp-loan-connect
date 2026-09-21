@@ -20,11 +20,11 @@ import { PLATFORM_DISCLAIMER, RESULT_DISCLAIMER } from "@/lib/constants";
 export const metadata: Metadata = {
   title: "Personal Loan Profile Check",
   description:
-    "Free personal-loan profile check, then optional ₹99 Credit Profile Booster for profile-matched loan options.",
+    "Personal-loan profile assessment, eligibility result and matched options, then an optional ₹99 Credit Profile Booster.",
   alternates: { canonical: "/personal-loan" },
   openGraph: {
     title: "Personal Loan Profile Check | VP Loan Connect",
-    description: "Free readiness check + ₹99 Credit Profile Booster. Profile-matched options first.",
+    description: "Profile assessment, matched options, then an optional ₹99 Credit Profile Booster.",
     url: "/personal-loan",
   },
 };
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 const benefits = [
   ["Collateral-free profile review", "Understand unsecured personal-loan readiness without uploading documents first."],
   ["Clear next-step guidance", "See EMI capacity, document gaps and matched official platform options."],
-  ["OTP-secured result", "Verify your contact details before the free indicative result is unlocked."],
+  ["OTP-secured result", "Verify your email before the indicative result is shown."],
   ["Apply only when ready", "We do not auto-submit your data. Every lender application stays voluntary."],
 ] as const;
 
@@ -40,7 +40,7 @@ const steps = [
   ["01", "Share your need", "Choose amount, purpose and basic contact details."],
   ["02", "Verify securely", "Complete OTP verification for a protected result link."],
   ["03", "Answer profile questions", "Income, existing EMIs, CIBIL range and document readiness."],
-  ["04", "View free result", "See indicative readiness before the optional ₹99 Credit Profile Booster."],
+  ["04", "View your result", "See indicative readiness and matched options before the optional ₹99 Credit Profile Booster."],
   ["05", "Best-fit official platforms", "Open profile-ranked lender or LSP journeys only if you choose."],
 ] as const;
 
@@ -94,7 +94,7 @@ export default function PersonalLoanPage() {
               </ButtonLink>
             </div>
             <div className="mt-10 flex flex-wrap gap-x-7 gap-y-3 text-sm text-slate-300">
-              <span className="flex items-center gap-2"><Clock3 className="text-brand-500" size={17} />Free indicative result</span>
+              <span className="flex items-center gap-2"><Clock3 className="text-brand-500" size={17} />Indicative result first</span>
               <span className="flex items-center gap-2"><FileCheck2 className="text-brand-500" size={17} />No document upload</span>
               <span className="flex items-center gap-2"><LockKeyhole className="text-brand-500" size={17} />Secure OTP verification</span>
             </div>
@@ -171,7 +171,7 @@ export default function PersonalLoanPage() {
               <RateRow label="Common digital tenure band" value="12 – 60 months" />
               <RateRow label="Indicative interest range (market)" value="About 12% – 36% p.a." />
               <RateRow label="Processing / tech charges (market)" value="Often 1% – 3% + taxes" />
-              <RateRow label="What VP Loan Connect charges for the free check" value="₹0 for indicative result" />
+              <RateRow label="Indicative result on this journey" value="Included before the optional booster" />
             </dl>
             <div className="border-t border-line bg-navy-950 p-6 text-white sm:p-7">
               <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-500">Example EMI (estimate only)</p>
@@ -247,11 +247,11 @@ export default function PersonalLoanPage() {
               Personal loan options that fit your profile
             </h2>
             <p className="mt-4 text-base leading-8 text-slate-300">
-              Start with accurate information. No false approval promise and no pressure to pay before the free result.
+              Start with accurate information. The eligibility result and matched options come before the optional Credit Profile Booster.
             </p>
           </div>
           <ButtonLink href="/assessment?loanType=PERSONAL&purpose=Other%20personal%20need" size="lg">
-            Start Free Personal Loan Check <ArrowRight size={18} />
+            Check Personal Loan Options <ArrowRight size={18} />
           </ButtonLink>
         </div>
       </section>

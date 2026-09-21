@@ -11,13 +11,11 @@ import {
   MapPin,
   ShieldCheck,
   Sparkles,
-  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/form";
 import {
   MARKETING_CONSENT_TEXT,
-  PAYMENT_DESCRIPTION,
   SERVICE_CONSENT_TEXT,
   USP_PRICE_LABEL,
   USP_PRODUCT_NAME,
@@ -81,7 +79,7 @@ const STEPS = [
   { id: 1, label: "Verify" },
   { id: 2, label: "Eligibility" },
   { id: 3, label: "Address" },
-  { id: 4, label: "Unlock" },
+  { id: 4, label: "Result" },
 ] as const;
 
 const initialState: FormState = {
@@ -499,7 +497,7 @@ export function AssessmentForm() {
     };
   }
 
-  async function payNow() {
+  async function seeResult() {
     const issue = validateStep(4);
     if (issue) {
       setError(issue);
@@ -527,7 +525,7 @@ export function AssessmentForm() {
       trackEvent("assessment_completed");
       window.location.assign(`/result/${data.assessmentId}?token=${encodeURIComponent(data.accessToken || "")}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to open payment.");
+      setError(err instanceof Error ? err.message : "Unable to save your assessment.");
       setBusy(false);
     }
   }
@@ -596,9 +594,9 @@ export function AssessmentForm() {
               Continue <ArrowRight size={18} />
             </Button>
           ) : (
-            <Button type="button" disabled={busy} onClick={payNow}>
-              {busy ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
-              {busy ? "Opening payment…" : `Pay ${USP_PRICE_LABEL} & continue`}
+            <Button type="button" disabled={busy} onClick={seeResult}>
+              {busy ? <Loader2 className="animate-spin" size={18} /> : <ArrowRight size={18} />}
+              {busy ? "Saving your profile…" : "See my result"}
             </Button>
           )}
         </div>
@@ -981,16 +979,12 @@ function UnlockStep({ form, update }: StepProps) {
     <div>
       <div className="rounded-[1.5rem] bg-navy-950 p-6 text-white sm:p-8">
         <span className="inline-flex items-center gap-2 rounded-full bg-brand-500/15 px-3 py-1.5 text-xs font-extrabold text-brand-300">
-          <Zap size={14} /> Final step
+          <Sparkles size={14} /> Final step
         </span>
-        <h2 className="mt-4 text-3xl font-extrabold tracking-[-0.045em] sm:text-4xl">Unlock matched options</h2>
+        <h2 className="mt-4 text-3xl font-extrabold tracking-[-0.045em] sm:text-4xl">See your result</h2>
         <p className="mt-3 max-w-xl text-sm leading-7 text-slate-300">
-          {USP_PRODUCT_NAME}: profile analysis + official partner apply links ranked for your answers. Not a lender fee. Not an approval.
+          Submit this profile to view your eligibility result and matched options. The {USP_PRODUCT_NAME} ({USP_PRICE_LABEL} + GST, total {USP_TOTAL_WITH_GST_LABEL}) stays optional after that result.
         </p>
-        <p className="mt-6 text-5xl font-extrabold text-brand-400">
-          {USP_PRICE_LABEL} <span className="text-base font-bold text-slate-400">+ GST</span>
-        </p>
-        <p className="mt-2 text-sm font-bold text-slate-300">Total payable: {USP_TOTAL_WITH_GST_LABEL}</p>
       </div>
 
       <div className="mt-5 grid gap-3 rounded-2xl border border-line bg-surface p-5 text-sm text-slate-700 sm:grid-cols-2">
@@ -1021,7 +1015,9 @@ function UnlockStep({ form, update }: StepProps) {
         ))}
       </div>
 
-      <p className="mt-5 text-xs leading-6 text-slate-500">{PAYMENT_DESCRIPTION}</p>
+      <p className="mt-5 text-xs leading-6 text-slate-500">
+        Payment is not collected on this step. If you later choose the Credit Profile Booster, that fee is a report service only — not a lender fee or an approval.
+      </p>
 
       <div className="mt-6 grid gap-4">
         <label className={cn("flex cursor-pointer items-start gap-4 rounded-2xl border p-5 transition", form.serviceConsent ? "border-brand-600 bg-brand-100/60" : "border-line bg-white")}>

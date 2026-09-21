@@ -106,7 +106,7 @@ export default async function PaymentSuccessPage({ searchParams }: { searchParam
             <div className="mt-6 rounded-3xl border border-line bg-white p-6 shadow-sm">
               <h2 className="font-extrabold text-navy-950">Next: complete your profile</h2>
               <p className="mt-3 text-sm leading-7 text-slate-600">
-                Payment is verified. PAN, address, work, income and credit details are collected after this unlock so we can generate your result and matched options.
+                Payment is verified. Finish any remaining profile details so the booster report can be generated. New applications complete the profile before this optional payment.
               </p>
               <ButtonLink href={continueHref} className="mt-5">
                 Continue application

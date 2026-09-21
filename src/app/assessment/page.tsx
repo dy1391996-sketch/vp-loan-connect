@@ -5,8 +5,8 @@ import { AssessmentForm } from "@/components/assessment/assessment-form";
 import { USP_PRICE_LABEL, USP_PRODUCT_NAME } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "Apply — Verify, eligibility, address, unlock",
-  description: `Complete a short profile (OTP, PAN, income, address) then unlock ${USP_PRODUCT_NAME} for ${USP_PRICE_LABEL} + GST with official partner links.`,
+  title: "Apply — Verify, profile, result",
+  description: `Complete a short profile (email OTP, PAN, income, address), then view your result and matched options. ${USP_PRODUCT_NAME} at ${USP_PRICE_LABEL} + GST is optional.`,
   alternates: { canonical: "/assessment" },
 };
 
@@ -26,10 +26,10 @@ export default function AssessmentPage() {
             </p>
             <h1 className="font-display mt-4 text-balance text-3xl font-extrabold tracking-[-0.05em] sm:text-5xl">
               Verify. Check eligibility.
-              <span className="mt-2 block text-brand-500">Unlock matched options.</span>
+              <span className="mt-2 block text-brand-500">See matched options.</span>
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
-              OTP verification, PAN & income, address, then honest {USP_PRICE_LABEL} {USP_PRODUCT_NAME}. We never ask for bank KYC or Aadhaar OTP.
+              Email OTP, PAN and income, then your eligibility result and matched options. {USP_PRODUCT_NAME} ({USP_PRICE_LABEL} + GST) is optional after that. We never ask for bank KYC or Aadhaar OTP.
             </p>
             <div className="mx-auto mt-7 flex max-w-3xl flex-wrap justify-center gap-3 text-xs font-bold text-slate-300">
               <span className="flex items-center gap-2 rounded-xl border border-white/12 bg-white/5 px-4 py-2.5 backdrop-blur">
@@ -55,7 +55,7 @@ export default function AssessmentPage() {
             <AssessmentForm />
           </Suspense>
           <p className="mx-auto mt-6 max-w-2xl text-center text-xs leading-6 text-slate-500">
-            {USP_PRICE_LABEL} is for Credit Profile Booster analysis and matched official apply links — not a lender processing fee or approval guarantee. Never share UPI PIN, CVV or Aadhaar OTP.
+            The optional {USP_PRICE_LABEL} Credit Profile Booster is a report service — not a lender processing fee or approval guarantee. Never share UPI PIN, CVV or Aadhaar OTP.
           </p>
         </div>
       </div>

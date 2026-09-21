@@ -1,8 +1,9 @@
-# FINAL HANDOFF — Organic Instagram @vploanconnect.in
+# FINAL HANDOFF — Organic Instagram
+
+**Current website configuration (2026-09-21):** approved public username is `@vploanconnect` (`https://www.instagram.com/vploanconnect/`). The website domain `vploanconnect.in` is not the Instagram handle. The August 2026 notes below recorded an earlier `@vploanconnect.in` session and are not the current website source of truth. Logged-in profile fields, pins and highlights still need owner verification.
 
 Updated (UTC): 2026-08-16  
-Branch: `cursor/instagram-organic-setup-bf91`  
-**Live handle:** `@vploanconnect.in` (Production SoT). Owner prompt’s `@vploanconnect` is not the live Production account.
+Branch: `cursor/instagram-organic-setup-bf91`
 
 Ads / Pixel / CAPI / billing / Boost: **UNTOUCHED**
 

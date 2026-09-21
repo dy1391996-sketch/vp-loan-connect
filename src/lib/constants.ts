@@ -59,7 +59,7 @@ export const LEAD_STAGE_LABELS: Record<string, string> = {
   OTP_VERIFIED: "OTP verified",
   ASSESSMENT_STARTED: "Assessment started",
   ASSESSMENT_COMPLETED: "Assessment completed",
-  FREE_RESULT_VIEWED: "Free result viewed",
+  FREE_RESULT_VIEWED: "Eligibility result viewed",
   PAYMENT_PENDING: "Payment pending",
   PAID: "Paid",
   REPORT_PROCESSING: "Report processing",

@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, CircleAlert, Loader2, ShieldCheck } from "lucide-react";
-import { CreditProfileBoosterPayCard } from "@/components/apply/quick/booster-pay-card";
+import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { FunnelHeader, FunnelSidebar, MobileTrustStrip, StickyActions } from "@/components/apply/quick/funnel-shell";
 import { QuickApplyStepBody } from "@/components/apply/quick/steps";
 import { Button } from "@/components/ui/button";
@@ -36,9 +35,7 @@ import {
   verifyMsg91EmailOtp,
 } from "@/lib/apply/msg91-email-otp";
 import { trackEvent } from "@/lib/analytics-client";
-import { RESULT_DISCLAIMER, USP_PRODUCT_SLUG } from "@/lib/constants";
 import { isIndividualPan, isValidPanFormat, normalizePan } from "@/lib/domain/identity";
-import { formatInr } from "@/lib/utils";
 
 const MSG91_WIDGET_ID = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID ?? "";
 const MSG91_WIDGET_TOKEN = process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ?? "";
@@ -62,8 +59,8 @@ function firstFieldError(fields?: Record<string, string[] | undefined>) {
   return "";
 }
 
-function checkoutHref(assessmentId: string, accessToken: string) {
-  return `/checkout?product=${USP_PRODUCT_SLUG}&assessment=${assessmentId}&token=${encodeURIComponent(accessToken)}`;
+function resultHref(assessmentId: string, accessToken: string) {
+  return `/result/${assessmentId}?token=${encodeURIComponent(accessToken)}`;
 }
 
 export function QuickApplyClient() {
@@ -80,7 +77,6 @@ export function QuickApplyClient() {
   const [otpReqId, setOtpReqId] = useState("");
   const [resendIn, setResendIn] = useState(0);
   const [otpReady, setOtpReady] = useState(false);
-  const [phase, setPhase] = useState<"form" | "result">("form");
   const [result, setResult] = useState<QuickApplyResultSnapshot | null>(null);
   const [paid, setPaid] = useState(false);
   const hydrated = useRef(false);
@@ -104,6 +100,7 @@ export function QuickApplyClient() {
     const paidParam = searchParams.get("paid") === "1";
     const assessmentParam = searchParams.get("assessment") || "";
     const tokenParam = searchParams.get("token") || "";
+    let leavingForResult = false;
 
     if (draft) {
       setForm({
@@ -116,52 +113,47 @@ export function QuickApplyClient() {
     }
 
     if (assessmentParam && tokenParam) {
-      const resume: QuickApplyResultSnapshot = {
-        assessmentId: assessmentParam,
-        accessToken: tokenParam,
-        loanAmount: Number.isFinite(amountParam) && amountParam > 0 ? amountParam : draft?.form.loanAmount || 50_000,
-        paid: paidParam || snapshot?.paid,
-        status: snapshot?.status === "COMPLETED" ? "COMPLETED" : "STARTED",
-        indicative: snapshot?.indicative,
-      };
-      setResult(resume);
-      writeResultSnapshot(resume);
-      setPaid(Boolean(resume.paid));
-      if (resume.status === "COMPLETED" && resume.indicative) {
-        setStep(6);
+      const completed = snapshot?.status === "COMPLETED" && snapshot.assessmentId === assessmentParam && Boolean(snapshot.indicative);
+      if (completed) {
+        leavingForResult = true;
+        window.location.replace(resultHref(assessmentParam, tokenParam));
       } else {
-        setStep(resume.paid ? 4 : 3);
+        const resume: QuickApplyResultSnapshot = {
+          assessmentId: assessmentParam,
+          accessToken: tokenParam,
+          loanAmount: Number.isFinite(amountParam) && amountParam > 0 ? amountParam : draft?.form.loanAmount || 50_000,
+          paid: paidParam || snapshot?.paid,
+          status: "STARTED",
+          indicative: snapshot?.indicative,
+        };
+        setResult(resume);
+        writeResultSnapshot(resume);
+        setPaid(Boolean(resume.paid));
+        // Legacy early checkout can return here before the profile is finished.
+        setStep(3);
       }
     } else if (snapshot?.status === "COMPLETED" && snapshot.indicative) {
-      setResult(snapshot);
-      setPaid(Boolean(snapshot.paid));
-      setStep(6);
+      leavingForResult = true;
+      window.location.replace(resultHref(snapshot.assessmentId, snapshot.accessToken));
     } else if (snapshot?.assessmentId) {
       setResult(snapshot);
       setPaid(Boolean(snapshot.paid));
-      setStep(snapshot.paid ? 4 : Math.min(Math.max(draft?.step || 3, 3), 5));
+      setStep(Math.min(Math.max(draft?.step || 3, 3), 4));
     } else if (draft) {
-      setStep(draft.step >= 3 ? 2 : draft.step);
+      setStep(Math.min(4, Math.max(1, draft.step)));
     }
-    trackEvent("assessment_started", { source: "quick_apply" });
+    if (!leavingForResult) trackEvent("assessment_started", { source: "quick_apply" });
   }, [searchParams]);
 
   useEffect(() => {
-    if (phase !== "form" || step >= 6) return;
+    if (step >= 4 && submitted.current) return;
     setSaved(false);
     const timer = window.setTimeout(() => {
       writeDraft(step, form, otpVerified);
       setSaved(true);
     }, 350);
     return () => window.clearTimeout(timer);
-  }, [step, form, otpVerified, phase]);
-
-  const resultViewTracked = useRef(false);
-  useEffect(() => {
-    if (phase !== "result" || resultViewTracked.current) return;
-    resultViewTracked.current = true;
-    trackEvent("free_result_viewed", { source: "quick_apply" });
-  }, [phase]);
+  }, [step, form, otpVerified]);
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -231,37 +223,6 @@ export function QuickApplyClient() {
     }
   }
 
-  useEffect(() => {
-    if (step !== 3 || !result?.assessmentId || !result.accessToken) return;
-    let cancelled = false;
-    async function refreshEntitlement() {
-      try {
-        const response = await fetch("/api/assessments/entitlement", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ assessmentId: result!.assessmentId, resultToken: result!.accessToken }),
-        });
-        const data = (await response.json()) as { paid?: boolean; hasScore?: boolean; status?: string };
-        if (!response.ok || cancelled) return;
-        if (data.paid) {
-          setPaid((prev) => prev || true);
-          setResult((prev) => {
-            if (!prev || prev.paid) return prev;
-            const next = { ...prev, paid: true, status: data.status === "COMPLETED" ? ("COMPLETED" as const) : prev.status };
-            writeResultSnapshot(next);
-            return next;
-          });
-        }
-      } catch {
-        /* ignore entitlement poll failures */
-      }
-    }
-    void refreshEntitlement();
-    return () => {
-      cancelled = true;
-    };
-  }, [step, result]);
-
   async function verifyOtpAndContinue() {
     if (otpCode.length !== 6) {
       setAttempted(true);
@@ -289,7 +250,7 @@ export function QuickApplyClient() {
       setOtpVerified(true);
       setOtpToken(data.verificationToken);
       trackEvent("email_verified");
-      await createDraftAndOfferPayment(data.verificationToken);
+      await createDraftAndContinue(data.verificationToken);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not verify email.");
     } finally {
@@ -297,7 +258,7 @@ export function QuickApplyClient() {
     }
   }
 
-  async function createDraftAndOfferPayment(verificationToken: string) {
+  async function createDraftAndContinue(verificationToken: string) {
     const draftResponse = await fetch("/api/assessments/draft", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -315,8 +276,8 @@ export function QuickApplyClient() {
       }),
     });
     const draftData = (await draftResponse.json()) as SubmitResponse & { status?: string };
-    if (!draftResponse.ok) throw new Error(draftData.error || "Could not start checkout.");
-    if (!draftData.assessmentId || !draftData.accessToken) throw new Error("Checkout access is missing. Please try again.");
+    if (!draftResponse.ok) throw new Error(draftData.error || "Could not continue your profile.");
+    if (!draftData.assessmentId || !draftData.accessToken) throw new Error("Profile access is missing. Please try again.");
     const snapshot: QuickApplyResultSnapshot = {
       assessmentId: draftData.assessmentId,
       accessToken: draftData.accessToken,
@@ -337,26 +298,6 @@ export function QuickApplyClient() {
       return;
     }
 
-    if (step === 3) {
-      if (paid && result) {
-        goToStep(4);
-        return;
-      }
-      if (!result?.assessmentId || !result.accessToken) {
-        setError("Complete email OTP verification again.");
-        goToStep(2);
-        return;
-      }
-      window.location.assign(checkoutHref(result.assessmentId, result.accessToken));
-      return;
-    }
-
-    if (step === 6) {
-      setPhase("result");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
-
     const issue = validateQuickApplyStep(step, form);
     if (issue) {
       setError("Please fix the highlighted fields.");
@@ -374,23 +315,17 @@ export function QuickApplyClient() {
       return;
     }
 
-    if (step === 5) {
+    if (step === 4) {
       await submitAssessment();
       return;
     }
 
-    goToStep(getNextQuickApplyStep(step, paid));
+    goToStep(getNextQuickApplyStep(step));
   }
 
   function goBack() {
     setError("");
     setAttempted(false);
-    if (phase === "result") {
-      setPhase("form");
-      setStep(6);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
     goToStep(getPreviousQuickApplyStep(step));
   }
 
@@ -457,7 +392,7 @@ export function QuickApplyClient() {
   }
 
   async function submitAssessment() {
-    const issue = validateQuickApplyStep(5, form);
+    const issue = validateQuickApplyStep(4, form);
     if (issue) {
       setError(issue);
       return;
@@ -467,9 +402,8 @@ export function QuickApplyClient() {
       goToStep(2);
       return;
     }
-    if (submitted.current && result?.indicative) {
-      goToStep(6);
-      setPhase("result");
+    if (submitted.current && result?.assessmentId && result.accessToken) {
+      window.location.assign(resultHref(result.assessmentId, result.accessToken));
       return;
     }
     setBusy(true);
@@ -503,8 +437,8 @@ export function QuickApplyClient() {
       submitted.current = true;
       writeResultSnapshot(snapshot);
       setResult(snapshot);
-      goToStep(6);
-      setPhase("result");
+      window.location.assign(data.resultUrl || resultHref(data.assessmentId, data.accessToken));
+      return;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Assessment submission failed.");
     } finally {
@@ -513,7 +447,7 @@ export function QuickApplyClient() {
   }
 
   const fieldErrors =
-    attempted && step < 6
+    attempted && step <= 4
       ? {
           ...validateQuickApplyStepFields(step, form),
           ...(step === 2 && otpCode.length !== 6 ? { otpCode: "Enter the 6-digit verification code." } : {}),
@@ -525,165 +459,39 @@ export function QuickApplyClient() {
       ? "Send email code"
       : step === 2
         ? "Verify and continue"
-        : step === 3
-          ? paid
-            ? "Continue to profile"
-            : "Unlock Credit Profile Booster — ₹116.82"
-          : step === 5
-            ? "See my loan options"
-            : step === 6
-              ? "View my loan options"
-              : "Continue";
-
-  const headerPhase = phase === "result" ? "result" : step === 3 ? "payment" : "form";
-
-  if (phase === "result" && result?.indicative) {
-    const emiMin = result.indicative.comfortableEmiMin;
-    const emiMax = result.indicative.comfortableEmiMax;
-    return (
-      <div className="min-h-screen bg-surface">
-        <FunnelHeader step={6} saved phase="result" />
-        <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
-          <div className="rounded-[1.75rem] border border-line bg-white p-6 shadow-soft sm:p-8">
-            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-700">Preliminary result</p>
-            <h1 className="font-display mt-3 text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">
-              Your preliminary loan profile is ready
-            </h1>
-            <p className="mt-3 text-sm leading-7 text-slate-600">
-              This is not a lender approval and not a bureau score. Final approval, APR, amount and tenure are decided by the lender.
-            </p>
-
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl bg-navy-950 p-5 text-white">
-                <p className="text-xs text-slate-300">Readiness band</p>
-                <p className="mt-2 text-3xl font-black text-brand-500">{result.indicative.readinessScore}</p>
-                <p className="mt-1 text-sm font-bold">{result.indicative.readinessLabel}</p>
-              </div>
-              <div className="rounded-2xl border border-line bg-surface p-5">
-                <p className="text-xs font-semibold text-slate-500">Requested amount</p>
-                <p className="mt-2 text-xl font-extrabold text-navy-950">{formatInr(result.loanAmount || form.loanAmount)}</p>
-              </div>
-              <div className="rounded-2xl border border-line bg-surface p-5">
-                <p className="text-xs font-semibold text-slate-500">Estimated affordable EMI</p>
-                <p className="mt-2 text-xl font-extrabold text-navy-950">
-                  {emiMin != null && emiMax != null ? `${formatInr(emiMin)}–${formatInr(emiMax)}` : "Subject to lender"}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <div>
-                <h2 className="font-extrabold text-navy-950">Positive profile factors</h2>
-                <ul className="mt-3 space-y-2">
-                  {(result.indicative.strengths || ["Self-reported details received for educational assessment."]).map((item) => (
-                    <li key={item} className="flex items-start gap-2 text-sm text-slate-600">
-                      <Check className="mt-0.5 shrink-0 text-brand-600" size={15} />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h2 className="font-extrabold text-navy-950">Improvement areas</h2>
-                <ul className="mt-3 space-y-2">
-                  {(result.indicative.improvements || ["Keep documents ready before applying to any lender."]).slice(0, 5).map((item) => (
-                    <li key={item} className="flex items-start gap-2 text-sm text-slate-600">
-                      <CircleAlert className="mt-0.5 shrink-0 text-amber-600" size={15} />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            {result.indicative.suitableCategories?.length ? (
-              <div className="mt-6">
-                <h2 className="font-extrabold text-navy-950">Relevant loan categories</h2>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {result.indicative.suitableCategories.map((item) => (
-                    <span key={item} className="rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-bold text-slate-700">
-                      {item}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            <div className="mt-8">
-              {paid ? (
-                <div className="rounded-2xl border border-brand-500/30 bg-brand-50 p-5 text-sm leading-6 text-navy-950">
-                  Credit Profile Booster is unlocked. Matched official lender links appear with your completed profile.
-                </div>
-              ) : result ? (
-                <CreditProfileBoosterPayCard checkoutUrl={checkoutHref(result.assessmentId, result.accessToken)} compact />
-              ) : null}
-            </div>
-
-            <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-              <ShieldCheck className="mt-0.5 shrink-0" size={18} />
-              <p>{RESULT_DISCLAIMER}</p>
-            </div>
-
-            <button type="button" className="mt-6 text-sm font-bold text-brand-700 underline" onClick={goBack}>
-              Back to profile
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+        : step === 4
+          ? "See my result"
+          : "Continue";
 
   return (
     <div className="min-h-screen bg-surface">
-      <FunnelHeader step={step} saved={saved} phase={headerPhase} />
+      <FunnelHeader step={step} saved={saved} phase="form" />
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:py-10">
         <div>
           <MobileTrustStrip />
           <div className="mt-4 rounded-[1.75rem] border border-line bg-white p-5 shadow-soft sm:p-8">
-            {step === 3 && result ? (
-              <div>
-                <h1 className="font-display text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">
-                  Unlock Credit Profile Booster
-                </h1>
-                <p className="mt-3 text-sm leading-7 text-slate-600">
-                  {paid
-                    ? "Payment is verified. Continue with your detailed profile — PAN, address and work details come after this unlock."
-                    : "Email is verified. Unlock matched loan options with the existing ₹99 + GST Credit Profile Booster before PAN and detailed work questions."}
-                </p>
-                <div className="mt-6">
-                  {paid ? (
-                    <div className="rounded-[1.5rem] border border-brand-500/30 bg-brand-50 p-6 text-sm leading-7 text-navy-950">
-                      Payment is verified. Continue to complete PAN, address and work details so we can show matched loan options.
-                    </div>
-                  ) : (
-                    <CreditProfileBoosterPayCard checkoutUrl={checkoutHref(result.assessmentId, result.accessToken)} />
-                  )}
-                </div>
-              </div>
-            ) : (
-              <QuickApplyStepBody
-                form={form}
-                patch={patch}
-                step={step}
-                errors={fieldErrors}
-                otp={{
-                  code: otpCode,
-                  setCode: setOtpCode,
-                  maskedEmail: maskEmail(form.email),
-                  resendIn,
-                  onResend: () => void resendOtp(),
-                  onChangeEmail: () => {
-                    setOtpVerified(false);
-                    setOtpToken("");
-                    setOtpCode("");
-                    goToStep(1);
-                  },
-                  sending: busy,
-                }}
-              />
-            )}
+            <QuickApplyStepBody
+              form={form}
+              patch={patch}
+              step={step}
+              errors={fieldErrors}
+              otp={{
+                code: otpCode,
+                setCode: setOtpCode,
+                maskedEmail: maskEmail(form.email),
+                resendIn,
+                onResend: () => void resendOtp(),
+                onChangeEmail: () => {
+                  setOtpVerified(false);
+                  setOtpToken("");
+                  setOtpCode("");
+                  goToStep(1);
+                },
+                sending: busy,
+              }}
+            />
             <StickyActions error={error}>
-              {step > 1 || phase === "result" ? (
+              {step > 1 ? (
                 <Button type="button" variant="secondary" className="min-w-24" onClick={goBack} disabled={busy}>
                   <ArrowLeft size={16} /> Back
                 </Button>

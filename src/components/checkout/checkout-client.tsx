@@ -291,7 +291,7 @@ export function CheckoutClient(props: Props) {
           {[
             "Personalized Credit Profile Booster analysis",
             "Downloadable action plan PDF",
-            "Official partner apply links (matched first)",
+            "Extended official-platform list in the booster report",
             "Refund protection for duplicate payments or system failures",
           ].map((item) => (
             <p key={item} className="flex gap-3 text-sm leading-6 text-slate-300">

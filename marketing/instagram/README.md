@@ -1,8 +1,9 @@
 # VP Loan Connect — Organic Instagram content kit
 
-Handle: **@vploanconnect.in** (production link-in-bio source of truth)  
-Display name: VP Loan Connect | Loan Assistance  
-Website: https://www.vploanconnect.in  
+Approved public username: **@vploanconnect**  
+Approved profile: https://www.instagram.com/vploanconnect/  
+Website (not the Instagram handle): https://www.vploanconnect.in  
+Older notes that used `@vploanconnect.in` are superseded for website configuration. Logged-in profile fields still need a separate owner check.  
 
 ## Scope
 

@@ -3,11 +3,10 @@ import { ButtonLink } from "@/components/ui/button";
 import { USP_PRICE_LABEL, USP_TOTAL_WITH_GST_LABEL } from "@/lib/constants";
 
 const BOOSTER_POINTS = [
-  "Detailed profile analysis",
+  "Detailed credit-profile explanation",
   "Personalized improvement plan",
-  "Downloadable PDF",
-  "Matched official lender links",
-  "Consultation eligibility (if supported)",
+  "Downloadable action-plan PDF",
+  "Secure report access",
 ];
 
 type Props = {
@@ -22,9 +21,9 @@ export function CreditProfileBoosterPayCard({ checkoutUrl, compact = false }: Pr
       <div className={compact ? "grid" : "grid lg:grid-cols-[1.15fr_0.85fr]"}>
         <div className="p-6">
           <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-brand-700">Credit Profile Booster</p>
-          <h2 className="mt-3 text-2xl font-extrabold text-navy-950">Unlock matched loan options</h2>
+          <h2 className="mt-3 text-2xl font-extrabold text-navy-950">Optional Credit Profile Booster</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            This is a profile-analysis service fee, not a lender processing fee and not a loan approval.
+            Your eligibility result is already available. This optional service fee adds the downloadable action plan. It is not a lender processing fee and not a loan approval.
           </p>
           <ul className="mt-4 space-y-2 text-sm text-slate-600">
             {BOOSTER_POINTS.map((item) => (
@@ -41,10 +40,10 @@ export function CreditProfileBoosterPayCard({ checkoutUrl, compact = false }: Pr
           <p className="text-sm text-slate-300">GST (18%) ₹17.82</p>
           <p className="mt-2 text-3xl font-black text-brand-500">{USP_TOTAL_WITH_GST_LABEL}</p>
           <ButtonLink href={checkoutUrl} size="lg" className="mt-6 w-full">
-            Unlock Credit Profile Booster — {USP_TOTAL_WITH_GST_LABEL} <ArrowRight size={18} />
+            Continue with Credit Profile Booster — {USP_TOTAL_WITH_GST_LABEL} <ArrowRight size={18} />
           </ButtonLink>
           <p className="mt-3 text-xs leading-6 text-slate-400">
-            Fee is for profile analysis and matched options — not a lender processing fee.
+            ₹99 + ₹17.82 GST. Fee is for the booster report, not a lender processing fee.
           </p>
         </div>
       </div>

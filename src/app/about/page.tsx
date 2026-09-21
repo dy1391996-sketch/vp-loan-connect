@@ -43,7 +43,7 @@ export default function AboutPage() {
             <InfoCard
               icon={FileText}
               title="What customers pay for"
-              body={`${USP_PRICE_LABEL} + GST (${USP_TOTAL_WITH_GST_LABEL}) ${USP_PRODUCT_NAME} report fee, plus optional consultation or assisted application support where offered.`}
+              body={`The only public paid offer is the ${USP_PRODUCT_NAME}: ${USP_PRICE_LABEL} + GST (${USP_TOTAL_WITH_GST_LABEL}). It is optional after your eligibility result.`}
             />
             <InfoCard
               icon={Building2}
@@ -55,12 +55,10 @@ export default function AboutPage() {
           <div className="mt-8 rounded-[2rem] border border-line bg-white p-7 shadow-sm sm:p-9">
             <h2 className="text-2xl font-extrabold tracking-[-0.035em] text-navy-950">Our services</h2>
             <ul className="mt-5 grid gap-3 text-sm leading-7 text-slate-600">
-              <li>Free profile assessment to explain credit-readiness indicators from the information you provide.</li>
+              <li>Profile assessment that explains credit-readiness indicators from the information you provide, then shows matched options.</li>
               <li>
-                Paid {USP_PRODUCT_NAME} ({USP_PRICE_LABEL} + GST) with profile analysis and matched official partner apply
-                links.
+                Optional {USP_PRODUCT_NAME} ({USP_PRICE_LABEL} + GST) with a downloadable action plan and extended guidance.
               </li>
-              <li>Optional consultation / assisted application guidance — educational support only.</li>
             </ul>
             <p className="mt-6 text-sm leading-7 text-slate-600">{PLATFORM_DISCLAIMER}</p>
             <p className="mt-4 text-sm leading-7 text-slate-600">
@@ -71,7 +69,7 @@ export default function AboutPage() {
 
           <div className="mt-8 flex flex-col gap-4 sm:flex-row">
             <ButtonLink href="/assessment" size="lg">
-              Start free assessment
+              Start profile assessment
             </ButtonLink>
             <ButtonLink href="/contact" variant="secondary" size="lg">
               Contact support

@@ -35,14 +35,14 @@ import { PLATFORM_DISCLAIMER, RESULT_DISCLAIMER, USP_TOTAL_WITH_GST_LABEL } from
 export const metadata: Metadata = {
   title: "Find Loan Options for Your Profile | VP Loan Connect",
   description:
-    "Check loan options for your profile in minutes. Verify email, unlock the ₹99 Credit Profile Booster, then complete PAN and profile details. Not a lender — no guaranteed approval.",
+    "Check loan options for your profile: Quick Apply, email OTP, profile assessment, then matched options. The ₹99 Credit Profile Booster is optional. Not a lender — no guaranteed approval.",
   alternates: { canonical: "/" },
 };
 
 const trustItems = [
   ["Email OTP first", ShieldCheck],
-  ["₹99 Credit Profile Booster", Sparkles],
-  ["Matched lenders first", SearchCheck],
+  ["Profile before payment", Sparkles],
+  ["Matched options next", SearchCheck],
   ["No document upload", FileCheck2],
   ["Privacy-first", LockKeyhole],
   ["Official apply links", Landmark],
@@ -72,17 +72,17 @@ const faqs = [
   ["Is the profile result a loan approval?", "No. It is an indicative view based on your answers. Eligibility, APR, amount and approval are decided only by the relevant lender."],
   ["Do I need to upload documents?", "Not during the initial assessment. We only ask whether documents are available. Never share a UPI PIN, CVV, bank password or Aadhaar OTP."],
   ["Will this profile check affect my CIBIL score?", "No. This assessment uses your self-reported CIBIL range; it does not pull a bureau report or create a lender enquiry."],
-  ["Is the ₹99 Credit Profile Booster mandatory?", "Matched official apply links and the full Credit Profile Booster require ₹99 + GST. We are not a lender and do not charge a % platform fee on your loan amount."],
+  ["Is the ₹99 Credit Profile Booster mandatory?", "No. Quick Apply, email OTP, the profile assessment, your eligibility result and matched options come first. The Credit Profile Booster is optional at ₹99 + ₹17.82 GST (₹116.82). We are not a lender and do not charge a percentage platform fee."],
   ["How will my information be used?", "Service consent covers the requested assessment. Marketing consent is separate and optional, and can be withdrawn."],
 ] as const;
 
 const journey = [
-  ["01", "Quick start", "Tell us the amount you need, or start from Quick Apply."],
-  ["02", "Email OTP", "Verify your email before checkout."],
-  ["03", "₹116.82 unlock", "Credit Profile Booster checkout — same ₹99 + GST fee."],
-  ["04", "Detailed profile", "Work, income, PAN, address and consent after payment."],
-  ["05", "View your options", "See the preliminary result and matched loan categories."],
-  ["06", "Official apply", "Continue only on the partner’s official flow if you choose."],
+  ["01", "Quick Apply", "Tell us the amount you need and start the profile."],
+  ["02", "Email OTP", "Verify your email before the assessment continues."],
+  ["03", "Profile assessment", "Work, income, PAN, address and consent."],
+  ["04", "Eligibility result", "See the indicative readiness view from your answers."],
+  ["05", "Matched options", "Review official platforms ranked for this profile."],
+  ["06", "Optional booster", `Credit Profile Booster only if you choose it — ${USP_TOTAL_WITH_GST_LABEL}.`],
 ] as const;
 
 export default function HomePage() {
@@ -125,7 +125,7 @@ export default function HomePage() {
               <span className="mt-2 block text-brand-500">for your profile.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300 sm:text-xl">
-              Check what may fit your amount, income and credit picture — then unlock matched official lender links with the Credit Profile Booster. We are not a lender and do not approve or disburse loans.
+              Check what may fit your amount, income and credit picture. See your result and matched options first. The Credit Profile Booster is optional. We are not a lender and do not approve or disburse loans.
             </p>
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
               <ButtonLink href="/apply/quick" size="lg">
@@ -138,11 +138,11 @@ export default function HomePage() {
             <div className="mt-10 flex flex-wrap gap-x-7 gap-y-3 text-sm text-slate-300">
               <span className="flex items-center gap-2">
                 <Clock3 className="text-brand-500" size={17} />
-                Email OTP, then a short check
+                Email OTP, then your profile
               </span>
               <span className="flex items-center gap-2">
                 <FileCheck2 className="text-brand-500" size={17} />
-                Existing {USP_TOTAL_WITH_GST_LABEL} booster
+                Optional {USP_TOTAL_WITH_GST_LABEL} booster
               </span>
               <span className="flex items-center gap-2">
                 <LockKeyhole className="text-brand-500" size={17} />
@@ -178,13 +178,13 @@ export default function HomePage() {
           <SectionHeading
             eyebrow="Simple, premium process"
             title="See options. Unlock matches when useful."
-            description="A clear journey: verify email, unlock Credit Profile Booster, then finish the detailed profile. No percentage platform fee on your loan amount."
+            description="A clear journey: verify email, complete the profile, then see your result and matched options. The Credit Profile Booster is optional."
             align="center"
           />
           <div className="mt-16 grid gap-5 md:grid-cols-3">
-            <ProcessCard number="01" icon={UserRoundCheck} title="Start + email OTP" description="Amount, purpose, name and email — then verify before checkout." />
-            <ProcessCard number="02" icon={HandCoins} title={`Pay ${USP_TOTAL_WITH_GST_LABEL} Booster`} description="Same Credit Profile Booster checkout — not a lender processing fee." />
-            <ProcessCard number="03" icon={ChartNoAxesCombined} title="Finish profile + options" description="PAN and work details come after payment, then matched official apply links." />
+            <ProcessCard number="01" icon={UserRoundCheck} title="Start + email OTP" description="Amount, purpose, name and email — then verify before the profile questions." />
+            <ProcessCard number="02" icon={ChartNoAxesCombined} title="Profile, result, matches" description="Work, income and PAN lead to an eligibility result and matched official options." />
+            <ProcessCard number="03" icon={HandCoins} title={`Optional ${USP_TOTAL_WITH_GST_LABEL} booster`} description="Choose the Credit Profile Booster only if you want the downloadable action plan." />
           </div>
         </div>
       </section>
@@ -380,7 +380,7 @@ export default function HomePage() {
                 Ready to check loan options for your profile?
                 </h2>
                 <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
-                  Verify email, unlock the {USP_TOTAL_WITH_GST_LABEL} Credit Profile Booster, then complete your profile for matched official partner links.
+                  Verify email, complete your profile, then view matched options. Add the {USP_TOTAL_WITH_GST_LABEL} Credit Profile Booster only if you want it.
                 </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">

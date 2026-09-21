@@ -56,10 +56,6 @@ export function validateQuickApplyStepFields(step: number, form: QuickApplyFormS
   }
 
   if (step === 3) {
-    return errors;
-  }
-
-  if (step === 4) {
     const age = ageFromDob(form.dateOfBirth);
     if (age === null) errors.dateOfBirth = "Enter a valid date of birth.";
     else if (age < 21 || age > 60) errors.dateOfBirth = "Applicant age must be between 21 and 60 years.";
@@ -96,7 +92,7 @@ export function validateQuickApplyStepFields(step: number, form: QuickApplyFormS
     return errors;
   }
 
-  if (step === 5) {
+  if (step === 4) {
     const pan = normalizePan(form.panNumber);
     if (!pan) {
       errors.panNumber = "Enter your PAN number.";
@@ -139,10 +135,9 @@ export function isLoanNeedComplete(form: QuickApplyFormState): boolean {
   );
 }
 
-/** After email OTP the next major screen is Credit Profile Booster payment. */
-export function getNextQuickApplyStep(step: number, paid = false): number {
-  if (step >= 6) return 6;
-  if (step === 3 && !paid) return 3;
+/** After email OTP the next screen is the profile assessment. Checkout stays optional after the result. */
+export function getNextQuickApplyStep(step: number): number {
+  if (step >= 4) return 4;
   return step + 1;
 }
 

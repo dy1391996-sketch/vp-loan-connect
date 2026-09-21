@@ -94,7 +94,7 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
               <div className="rounded-[2rem] border border-line bg-white p-7 shadow-soft">
                 <h2 className="text-2xl font-extrabold text-navy-950">Complete your profile to unlock matches</h2>
                 <p className="mt-3 text-sm leading-7 text-slate-600">
-                  Payment is verified. Finish PAN, address and work details so we can generate your result and matched official lender links.
+                  Payment is verified. Finish any remaining profile details so the booster report and extended platform list can be generated.
                 </p>
                 <a
                   href={continueHref}

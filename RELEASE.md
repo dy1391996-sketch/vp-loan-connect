@@ -4,6 +4,8 @@ Release date: 23 July 2026
 
 VP Loan Connect is a mobile-first financial education, loan-profile assessment, paid report, referral and consent-management platform operated by THE99CREW FACILITY MANAGEMENT. It is not a bank, NBFC, lender or credit bureau and does not promise approval, rates, disbursement or credit-score improvement.
 
+Current public offer: Credit Profile Booster only (₹99 + ₹17.82 GST = ₹116.82), optional after the eligibility result and matched options. The Complete Loan Readiness Report is inactive and is not sold. Public contact is Quick Apply, Instagram Direct (`@vploanconnect`) and the official support email. No public phone or WhatsApp button.
+
 ## Features
 
 - Hindi-English marketing site with loan-category education, rejection-awareness content, FAQs, disclaimers and a reducing-balance EMI calculator.

@@ -1,5 +1,7 @@
 # Execution log — organic Instagram
 
+Superseded for website configuration: use `@vploanconnect`. The entries below are the 2026-08-16 session log.
+
 ## 2026-08-16 (continued)
 
 - Re-verified live profile @vploanconnect.in (not parked @vploanconnect)

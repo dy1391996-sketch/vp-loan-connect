@@ -4,21 +4,20 @@
 
 VP Loan Connect provides an educational loan-profile check, credit-health guidance, document-readiness support and optional personalized reports. It is not a bank, NBFC, lender or credit bureau. It does not sanction loans or guarantee approval, rate, disbursement or score improvement.
 
-## Free loan-options check
+## Profile assessment
 
-1. Select “Free Loan Options Check”.
-2. Enter your name and your own WhatsApp mobile number.
-3. Verify the number with the OTP sent by the configured official provider.
-4. Enter your state, city, requested amount, purpose and general loan category.
-5. Complete the income, existing obligation, approximate credit range and document-readiness questions.
-6. Read the two consent choices:
-   - Service consent is required to create and communicate the requested assessment.
-   - Marketing consent is optional and can be left unchecked.
-7. Submit the assessment and open the secure result link.
+1. Open Quick Apply or the profile assessment.
+2. Enter the loan amount, purpose, name, email and the mobile number the payment provider needs in its own secure checkout. The site does not publish a phone number or a WhatsApp button.
+3. Verify the email with the one-time code.
+4. Complete work, income, PAN, address and consent.
+5. Open the eligibility result and matched options.
+6. Choose the Credit Profile Booster only if you want it. The price is ₹99 + ₹17.82 GST = ₹116.82.
 
-Do not upload sensitive documents during the first assessment. VP Loan Connect will never ask for UPI PIN, CVV, net-banking password, bank password or Aadhaar OTP.
+Service consent is required to create the assessment. Marketing consent is optional.
 
-## Understanding the free result
+Do not upload sensitive documents during the first assessment. VP Loan Connect will never ask for UPI PIN, CVV, net-banking password, bank password or Aadhaar OTP. Do not send those by email or Instagram Direct.
+
+## Understanding the eligibility result
 
 The result shows:
 
@@ -37,14 +36,11 @@ These are educational estimates based on self-reported data. They are not a cred
 
 Enter the principal, estimated annual interest rate and tenure in months. The reducing-balance calculator shows estimated monthly EMI, total repayment and total interest. Adjust the values to compare scenarios; actual lender terms may differ.
 
-## Paid reports
+## Optional Credit Profile Booster
 
-After the free result, you may choose:
+After the eligibility result and matched options, you may choose the Credit Profile Booster (₹99 + ₹17.82 GST = ₹116.82). There is no other public paid report.
 
-- VP Credit Health Action Plan.
-- Complete Loan Readiness Report.
-
-Payment is for assessment, report preparation and educational guidance. It is not a lender processing or approval fee.
+Payment is for the booster report. It is not a lender processing or approval fee.
 
 After verified payment:
 
@@ -67,7 +63,7 @@ Use the supplied compliant share message. Never tell another person that a loan 
 
 ## Communication choices
 
-Service communication relates to the assessment, payment and report you requested. Marketing messages require separate optional consent. Send `STOP` through WhatsApp to withdraw marketing consent; the platform records the withdrawal and sends one confirmation.
+Service communication relates to the assessment, payment and report you requested. Marketing messages require separate optional consent. Email support@vploanconnect.in to withdraw marketing consent. Do not send OTP, PIN, passwords or banking credentials.
 
 ## Consultation and lender referral
 
@@ -77,4 +73,4 @@ A consultation request does not promise a lender or loan. A future verified-lend
 
 Use `/data-deletion` to submit a verified deletion request. Some payment, tax, fraud-prevention and audit records may need to be retained or de-identified where law requires.
 
-For support or grievance handling, use `/contact`. Include your registered mobile and order/report reference, but never send passwords, OTPs, PINs or full card information.
+For support or grievance handling, use `/contact`. Email support with “Grievance” in the subject and include your registered email address and order or report reference, where relevant. Do not email OTP, PIN, passwords or banking credentials.

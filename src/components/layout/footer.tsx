@@ -55,7 +55,7 @@ export function Footer() {
             {[
               ["Quick apply", "/apply/quick"],
               ["Personal loan", "/personal-loan"],
-              ["Free assessment", "/assessment"],
+              ["Profile assessment", "/assessment"],
               ["Credit Profile Booster (₹99)", "/credit-health"],
               ["Refer & Earn", "/refer"],
             ].map(([label, href]) => (

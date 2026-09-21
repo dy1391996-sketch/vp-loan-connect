@@ -186,7 +186,7 @@ describe("assessmentSchema server validation", () => {
     assert.equal(withDraftAccess.success, true);
   });
 
-  it("still requires PAN, address and work fields to complete after payment", () => {
+  it("requires PAN to complete an assessment", () => {
     const withoutPan = assessmentSchema.safeParse(
       validPayload({
         draftAssessmentId: "11111111-1111-4111-8111-111111111111",

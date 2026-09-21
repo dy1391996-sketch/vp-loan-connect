@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
-import { ArrowRight, Check, CircleAlert, FileCheck2, Gauge, ShieldCheck, Sparkles, TrendingUp, Zap } from "lucide-react";
+import { ArrowRight, Check, CircleAlert, FileCheck2, Gauge, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 import { notFound } from "next/navigation";
 import { FunnelBeacon } from "@/components/analytics/funnel-beacon";
+import { CreditProfileBoosterPayCard } from "@/components/apply/quick/booster-pay-card";
+import { ConnectOptionsPanel } from "@/components/connect-options-panel";
 import { ButtonLink } from "@/components/ui/button";
 import { PublicStatePanel } from "@/components/ui/public-state-panel";
 import { RESULT_DISCLAIMER } from "@/lib/constants";
 import { prisma } from "@/lib/db";
+import { getProfileMatchedOptions } from "@/lib/matching/match-service";
 import { trackServerEvent } from "@/lib/server-analytics";
-import { verifyAccessToken } from "@/lib/security/tokens";
+import { signAccessToken, verifyAccessToken } from "@/lib/security/tokens";
 import { formatInr } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +43,28 @@ export default async function ResultPage({ params, searchParams }: { params: Pro
   ]).catch(() => undefined);
 
   const checkoutUrl = `/checkout?product=credit-health-action-plan&assessment=${id}&token=${encodeURIComponent(token)}`;
+  const suitableCategories = asStringArray(score.suitableCategories);
+  const matched = await getProfileMatchedOptions({
+    loanAmount: Number(assessment.loanAmount ?? 0),
+    loanType: assessment.loanType ?? "PERSONAL",
+    employmentType: assessment.employmentType ?? "OTHER",
+    creditRange: assessment.creditRange ?? "UNKNOWN",
+    existingEmi: Number(assessment.existingEmi ?? 0),
+    monthlyIncome: Number(assessment.monthlyIncome ?? 0),
+    readinessScore: score.readinessScore,
+    emiBurden: score.emiBurden,
+    documentationStatus: score.documentationStatus,
+    suitableCategories,
+  });
+  const paidReport = await prisma.report.findFirst({
+    where: { assessmentId: id, order: { status: "PAID" } },
+    orderBy: { createdAt: "desc" },
+  });
+  const reportHref = paidReport
+    ? `/report/${paidReport.id}?token=${encodeURIComponent(
+        await signAccessToken("report_access", paidReport.id, { leadId: assessment.leadId, orderId: paidReport.orderId }, "72h"),
+      )}`
+    : null;
 
   return (
     <section className="surface-grid min-h-screen bg-surface py-8 sm:py-14">
@@ -76,25 +101,33 @@ export default async function ResultPage({ params, searchParams }: { params: Pro
             <StatusCard icon={Gauge} label="Indicative interest band" value={offer.rate} />
           </div>
 
-          <div className="mt-5 overflow-hidden rounded-[2.25rem] border border-brand-500/30 bg-white shadow-card">
-            <div className="grid lg:grid-cols-[1.1fr_0.75fr]">
-              <div className="p-7 sm:p-10">
-                <span className="inline-flex items-center gap-2 rounded-full bg-brand-100 px-4 py-2 text-xs font-extrabold text-brand-700"><Sparkles size={15} />Recommended next step</span>
-                <h2 className="mt-5 text-balance text-3xl font-black tracking-[-0.045em] text-navy-950 sm:text-4xl">Unlock your ₹99 Credit Profile Booster</h2>
-                <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">Understand your credit profile, review loan readiness and see relevant bank, NBFC and fintech options for your profile. This does not instantly change a credit score or guarantee approval.</p>
-                <div className="mt-7 grid gap-3 sm:grid-cols-2">
-                  {["Credit profile explained simply", "Loan-readiness analysis", "Best-fit lenders shown first", "Official apply links — no random sites"].map((item) => <p key={item} className="flex items-start gap-2 text-sm font-semibold text-slate-700"><Check className="mt-0.5 shrink-0 text-brand-600" size={17} />{item}</p>)}
-                </div>
-              </div>
-              <div className="bg-navy-950 p-7 text-white sm:p-10">
-                <Zap className="text-brand-500" size={28} />
-                <p className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-slate-300">One-time access</p>
-                <p className="mt-2 text-5xl font-black text-brand-500">₹99 <span className="text-base text-slate-300">+ GST</span></p>
-                <p className="mt-2 text-sm font-bold">GST ₹17.82 · Total payable: ₹116.82</p>
-                <ButtonLink href={checkoutUrl} size="lg" className="mt-7 w-full">Unlock full report for ₹116.82 <ArrowRight size={18} /></ButtonLink>
-                <p className="mt-4 text-xs leading-6 text-slate-400">Fee is for profile analysis and matched options—not a lender fee or loan approval fee.</p>
-              </div>
+          {matched.length ? (
+            <div className="mt-5">
+              <ConnectOptionsPanel
+                matched={matched}
+                more={[]}
+                eyebrow="Matched options"
+                title="Official platforms that fit this profile"
+                intro="These links are ranked from your answers. Opening one is voluntary. Each lender decides amount, APR, fees and approval. The Credit Profile Booster below is optional."
+              />
             </div>
+          ) : (
+            <div className="mt-5 rounded-3xl border border-line bg-white p-6 text-sm leading-7 text-slate-600">
+              No official platform matched these answers closely enough to list. You can still review the optional Credit Profile Booster for a downloadable action plan.
+            </div>
+          )}
+
+          <div className="mt-5">
+            {reportHref ? (
+              <div className="rounded-[2.25rem] border border-brand-500/30 bg-white p-7 shadow-card sm:p-10">
+                <span className="inline-flex items-center gap-2 rounded-full bg-brand-100 px-4 py-2 text-xs font-extrabold text-brand-700"><Sparkles size={15} />Booster already unlocked</span>
+                <h2 className="mt-5 text-3xl font-black tracking-[-0.045em] text-navy-950">Your Credit Profile Booster report is ready</h2>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">Payment for ₹99 + ₹17.82 GST (₹116.82) is already verified for this profile. Open the report for the downloadable action plan.</p>
+                <ButtonLink href={reportHref} size="lg" className="mt-7">Open booster report <ArrowRight size={18} /></ButtonLink>
+              </div>
+            ) : (
+              <CreditProfileBoosterPayCard checkoutUrl={checkoutUrl} />
+            )}
           </div>
 
           {assessment.creditRange === "UNKNOWN" ? <div className="mt-5 rounded-3xl border border-amber-200 bg-amber-50 p-6"><h2 className="font-extrabold text-amber-950">Your actual CIBIL score is not available</h2><p className="mt-2 text-sm leading-6 text-amber-900">Your result uses a neutral estimate. Check your official free annual CIBIL report before applying.</p><a className="mt-4 inline-flex font-extrabold text-amber-950 underline" href="https://www.cibil.com/freecibilscore" target="_blank" rel="noreferrer">Check on official CIBIL website</a></div> : null}

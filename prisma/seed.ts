@@ -100,6 +100,7 @@ async function main() {
     },
   });
 
+  // Inactive legacy catalogue row. Not offered, not linked, and not accepted by checkout.
   await prisma.product.upsert({
     where: { slug: "complete-loan-readiness-report" },
     update: { active: false },
