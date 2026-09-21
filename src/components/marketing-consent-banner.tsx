@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { readMarketingConsent, writeMarketingConsent, type MarketingConsentValue } from "@/lib/consent/marketing-consent";
 
 export function MarketingConsentBanner() {
+  const pathname = usePathname() || "";
   const [choice, setChoice] = useState<MarketingConsentValue | null | "loading">("loading");
+  const inCheckoutFlow = pathname.startsWith("/apply") || pathname.startsWith("/checkout") || pathname.startsWith("/payment");
 
   useEffect(() => {
     setChoice(readMarketingConsent());
@@ -17,7 +20,7 @@ export function MarketingConsentBanner() {
     window.dispatchEvent(new CustomEvent("vplc:marketing-consent", { detail: value }));
   }
 
-  if (choice === "loading" || choice !== null) return null;
+  if (inCheckoutFlow || choice === "loading" || choice !== null) return null;
 
   return (
     <div
