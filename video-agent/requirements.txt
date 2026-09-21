@@ -1,0 +1,6 @@
+# Core agent uses Python 3.12 stdlib + system FFmpeg only.
+# No paid APIs. No pip packages required to run or dry-run.
+#
+# Optional (not installed by setup.sh):
+#   torch + diffusers  — local neural I2V if you later add a GPU machine
+# Those remain unused on CPU-only hosts.

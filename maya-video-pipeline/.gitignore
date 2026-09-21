@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+
+generations/video01/*.mp4
+generations/video01/error.json
+generations/video01/qc/*.jpg
+generations/video01/qc/contact-sheet.jpg
+
+__pycache__/
+*.pyc

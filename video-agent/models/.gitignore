@@ -1,0 +1,5 @@
+# LTX-Video weights and Hugging Face cache. Never commit these.
+*
+!.gitignore
+!.gitkeep
+!README.md
