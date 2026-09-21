@@ -32,7 +32,7 @@ export default function ReferPage() {
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-brand-500">VP Refer & Earn</p>
             <h1 className="mt-5 text-balance text-4xl font-extrabold tracking-[-0.05em] sm:text-5xl">Share responsible profile checks</h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">Earn only when a referred user completes a validated, non-refunded qualifying report purchase—not for clicks, registrations or loan approval. Rewards are never tied to lender decisions.</p>
-            <ButtonLink href="/assessment" size="lg" className="mt-9">Start profile assessment <ArrowRight size={18} /></ButtonLink>
+            <ButtonLink href="/apply/quick" size="lg" className="mt-9">Check My Loan Options <ArrowRight size={18} /></ButtonLink>
           </div>
           <div className="rounded-[2rem] border border-white/10 bg-white/8 p-4 shadow-2xl backdrop-blur">
             <div className="rounded-3xl bg-white p-7 text-navy-950 sm:p-8">
@@ -73,7 +73,7 @@ export default function ReferPage() {
           <div className="rounded-[2rem] border border-amber-200 bg-amber-50 p-7 sm:p-9">
             <CircleAlert className="text-amber-700" size={26} />
             <h2 className="mt-6 text-2xl font-extrabold text-amber-950">Share responsibly</h2>
-            <p className="mt-4 text-sm leading-7 text-amber-950">The referral message describes a profile assessment and an optional educational report. It never promises a loan, approval, rate or credit-score increase.</p>
+            <p className="mt-4 text-sm leading-7 text-amber-950">The referral message describes the ₹116.82 Credit Profile Booster. It never promises a loan, approval, rate or credit-score increase.</p>
           </div>
         </div>
       </section>

@@ -22,11 +22,17 @@ import {
   type QuickApplyResultSnapshot,
 } from "@/lib/apply/quick-apply-state";
 import {
+  SCREEN,
+  canEnterProfileScreen,
+  clampQuickApplyScreen,
+  creditProfileBoosterCheckoutPath,
   getNextQuickApplyStep,
   getPreviousQuickApplyStep,
-  validateQuickApplyStep,
-  validateQuickApplyStepFields,
-} from "@/lib/apply/quick-apply-validation";
+  isProfileScreen,
+  screenAfterEmailVerification,
+  shouldStartNewCheckout,
+} from "@/lib/apply/funnel-route";
+import { validateQuickApplyStep, validateQuickApplyStepFields } from "@/lib/apply/quick-apply-validation";
 import {
   prepareMsg91EmailOtp,
   resetMsg91EmailOtpClient,
@@ -63,6 +69,21 @@ function resultHref(assessmentId: string, accessToken: string) {
   return `/result/${assessmentId}?token=${encodeURIComponent(accessToken)}`;
 }
 
+async function readBoosterEntitlement(assessmentId: string, accessToken: string) {
+  try {
+    const response = await fetch("/api/assessments/entitlement", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ assessmentId, resultToken: accessToken }),
+    });
+    if (!response.ok) return false;
+    const data = (await response.json()) as { paid?: boolean };
+    return Boolean(data.paid);
+  } catch {
+    return false;
+  }
+}
+
 export function QuickApplyClient() {
   const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
@@ -79,8 +100,10 @@ export function QuickApplyClient() {
   const [otpReady, setOtpReady] = useState(false);
   const [result, setResult] = useState<QuickApplyResultSnapshot | null>(null);
   const [paid, setPaid] = useState(false);
+  const [ready, setReady] = useState(false);
   const hydrated = useRef(false);
   const submitted = useRef(false);
+  const checkoutLock = useRef(false);
 
   const attribution = useMemo(() => {
     captureAttributionFromSearch(searchParams);
@@ -93,73 +116,91 @@ export function QuickApplyClient() {
   useEffect(() => {
     if (hydrated.current) return;
     hydrated.current = true;
-    const snapshot = readResultSnapshot();
-    const draft = readDraft();
-    const amountParam = Number(searchParams.get("amount") || "");
-    const purposeParam = searchParams.get("purpose") || "";
-    const paidParam = searchParams.get("paid") === "1";
-    const assessmentParam = searchParams.get("assessment") || "";
-    const tokenParam = searchParams.get("token") || "";
-    let leavingForResult = false;
+    let cancelled = false;
 
-    if (draft) {
-      setForm({
-        ...draft.form,
-        loanAmount: Number.isFinite(amountParam) && amountParam > 0 ? amountParam : draft.form.loanAmount,
-        loanPurpose: purposeParam || draft.form.loanPurpose,
-      });
-    } else if (Number.isFinite(amountParam) && amountParam > 0) {
-      setForm((prev) => ({ ...prev, loanAmount: amountParam, loanPurpose: purposeParam || prev.loanPurpose }));
-    }
+    async function hydrate() {
+      const snapshot = readResultSnapshot();
+      const draft = readDraft();
+      const amountParam = Number(searchParams.get("amount") || "");
+      const purposeParam = searchParams.get("purpose") || "";
+      const assessmentParam = searchParams.get("assessment") || "";
+      const tokenParam = searchParams.get("token") || "";
+      let leavingForResult = false;
 
-    if (assessmentParam && tokenParam) {
-      const completed = snapshot?.status === "COMPLETED" && snapshot.assessmentId === assessmentParam && Boolean(snapshot.indicative);
-      if (completed) {
-        leavingForResult = true;
-        window.location.replace(resultHref(assessmentParam, tokenParam));
-      } else {
-        const resume: QuickApplyResultSnapshot = {
-          assessmentId: assessmentParam,
-          accessToken: tokenParam,
-          loanAmount: Number.isFinite(amountParam) && amountParam > 0 ? amountParam : draft?.form.loanAmount || 50_000,
-          paid: paidParam || snapshot?.paid,
-          status: "STARTED",
-          indicative: snapshot?.indicative,
-        };
-        setResult(resume);
-        writeResultSnapshot(resume);
-        setPaid(Boolean(resume.paid));
-        // Legacy early checkout can return here before the profile is finished.
-        setStep(3);
+      if (draft) {
+        setForm({
+          ...draft.form,
+          loanAmount: Number.isFinite(amountParam) && amountParam > 0 ? amountParam : draft.form.loanAmount,
+          loanPurpose: purposeParam || draft.form.loanPurpose,
+        });
+      } else if (Number.isFinite(amountParam) && amountParam > 0) {
+        setForm((prev) => ({ ...prev, loanAmount: amountParam, loanPurpose: purposeParam || prev.loanPurpose }));
       }
-    } else if (snapshot?.status === "COMPLETED" && snapshot.indicative) {
-      leavingForResult = true;
-      window.location.replace(resultHref(snapshot.assessmentId, snapshot.accessToken));
-    } else if (snapshot?.assessmentId) {
-      setResult(snapshot);
-      setPaid(Boolean(snapshot.paid));
-      setStep(Math.min(Math.max(draft?.step || 3, 3), 4));
-    } else if (draft) {
-      setStep(Math.min(4, Math.max(1, draft.step)));
+
+      const sessionId = assessmentParam || snapshot?.assessmentId || "";
+      const sessionToken = tokenParam || snapshot?.accessToken || "";
+      const entitled = sessionId && sessionToken ? await readBoosterEntitlement(sessionId, sessionToken) : false;
+      if (cancelled) return;
+      setPaid(entitled);
+
+      if (assessmentParam && tokenParam) {
+        const completed = snapshot?.status === "COMPLETED" && snapshot.assessmentId === assessmentParam && Boolean(snapshot.indicative);
+        if (completed && entitled) {
+          leavingForResult = true;
+          window.location.replace(resultHref(assessmentParam, tokenParam));
+        } else {
+          const resume: QuickApplyResultSnapshot = {
+            assessmentId: assessmentParam,
+            accessToken: tokenParam,
+            loanAmount: Number.isFinite(amountParam) && amountParam > 0 ? amountParam : draft?.form.loanAmount || 50_000,
+            paid: entitled,
+            status: snapshot?.status === "COMPLETED" ? "COMPLETED" : "STARTED",
+            indicative: snapshot?.indicative,
+          };
+          setResult(resume);
+          writeResultSnapshot(resume);
+          setStep(clampQuickApplyScreen(draft?.step || (entitled ? SCREEN.WORK : SCREEN.BOOSTER), entitled));
+        }
+      } else if (snapshot?.status === "COMPLETED" && snapshot.indicative && entitled) {
+        leavingForResult = true;
+        window.location.replace(resultHref(snapshot.assessmentId, snapshot.accessToken));
+      } else if (snapshot?.assessmentId && snapshot.accessToken) {
+        setResult({ ...snapshot, paid: entitled });
+        setStep(clampQuickApplyScreen(draft?.step || SCREEN.BOOSTER, entitled));
+      } else if (draft) {
+        setStep(clampQuickApplyScreen(draft.step, false));
+      }
+      if (!leavingForResult) trackEvent("assessment_started", { source: "quick_apply" });
+      setReady(true);
     }
-    if (!leavingForResult) trackEvent("assessment_started", { source: "quick_apply" });
+
+    void hydrate();
+    return () => {
+      cancelled = true;
+    };
   }, [searchParams]);
 
   useEffect(() => {
-    if (step >= 4 && submitted.current) return;
+    if (!ready || (isProfileScreen(step) && submitted.current)) return;
     setSaved(false);
     const timer = window.setTimeout(() => {
-      writeDraft(step, form, otpVerified);
+      const persistedStep = !paid && isProfileScreen(step) ? SCREEN.BOOSTER : step;
+      writeDraft(persistedStep, form, otpVerified);
       setSaved(true);
     }, 350);
     return () => window.clearTimeout(timer);
-  }, [step, form, otpVerified]);
+  }, [ready, step, form, otpVerified, paid]);
 
   useEffect(() => {
     if (resendIn <= 0) return;
     const timer = window.setTimeout(() => setResendIn((value) => Math.max(0, value - 1)), 1000);
     return () => window.clearTimeout(timer);
   }, [resendIn]);
+
+  useEffect(() => {
+    if (!ready || paid || !isProfileScreen(step)) return;
+    setStep(SCREEN.BOOSTER);
+  }, [ready, paid, step]);
 
   function patch(partial: Partial<QuickApplyFormState>) {
     setForm((prev) => ({ ...prev, ...partial }));
@@ -287,7 +328,11 @@ export function QuickApplyClient() {
     };
     setResult(snapshot);
     writeResultSnapshot(snapshot);
-    goToStep(3);
+    const entitled = await readBoosterEntitlement(snapshot.assessmentId, snapshot.accessToken);
+    setPaid(entitled);
+    const next = entitled ? SCREEN.WORK : screenAfterEmailVerification();
+    writeResultSnapshot({ ...snapshot, paid: entitled });
+    goToStep(next);
   }
 
   async function goNext() {
@@ -315,17 +360,48 @@ export function QuickApplyClient() {
       return;
     }
 
-    if (step === 4) {
+    if (step === SCREEN.BOOSTER) {
+      if (paid && canEnterProfileScreen(true)) {
+        goToStep(SCREEN.WORK);
+        return;
+      }
+      await startBoosterCheckout();
+      return;
+    }
+
+    if (step === SCREEN.PAN) {
       await submitAssessment();
       return;
     }
 
-    goToStep(getNextQuickApplyStep(step));
+    if (isProfileScreen(getNextQuickApplyStep(step, paid)) && !canEnterProfileScreen(paid)) {
+      goToStep(SCREEN.BOOSTER);
+      return;
+    }
+
+    goToStep(getNextQuickApplyStep(step, paid));
+  }
+
+  async function startBoosterCheckout() {
+    if (!result?.assessmentId || !result.accessToken) {
+      setError("Verify your email again before checkout.");
+      goToStep(SCREEN.EMAIL);
+      return;
+    }
+    if (!shouldStartNewCheckout({ paid, inFlight: checkoutLock.current })) {
+      if (paid) goToStep(SCREEN.WORK);
+      return;
+    }
+    checkoutLock.current = true;
+    setBusy(true);
+    setError("");
+    window.location.assign(creditProfileBoosterCheckoutPath(result.assessmentId, result.accessToken));
   }
 
   function goBack() {
     setError("");
     setAttempted(false);
+    if (step === SCREEN.WORK) return;
     goToStep(getPreviousQuickApplyStep(step));
   }
 
@@ -392,14 +468,19 @@ export function QuickApplyClient() {
   }
 
   async function submitAssessment() {
-    const issue = validateQuickApplyStep(4, form);
+    const issue = validateQuickApplyStep(SCREEN.PAN, form);
     if (issue) {
       setError(issue);
       return;
     }
+    if (!canEnterProfileScreen(paid)) {
+      setError("Unlock the Credit Profile Booster before completing your profile.");
+      goToStep(SCREEN.BOOSTER);
+      return;
+    }
     if (!otpToken && !result?.accessToken) {
       setError("Complete email OTP verification again.");
-      goToStep(2);
+      goToStep(SCREEN.EMAIL);
       return;
     }
     if (submitted.current && result?.assessmentId && result.accessToken) {
@@ -447,7 +528,7 @@ export function QuickApplyClient() {
   }
 
   const fieldErrors =
-    attempted && step <= 4
+    attempted && step <= SCREEN.PAN
       ? {
           ...validateQuickApplyStepFields(step, form),
           ...(step === 2 && otpCode.length !== 6 ? { otpCode: "Enter the 6-digit verification code." } : {}),
@@ -455,13 +536,17 @@ export function QuickApplyClient() {
       : {};
 
   const ctaLabel =
-    step === 1
+    step === SCREEN.REQUIREMENT
       ? "Send email code"
-      : step === 2
+      : step === SCREEN.EMAIL
         ? "Verify and continue"
-        : step === 4
-          ? "See my result"
-          : "Continue";
+        : step === SCREEN.BOOSTER
+          ? paid
+            ? "Continue to your profile"
+            : "Continue for ₹116.82"
+          : step === SCREEN.PAN
+            ? "See my result"
+            : "Continue";
 
   return (
     <div className="min-h-screen bg-surface">
@@ -491,9 +576,9 @@ export function QuickApplyClient() {
               }}
             />
             <StickyActions error={error}>
-              {step > 1 ? (
+              {step > SCREEN.REQUIREMENT && step !== SCREEN.WORK ? (
                 <Button type="button" variant="secondary" className="min-w-24" onClick={goBack} disabled={busy}>
-                  <ArrowLeft size={16} /> Back
+                  <ArrowLeft size={16} /> {step === SCREEN.BOOSTER ? "Review details" : "Back"}
                 </Button>
               ) : null}
               <Button type="button" className="min-h-[52px] flex-1" onClick={() => void goNext()} disabled={busy} aria-busy={busy}>

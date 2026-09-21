@@ -24,7 +24,7 @@ export function Header() {
           </span>
           <span className="leading-tight">
             <span className="font-display block text-[15px] font-extrabold tracking-[-0.03em] text-navy-950">VP Loan Connect</span>
-            <span className="hidden text-[10px] font-semibold tracking-[0.14em] text-slate-500 sm:block">CREDIT PROFILE · LOAN MATCHING</span>
+            <span className="hidden text-[10px] font-semibold tracking-[0.14em] text-slate-500 sm:block">LOAN DISCOVERY · NOT A LENDER</span>
           </span>
         </Link>
         <nav className="hidden items-center gap-7 lg:flex" aria-label="Primary navigation">

@@ -101,19 +101,23 @@ export default async function ResultPage({ params, searchParams }: { params: Pro
             <StatusCard icon={Gauge} label="Indicative interest band" value={offer.rate} />
           </div>
 
-          {matched.length ? (
+          {paidReport && matched.length ? (
             <div className="mt-5">
               <ConnectOptionsPanel
                 matched={matched}
                 more={[]}
                 eyebrow="Matched options"
                 title="Official platforms that fit this profile"
-                intro="These links are ranked from your answers. Opening one is voluntary. Each lender decides amount, APR, fees and approval. The Credit Profile Booster below is optional."
+                intro="These links are ranked from your answers. Opening one is voluntary. Each lender decides amount, APR, fees and approval."
               />
+            </div>
+          ) : paidReport ? (
+            <div className="mt-5 rounded-3xl border border-line bg-white p-6 text-sm leading-7 text-slate-600">
+              No official platform matched these answers closely enough to list. Review the readiness notes below before you apply anywhere.
             </div>
           ) : (
             <div className="mt-5 rounded-3xl border border-line bg-white p-6 text-sm leading-7 text-slate-600">
-              No official platform matched these answers closely enough to list. You can still review the optional Credit Profile Booster for a downloadable action plan.
+              Matched options and official apply links are part of the Credit Profile Booster ({`₹116.82`} total). They are not shown before that service fee is verified.
             </div>
           )}
 
@@ -155,4 +159,4 @@ function indicativeOffer(creditRange: string, income: number, requested: number)
 function asStringArray(value: unknown) { return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []; }
 function StatusCard({ icon: Icon, label, value }: { icon: typeof Gauge; label: string; value: string }) { return <div className="rounded-3xl border border-line bg-white p-5 shadow-sm"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-brand-100 text-brand-700"><Icon size={19} /></span><p className="mt-4 text-xs font-semibold text-slate-500">{label}</p><p className="mt-1 font-extrabold text-navy-950">{value}</p></div>; }
 function ResultList({ title, items, positive }: { title: string; items: string[]; positive?: boolean }) { return <div><h3 className="font-extrabold text-navy-950">{title}</h3><div className="mt-4 grid gap-3">{items.map((item) => <p key={item} className="flex items-start gap-2 text-sm leading-6 text-slate-600"><Check className={positive ? "mt-1 shrink-0 text-brand-600" : "mt-1 shrink-0 text-amber-600"} size={15} />{item}</p>)}</div></div>; }
-function AccessDenied() { return <PublicStatePanel icon={ShieldCheck} title="Secure result link required" description="This link is invalid or has expired. Please complete the assessment again." action={{ href: "/assessment", label: "Start assessment" }} />; }
+function AccessDenied() { return <PublicStatePanel icon={ShieldCheck} title="Secure result link required" description="This link is invalid or has expired. Please complete Quick Apply again." action={{ href: "/apply/quick", label: "Start Quick Apply" }} />; }

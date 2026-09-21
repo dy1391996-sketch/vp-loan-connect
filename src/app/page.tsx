@@ -1,61 +1,53 @@
 import type { Metadata } from "next";
 import {
   ArrowRight,
-  BadgeCheck,
   Banknote,
   BriefcaseBusiness,
   Building2,
   Calculator,
-  ChartNoAxesCombined,
   Check,
   ChevronRight,
   CircleAlert,
-  Clock3,
   FileCheck2,
-  Gem,
   GraduationCap,
-  HandCoins,
   HeartHandshake,
   Home,
   Landmark,
   LockKeyhole,
+  Mail,
   MessageCircle,
-  SearchCheck,
   ShieldCheck,
-  Sparkles,
-  UserRoundCheck,
   WalletCards,
 } from "lucide-react";
 import { EmiCalculator } from "@/components/emi-calculator";
 import { HomeQuickStart } from "@/components/home/home-quick-start";
 import { ButtonLink } from "@/components/ui/button";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { PLATFORM_DISCLAIMER, RESULT_DISCLAIMER, USP_TOTAL_WITH_GST_LABEL } from "@/lib/constants";
+import { LENDER_OUTCOME_DISCLAIMER, PLATFORM_DISCLAIMER, RESULT_DISCLAIMER, USP_GST_LABEL, USP_PRICE_LABEL, USP_TOTAL_WITH_GST_LABEL } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Find Loan Options for Your Profile | VP Loan Connect",
   description:
-    "Check loan options for your profile: Quick Apply, email OTP, profile assessment, then matched options. The ₹99 Credit Profile Booster is optional. Not a lender — no guaranteed approval.",
+    "Find loan options that fit your profile. Verify your email, unlock the ₹116.82 Credit Profile Booster, complete your profile and explore matched options. Not a lender.",
   alternates: { canonical: "/" },
 };
 
 const trustItems = [
-  ["Email OTP first", ShieldCheck],
-  ["Profile before payment", Sparkles],
-  ["Matched options next", SearchCheck],
-  ["No document upload", FileCheck2],
-  ["Privacy-first", LockKeyhole],
-  ["Official apply links", Landmark],
+  ["Secure email verification", ShieldCheck],
+  ["Transparent ₹116.82 pricing", FileCheck2],
+  ["No guaranteed approvals", LockKeyhole],
+  ["Official lender apply links", Landmark],
+  ["Privacy-first process", Mail],
 ] as const;
 
 const categories = [
-  ["Personal Loan", "Review personal-loan readiness based on income and existing EMIs.", Banknote, "/personal-loan"],
-  ["Business Loan", "Review business vintage, cash flow and document readiness.", BriefcaseBusiness, "/assessment?loanType=BUSINESS"],
-  ["MSME Loan", "Understand the profile factors relevant to growing businesses.", Building2, "/assessment?loanType=BUSINESS"],
-  ["Gold Loan", "Explore secured-loan readiness when eligible gold is available.", Gem, "/assessment?loanType=GOLD"],
-  ["Loan Against Property", "Review readiness for a property-backed loan route.", Home, "/assessment?loanType=PROPERTY"],
-  ["Education Loan", "Prepare income, co-applicant and education documents.", GraduationCap, "/assessment?loanType=PERSONAL&purpose=Education%20expense"],
-  ["Working Capital", "Understand business working-capital readiness.", WalletCards, "/assessment?loanType=BUSINESS&purpose=Business%20working%20capital"],
+  ["Personal Loan", "Explore personal-loan readiness for planned expenses.", Banknote, "/personal-loan"],
+  ["Business Loan", "Explore business-loan options from stated vintage and cash flow.", BriefcaseBusiness, "/apply/quick?purpose=Business%20working%20capital"],
+  ["MSME Loan", "Explore MSME-loan readiness for a growing enterprise.", Building2, "/apply/quick?purpose=Business%20working%20capital"],
+  ["Home Loan", "Explore home-loan readiness before you apply with a lender.", Home, "/apply/quick?purpose=Home%20improvement"],
+  ["Loan Against Property", "Explore property-backed options. This is not an approval.", Landmark, "/apply/quick"],
+  ["Education Loan", "Explore education-loan readiness for fees and related costs.", GraduationCap, "/apply/quick?purpose=Education%20expense"],
+  ["Working Capital", "Explore working-capital options for business cash flow.", WalletCards, "/apply/quick?purpose=Business%20working%20capital"],
 ] as const;
 
 const rejectionReasons = [
@@ -72,17 +64,16 @@ const faqs = [
   ["Is the profile result a loan approval?", "No. It is an indicative view based on your answers. Eligibility, APR, amount and approval are decided only by the relevant lender."],
   ["Do I need to upload documents?", "Not during the initial assessment. We only ask whether documents are available. Never share a UPI PIN, CVV, bank password or Aadhaar OTP."],
   ["Will this profile check affect my CIBIL score?", "No. This assessment uses your self-reported CIBIL range; it does not pull a bureau report or create a lender enquiry."],
-  ["Is the ₹99 Credit Profile Booster mandatory?", "No. Quick Apply, email OTP, the profile assessment, your eligibility result and matched options come first. The Credit Profile Booster is optional at ₹99 + ₹17.82 GST (₹116.82). We are not a lender and do not charge a percentage platform fee."],
+  ["What is the ₹116.82 payment for?", `It is the Credit Profile Booster service fee: ${USP_PRICE_LABEL} + ${USP_GST_LABEL} GST. It unlocks the detailed profile, loan-readiness insights, matched options and official apply links where available. It is not a lender processing fee and does not guarantee approval.`],
   ["How will my information be used?", "Service consent covers the requested assessment. Marketing consent is separate and optional, and can be withdrawn."],
 ] as const;
 
 const journey = [
-  ["01", "Quick Apply", "Tell us the amount you need and start the profile."],
-  ["02", "Email OTP", "Verify your email before the assessment continues."],
-  ["03", "Profile assessment", "Work, income, PAN, address and consent."],
-  ["04", "Eligibility result", "See the indicative readiness view from your answers."],
-  ["05", "Matched options", "Review official platforms ranked for this profile."],
-  ["06", "Optional booster", `Credit Profile Booster only if you choose it — ${USP_TOTAL_WITH_GST_LABEL}.`],
+  ["01", "Tell us your loan requirement", "Amount, purpose and contact details to open the enquiry."],
+  ["02", "Verify your email", "A one-time code confirms the email on this application."],
+  ["03", "Unlock Credit Profile Booster — ₹116.82", `${USP_PRICE_LABEL} + ${USP_GST_LABEL} GST. A service fee, not a lender charge.`],
+  ["04", "Complete your profile", "Work, income, PAN and address come after payment."],
+  ["05", "View matched options", "See readiness insights and official apply links where available."],
 ] as const;
 
 export default function HomePage() {
@@ -119,35 +110,27 @@ export default function HomePage() {
 
         <div className="page-shell relative grid min-h-[820px] items-center gap-12 py-16 lg:grid-cols-[1.08fr_0.92fr] lg:gap-16 lg:py-24">
           <div className="animate-rise relative z-10">
-            <p className="font-display text-sm font-extrabold tracking-[0.28em] text-brand-500">VP LOAN CONNECT</p>
-            <h1 className="font-display mt-6 max-w-3xl text-balance text-4xl font-extrabold leading-[1.05] tracking-[-0.055em] sm:text-5xl lg:text-[3.9rem]">
-              Find loan options
-              <span className="mt-2 block text-brand-500">for your profile.</span>
+            <p className="text-sm font-extrabold tracking-[0.04em] text-brand-500">Loan guidance for salaried, self-employed & businesses</p>
+            <h1 className="font-display mt-5 max-w-3xl text-balance text-4xl font-extrabold leading-[1.05] tracking-[-0.055em] text-white sm:text-5xl lg:text-[3.6rem]">
+              Find loan options that fit your profile.
             </h1>
-            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300 sm:text-xl">
-              Check what may fit your amount, income and credit picture. See your result and matched options first. The Credit Profile Booster is optional. We are not a lender and do not approve or disburse loans.
+            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-200 sm:text-xl">
+              Verify your email, unlock your Credit Profile Booster, complete your profile and explore matched loan options.
             </p>
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
               <ButtonLink href="/apply/quick" size="lg">
                 Check My Loan Options <ArrowRight size={18} aria-hidden="true" />
               </ButtonLink>
-              <ButtonLink href="/credit-health" variant="glass" size="lg">
-                What {USP_TOTAL_WITH_GST_LABEL} includes
+              <ButtonLink href="#booster" variant="glass" size="lg">
+                See What {USP_TOTAL_WITH_GST_LABEL} Includes
               </ButtonLink>
             </div>
-            <div className="mt-10 flex flex-wrap gap-x-7 gap-y-3 text-sm text-slate-300">
-              <span className="flex items-center gap-2">
-                <Clock3 className="text-brand-500" size={17} />
-                Email OTP, then your profile
-              </span>
-              <span className="flex items-center gap-2">
-                <FileCheck2 className="text-brand-500" size={17} />
-                Optional {USP_TOTAL_WITH_GST_LABEL} booster
-              </span>
-              <span className="flex items-center gap-2">
-                <LockKeyhole className="text-brand-500" size={17} />
-                No guaranteed approval
-              </span>
+            <div className="mt-8 flex flex-wrap gap-2 text-sm text-slate-200">
+              {["Secure email verification", `Transparent ${USP_TOTAL_WITH_GST_LABEL} pricing`, "No guaranteed approvals"].map((item) => (
+                <span key={item} className="rounded-full border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold">
+                  {item}
+                </span>
+              ))}
             </div>
           </div>
 
@@ -160,7 +143,7 @@ export default function HomePage() {
 
       <section aria-label="Trust and service principles" className="relative z-10 -mt-8 pb-2">
         <div className="page-shell">
-          <div className="grid gap-px overflow-hidden rounded-[1.75rem] border border-line bg-line shadow-soft sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <div className="grid gap-px overflow-hidden rounded-[1.75rem] border border-line bg-line shadow-soft sm:grid-cols-2 lg:grid-cols-5">
             {trustItems.map(([label, Icon]) => (
               <div key={label} className="flex min-h-28 flex-col justify-center gap-3 bg-white px-5 py-6">
                 <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-100 text-brand-700">
@@ -176,15 +159,19 @@ export default function HomePage() {
       <section id="how-it-works" className="section-space bg-white">
         <div className="page-shell">
           <SectionHeading
-            eyebrow="Simple, premium process"
-            title="See options. Unlock matches when useful."
-            description="A clear journey: verify email, complete the profile, then see your result and matched options. The Credit Profile Booster is optional."
+            eyebrow="How it works"
+            title="A clear path from enquiry to matched options"
+            description="Email verification, then the Credit Profile Booster, then your detailed profile. The price is shown before you pay."
             align="center"
           />
-          <div className="mt-16 grid gap-5 md:grid-cols-3">
-            <ProcessCard number="01" icon={UserRoundCheck} title="Start + email OTP" description="Amount, purpose, name and email — then verify before the profile questions." />
-            <ProcessCard number="02" icon={ChartNoAxesCombined} title="Profile, result, matches" description="Work, income and PAN lead to an eligibility result and matched official options." />
-            <ProcessCard number="03" icon={HandCoins} title={`Optional ${USP_TOTAL_WITH_GST_LABEL} booster`} description="Choose the Credit Profile Booster only if you want the downloadable action plan." />
+          <div className="mt-12 grid gap-4 md:grid-cols-5">
+            {journey.map(([number, title, description]) => (
+              <article key={number} className="rounded-[1.5rem] border border-line bg-surface p-5">
+                <span className="font-display text-sm font-black text-brand-600">{number}</span>
+                <h3 className="font-display mt-3 text-base font-extrabold tracking-[-0.02em] text-navy-950">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
+              </article>
+            ))}
           </div>
         </div>
       </section>
@@ -214,7 +201,7 @@ export default function HomePage() {
                 <h3 className="font-display mt-6 text-lg font-extrabold tracking-[-0.02em] text-navy-950">{title}</h3>
                 <p className="mt-3 text-sm leading-7 text-slate-600">{description}</p>
                 <p className="mt-4 text-xs font-bold text-brand-700">
-                  Explore {title} <ChevronRight className="inline" size={14} />
+                  Explore {title} readiness <ChevronRight className="inline" size={14} />
                 </p>
               </a>
             ))}
@@ -254,9 +241,9 @@ export default function HomePage() {
           </div>
           <div className="relative overflow-hidden rounded-[2rem] bg-navy-950 p-8 text-white shadow-soft sm:p-10">
             <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-brand-500/20 blur-3xl" />
-            <span className="relative inline-flex items-center gap-2 rounded-xl bg-brand-500/12 px-4 py-2 text-xs font-bold text-brand-100">
-              <BadgeCheck size={16} />
-              Profile first. Application second.
+            <span className="relative inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2 text-xs font-bold text-white">
+              <ShieldCheck size={16} className="text-brand-500" />
+              Guidance before applications
             </span>
             <h2 className="font-display relative mt-7 text-balance text-3xl font-extrabold tracking-[-0.04em] sm:text-4xl">
               Do not apply everywhere at once
@@ -288,22 +275,31 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section-space bg-white">
-        <div className="page-shell">
-          <SectionHeading
-            eyebrow="The complete journey"
-            title="No pressure—every step remains your choice"
-            description="Verify your email, unlock the Credit Profile Booster, then finish the detailed profile. Continue only when it helps."
-            align="center"
-          />
-          <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {journey.map(([number, title, description]) => (
-              <div key={number} className="relative rounded-[1.5rem] border border-line bg-white p-6 transition hover:border-brand-500/30">
-                <span className="font-display text-sm font-black text-brand-600">{number}</span>
-                <h3 className="font-display mt-4 text-lg font-extrabold tracking-[-0.02em] text-navy-950">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
-              </div>
-            ))}
+      <section id="booster" className="section-space bg-white">
+        <div className="page-shell grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+          <div>
+            <SectionHeading
+              eyebrow="Credit Profile Booster"
+              title={`${USP_PRICE_LABEL} + ${USP_GST_LABEL} GST`}
+              description={`Total: ${USP_TOTAL_WITH_GST_LABEL}. This is the service fee for the detailed profile, readiness insights, matched options and official apply links where available.`}
+            />
+            <ul className="mt-8 grid gap-3 text-sm font-semibold text-navy-950">
+              {["Detailed profile assessment", "Loan-readiness insights", "Matched loan categories and options", "Official apply links where available", "Profile improvement guidance"].map((item) => (
+                <li key={item} className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3">
+                  <Check className="text-brand-600" size={16} />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-[1.75rem] bg-navy-950 p-8 text-white">
+            <p className="text-sm text-slate-300">Service fee {USP_PRICE_LABEL}</p>
+            <p className="text-sm text-slate-300">GST (18%) {USP_GST_LABEL}</p>
+            <p className="mt-3 text-4xl font-black">Total: {USP_TOTAL_WITH_GST_LABEL}</p>
+            <ButtonLink href="/apply/quick" size="lg" className="mt-8 w-full">
+              Check My Loan Options <ArrowRight size={18} />
+            </ButtonLink>
+            <p className="mt-4 text-xs leading-6 text-slate-300">{LENDER_OUTCOME_DISCLAIMER}</p>
           </div>
         </div>
       </section>
@@ -313,7 +309,7 @@ export default function HomePage() {
         <div className="page-shell relative grid items-center gap-10 py-16 lg:grid-cols-[1fr_auto] sm:py-20">
           <div className="max-w-3xl">
             <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-brand-500">VP Refer & Earn</p>
-            <h2 className="font-display mt-4 text-balance text-3xl font-extrabold tracking-[-0.04em] sm:text-4xl">Share a smarter profile check</h2>
+            <h2 className="font-display mt-4 text-balance text-3xl font-extrabold tracking-[-0.04em] sm:text-4xl">Share a clearer loan check</h2>
             <p className="mt-5 max-w-2xl leading-8 text-slate-300">
               Rewards apply only to valid, non-refunded plan purchases—not clicks, registrations or loan approvals.
             </p>
@@ -331,7 +327,7 @@ export default function HomePage() {
             <SectionHeading
               eyebrow="Frequently asked questions"
               title="Clear answers for better decisions"
-              description="No false approval claims and no fake urgency. Matched official links require the Credit Profile Booster. It is not a lender fee."
+              description="The ₹116.82 payment is the Credit Profile Booster service fee. It is not a lender processing fee, and approval is never guaranteed."
             />
             <ButtonLink href="/contact" variant="secondary" className="mt-7">
               <MessageCircle size={18} />
@@ -380,7 +376,7 @@ export default function HomePage() {
                 Ready to check loan options for your profile?
                 </h2>
                 <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
-                  Verify email, complete your profile, then view matched options. Add the {USP_TOTAL_WITH_GST_LABEL} Credit Profile Booster only if you want it.
+                  Verify your email, unlock the {USP_TOTAL_WITH_GST_LABEL} Credit Profile Booster, then complete your profile and explore matched options.
                 </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -396,21 +392,6 @@ export default function HomePage() {
         </div>
       </section>
     </>
-  );
-}
-
-function ProcessCard({ number, icon: Icon, title, description }: { number: string; icon: typeof UserRoundCheck; title: string; description: string }) {
-  return (
-    <article className="relative rounded-[1.75rem] border border-line bg-white p-7 shadow-card sm:p-8">
-      <div className="flex items-center justify-between">
-        <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-100 text-brand-700">
-          <Icon size={22} />
-        </span>
-        <span className="font-display text-sm font-black text-slate-300">{number}</span>
-      </div>
-      <h3 className="font-display mt-7 text-xl font-extrabold tracking-[-0.02em] text-navy-950">{title}</h3>
-      <p className="mt-3 text-sm leading-7 text-slate-600">{description}</p>
-    </article>
   );
 }
 

@@ -20,11 +20,11 @@ import { PLATFORM_DISCLAIMER, RESULT_DISCLAIMER } from "@/lib/constants";
 export const metadata: Metadata = {
   title: "Personal Loan Profile Check",
   description:
-    "Personal-loan profile assessment, eligibility result and matched options, then an optional ₹99 Credit Profile Booster.",
+    "Explore personal-loan readiness. Verify your email, unlock the ₹116.82 Credit Profile Booster, then complete your profile.",
   alternates: { canonical: "/personal-loan" },
   openGraph: {
     title: "Personal Loan Profile Check | VP Loan Connect",
-    description: "Profile assessment, matched options, then an optional ₹99 Credit Profile Booster.",
+    description: "Email verification, ₹116.82 Credit Profile Booster, then a detailed personal-loan profile. Not a lender.",
     url: "/personal-loan",
   },
 };
@@ -39,18 +39,18 @@ const benefits = [
 const steps = [
   ["01", "Share your need", "Choose amount, purpose and basic contact details."],
   ["02", "Verify securely", "Complete OTP verification for a protected result link."],
-  ["03", "Answer profile questions", "Income, existing EMIs, CIBIL range and document readiness."],
-  ["04", "View your result", "See indicative readiness and matched options before the optional ₹99 Credit Profile Booster."],
-  ["05", "Best-fit official platforms", "Open profile-ranked lender or LSP journeys only if you choose."],
+  ["03", "Unlock the booster", "Pay ₹99 + ₹17.82 GST (₹116.82) for the Credit Profile Booster service."],
+  ["04", "Complete your profile", "Income, existing EMIs and document readiness come after payment."],
+  ["05", "Matched options", "Open official lender journeys only if you choose. Approval is not guaranteed."],
 ] as const;
 
 const quickAmounts = [
-  { label: "₹10,000", href: "/assessment?loanType=PERSONAL&amount=10000&purpose=Other%20personal%20need" },
-  { label: "₹25,000", href: "/assessment?loanType=PERSONAL&amount=25000&purpose=Other%20personal%20need" },
-  { label: "₹50,000", href: "/assessment?loanType=PERSONAL&amount=50000&purpose=Other%20personal%20need" },
-  { label: "₹1,00,000", href: "/assessment?loanType=PERSONAL&amount=100000&purpose=Other%20personal%20need" },
-  { label: "₹2,00,000", href: "/assessment?loanType=PERSONAL&amount=200000&purpose=Other%20personal%20need" },
-  { label: "₹5,00,000", href: "/assessment?loanType=PERSONAL&amount=500000&purpose=Other%20personal%20need" },
+  { label: "₹10,000", href: "/apply/quick?amount=10000&purpose=Other%20personal%20need" },
+  { label: "₹25,000", href: "/apply/quick?amount=25000&purpose=Other%20personal%20need" },
+  { label: "₹50,000", href: "/apply/quick?amount=50000&purpose=Other%20personal%20need" },
+  { label: "₹1,00,000", href: "/apply/quick?amount=100000&purpose=Other%20personal%20need" },
+  { label: "₹2,00,000", href: "/apply/quick?amount=200000&purpose=Other%20personal%20need" },
+  { label: "₹5,00,000", href: "/apply/quick?amount=500000&purpose=Other%20personal%20need" },
 ] as const;
 
 export default function PersonalLoanPage() {
@@ -86,7 +86,7 @@ export default function PersonalLoanPage() {
               Choose an amount and provide your income and CIBIL range to view an indicative result without uploading documents or sharing a bank password.
             </p>
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-              <ButtonLink href="/assessment?loanType=PERSONAL&purpose=Other%20personal%20need" size="lg">
+              <ButtonLink href="/apply/quick?purpose=Other%20personal%20need" size="lg">
                 Check Personal Loan Options <ArrowRight size={18} aria-hidden="true" />
               </ButtonLink>
               <ButtonLink href="#emi-planner" variant="glass" size="lg">
@@ -120,7 +120,7 @@ export default function PersonalLoanPage() {
                     </ButtonLink>
                   ))}
                 </div>
-                <ButtonLink href="/assessment?loanType=PERSONAL&purpose=Other%20personal%20need" className="mt-5 w-full" size="lg">
+                <ButtonLink href="/apply/quick?purpose=Other%20personal%20need" className="mt-5 w-full" size="lg">
                   Continue to profile check
                 </ButtonLink>
                 <p className="mt-4 text-xs leading-5 text-slate-500">
@@ -171,7 +171,7 @@ export default function PersonalLoanPage() {
               <RateRow label="Common digital tenure band" value="12 – 60 months" />
               <RateRow label="Indicative interest range (market)" value="About 12% – 36% p.a." />
               <RateRow label="Processing / tech charges (market)" value="Often 1% – 3% + taxes" />
-              <RateRow label="Indicative result on this journey" value="Included before the optional booster" />
+              <RateRow label="Credit Profile Booster" value="₹99 + ₹17.82 GST = ₹116.82" />
             </dl>
             <div className="border-t border-line bg-navy-950 p-6 text-white sm:p-7">
               <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-500">Example EMI (estimate only)</p>
@@ -247,10 +247,10 @@ export default function PersonalLoanPage() {
               Personal loan options that fit your profile
             </h2>
             <p className="mt-4 text-base leading-8 text-slate-300">
-              Start with accurate information. The eligibility result and matched options come before the optional Credit Profile Booster.
+              Verify your email, unlock the ₹116.82 Credit Profile Booster, then complete your profile.
             </p>
           </div>
-          <ButtonLink href="/assessment?loanType=PERSONAL&purpose=Other%20personal%20need" size="lg">
+          <ButtonLink href="/apply/quick?purpose=Other%20personal%20need" size="lg">
             Check Personal Loan Options <ArrowRight size={18} />
           </ButtonLink>
         </div>

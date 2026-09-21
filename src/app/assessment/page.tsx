@@ -1,87 +1,53 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
-import { Clock3, FileCheck2, LockKeyhole, Sparkles } from "lucide-react";
-import { AssessmentForm } from "@/components/assessment/assessment-form";
-import { USP_PRICE_LABEL, USP_PRODUCT_NAME } from "@/lib/constants";
+import { ArrowRight, LockKeyhole, ShieldCheck } from "lucide-react";
+import { ButtonLink } from "@/components/ui/button";
+import { LENDER_OUTCOME_DISCLAIMER, USP_GST_LABEL, USP_PRICE_LABEL, USP_TOTAL_WITH_GST_LABEL } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "Apply — Verify, profile, result",
-  description: `Complete a short profile (email OTP, PAN, income, address), then view your result and matched options. ${USP_PRODUCT_NAME} at ${USP_PRICE_LABEL} + GST is optional.`,
+  title: "Quick Apply — Credit Profile Booster",
+  description: `Verify your email, then unlock the Credit Profile Booster at ${USP_PRICE_LABEL} + ${USP_GST_LABEL} GST (${USP_TOTAL_WITH_GST_LABEL}). Detailed profile questions come after payment.`,
   alternates: { canonical: "/assessment" },
 };
 
-export default function AssessmentPage() {
-  return (
-    <section className="relative min-h-screen overflow-hidden bg-surface">
-      <div className="hero-premium relative overflow-hidden text-white">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="animate-pulse-soft absolute -right-20 top-0 h-72 w-72 rounded-full bg-brand-500/20 blur-3xl" />
-        </div>
-        <div className="page-shell relative py-10 sm:py-14">
-          <div className="mx-auto max-w-3xl text-center">
-            <p className="font-display text-sm font-extrabold tracking-[0.28em] text-brand-500">VP LOAN CONNECT</p>
-            <p className="mt-4 inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.2em] text-slate-400">
-              <Sparkles size={14} className="text-brand-500" />
-              4-step apply · Mobile-first
-            </p>
-            <h1 className="font-display mt-4 text-balance text-3xl font-extrabold tracking-[-0.05em] sm:text-5xl">
-              Verify. Check eligibility.
-              <span className="mt-2 block text-brand-500">See matched options.</span>
-            </h1>
-            <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
-              Email OTP, PAN and income, then your eligibility result and matched options. {USP_PRODUCT_NAME} ({USP_PRICE_LABEL} + GST) is optional after that. We never ask for bank KYC or Aadhaar OTP.
-            </p>
-            <div className="mx-auto mt-7 flex max-w-3xl flex-wrap justify-center gap-3 text-xs font-bold text-slate-300">
-              <span className="flex items-center gap-2 rounded-xl border border-white/12 bg-white/5 px-4 py-2.5 backdrop-blur">
-                <Clock3 className="text-brand-500" size={16} />
-                ~2 minutes
-              </span>
-              <span className="flex items-center gap-2 rounded-xl border border-white/12 bg-white/5 px-4 py-2.5 backdrop-blur">
-                <FileCheck2 className="text-brand-500" size={16} />
-                PAN + income
-              </span>
-              <span className="flex items-center gap-2 rounded-xl border border-white/12 bg-white/5 px-4 py-2.5 backdrop-blur">
-                <LockKeyhole className="text-brand-500" size={16} />
-                OTP · secure
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+export default async function AssessmentPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const query = new URLSearchParams();
+  const amount = typeof params.amount === "string" ? params.amount : "";
+  const purpose = typeof params.purpose === "string" ? params.purpose : "";
+  if (amount) query.set("amount", amount);
+  if (purpose) query.set("purpose", purpose);
+  const href = query.toString() ? `/apply/quick?${query.toString()}` : "/apply/quick";
 
-      <div className="page-shell relative z-10 -mt-6 pb-14 sm:pb-20">
-        <div className="mx-auto max-w-3xl">
-          <Suspense fallback={<AssessmentLoading />}>
-            <AssessmentForm />
-          </Suspense>
-          <p className="mx-auto mt-6 max-w-2xl text-center text-xs leading-6 text-slate-500">
-            The optional {USP_PRICE_LABEL} Credit Profile Booster is a report service — not a lender processing fee or approval guarantee. Never share UPI PIN, CVV or Aadhaar OTP.
+  return (
+    <section className="surface-grid min-h-[70vh] bg-surface py-16">
+      <div className="page-shell">
+        <div className="mx-auto max-w-3xl rounded-[2rem] border border-line bg-white p-8 shadow-soft sm:p-12">
+          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-700">Quick Apply</p>
+          <h1 className="font-display mt-4 text-4xl font-extrabold tracking-[-0.045em] text-navy-950">Start with your loan requirement</h1>
+          <p className="mt-4 text-base leading-8 text-slate-600">
+            Verify your email, then unlock the Credit Profile Booster at {USP_PRICE_LABEL} + {USP_GST_LABEL} GST. Total: {USP_TOTAL_WITH_GST_LABEL}. Work, income and PAN are collected after that payment.
+          </p>
+          <ul className="mt-6 grid gap-3 text-sm font-semibold text-navy-950">
+            {["Tell us the amount and purpose", "Verify your email", `Unlock the booster — ${USP_TOTAL_WITH_GST_LABEL}`, "Complete your profile", "View matched options"].map((item) => (
+              <li key={item} className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-3">
+                <ShieldCheck className="text-brand-600" size={16} />
+                {item}
+              </li>
+            ))}
+          </ul>
+          <ButtonLink href={href} size="lg" className="mt-8">
+            Check My Loan Options <ArrowRight size={18} />
+          </ButtonLink>
+          <p className="mt-6 flex items-start gap-2 text-xs leading-6 text-slate-500">
+            <LockKeyhole className="mt-0.5 shrink-0" size={14} />
+            {LENDER_OUTCOME_DISCLAIMER}
           </p>
         </div>
       </div>
     </section>
-  );
-}
-
-function AssessmentLoading() {
-  return (
-    <div className="min-h-[640px] overflow-hidden rounded-[1.75rem] border border-line/80 bg-white shadow-soft" aria-label="Loading assessment" aria-busy="true">
-      <div className="border-b border-line bg-surface p-5 sm:px-8">
-        <div className="skeleton h-8 w-full rounded-full" />
-      </div>
-      <div className="p-6 sm:p-10">
-        <div className="skeleton mx-auto h-12 w-12 rounded-full" />
-        <div className="skeleton mx-auto mt-5 h-8 w-3/5 rounded-xl" />
-        <div className="skeleton mx-auto mt-4 h-4 w-4/5 rounded-lg" />
-        <div className="mt-9 grid gap-5">
-          {[0, 1, 2].map((item) => (
-            <div key={item}>
-              <div className="skeleton h-3 w-24 rounded-full" />
-              <div className="skeleton mt-3 h-14 rounded-2xl" />
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
   );
 }

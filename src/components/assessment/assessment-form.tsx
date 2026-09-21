@@ -18,7 +18,6 @@ import {
   MARKETING_CONSENT_TEXT,
   SERVICE_CONSENT_TEXT,
   USP_PRICE_LABEL,
-  USP_PRODUCT_NAME,
   USP_TOTAL_WITH_GST_LABEL,
 } from "@/lib/constants";
 import { trackEvent } from "@/lib/analytics-client";
@@ -983,7 +982,7 @@ function UnlockStep({ form, update }: StepProps) {
         </span>
         <h2 className="mt-4 text-3xl font-extrabold tracking-[-0.045em] sm:text-4xl">See your result</h2>
         <p className="mt-3 max-w-xl text-sm leading-7 text-slate-300">
-          Submit this profile to view your eligibility result and matched options. The {USP_PRODUCT_NAME} ({USP_PRICE_LABEL} + GST, total {USP_TOTAL_WITH_GST_LABEL}) stays optional after that result.
+          The Credit Profile Booster ({USP_PRICE_LABEL} + GST, total {USP_TOTAL_WITH_GST_LABEL}) is required before the detailed profile, eligibility result and matched options. It is a service fee, not a lender processing fee.
         </p>
       </div>
 

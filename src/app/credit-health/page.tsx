@@ -4,7 +4,7 @@ import { USP_PRICE_LABEL, USP_PRODUCT_NAME, USP_TOTAL_WITH_GST_LABEL } from "@/l
 
 export const metadata: Metadata = {
   title: `${USP_PRODUCT_NAME} — ${USP_PRICE_LABEL}`,
-  description: "Optional ₹99 Credit Profile Booster after your eligibility result: a downloadable action plan and extended guidance. ₹99 + ₹17.82 GST = ₹116.82.",
+  description: "Credit Profile Booster at ₹99 + ₹17.82 GST (₹116.82 total) after email verification. It unlocks the detailed profile, readiness insights and matched options. Not a lender fee.",
   alternates: { canonical: "/credit-health" },
 };
 
@@ -13,7 +13,7 @@ export default function CreditHealthPage() {
     <ProductPage
       kind="credit"
       title={`VP ${USP_PRODUCT_NAME}`}
-      heading="Optional ₹99 Credit Profile Booster after your result"
+      heading="₹99 Credit Profile Booster after email verification"
       description="Get a clear credit-profile explanation, loan-readiness analysis and relevant bank, NBFC and fintech options for your profile—without being sent to random loan websites."
       price={`Launch price ${USP_PRICE_LABEL} + 18% GST`}
       total={`${USP_TOTAL_WITH_GST_LABEL} total`}

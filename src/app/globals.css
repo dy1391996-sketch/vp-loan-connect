@@ -1,28 +1,28 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-navy-950: #061521;
-  --color-navy-900: #0a2235;
-  --color-navy-800: #123852;
-  --color-brand-700: #087653;
-  --color-brand-600: #0a9265;
-  --color-brand-500: #19b77e;
-  --color-brand-100: #ddf8ed;
-  --color-surface: #f3f7f5;
-  --color-line: #d8e4df;
-  --font-dm-sans: "DM Sans", "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif;
-  --font-manrope: "Manrope", "DM Sans", "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: var(--font-dm-sans);
+  --color-navy-950: #102a43;
+  --color-navy-900: #243b53;
+  --color-navy-800: #334e68;
+  --color-brand-700: #1d4ed8;
+  --color-brand-600: #2563eb;
+  --color-brand-500: #0f9d8a;
+  --color-brand-100: #e8f2ff;
+  --color-surface: #f8fafc;
+  --color-line: #d9e2ec;
+  --font-dm-sans: "Manrope", "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif;
+  --font-manrope: "Manrope", "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-manrope);
   --font-display: var(--font-manrope);
-  --shadow-soft: 0 28px 80px rgba(6, 21, 33, 0.12);
-  --shadow-card: 0 14px 42px rgba(6, 21, 33, 0.08);
-  --shadow-premium: 0 40px 100px rgba(6, 21, 33, 0.28);
+  --shadow-soft: 0 24px 60px rgba(16, 42, 67, 0.1);
+  --shadow-card: 0 12px 32px rgba(16, 42, 67, 0.08);
+  --shadow-premium: 0 32px 80px rgba(16, 42, 67, 0.22);
 }
 
 :root {
   color-scheme: light;
   --background: #ffffff;
-  --foreground: #0a2138;
+  --foreground: #243b53;
 }
 
 * {
@@ -57,13 +57,13 @@ a {
 }
 
 :focus-visible {
-  outline: 3px solid rgba(22, 170, 121, 0.35);
+  outline: 3px solid rgba(37, 99, 235, 0.35);
   outline-offset: 3px;
 }
 
 ::selection {
-  background: #b7edd8;
-  color: #061728;
+  background: #dbe7ff;
+  color: #102a43;
 }
 
 .page-shell {
@@ -85,15 +85,12 @@ a {
 
 .hero-grid,
 .hero-premium {
-  background-color: #061521;
+  background-color: #102a43;
   background-image:
-    radial-gradient(ellipse 80% 60% at 85% -10%, rgba(25, 183, 126, 0.28), transparent 55%),
-    radial-gradient(ellipse 50% 45% at 0% 100%, rgba(18, 90, 140, 0.22), transparent 50%),
-    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(25, 183, 126, 0.06), transparent 60%),
-    linear-gradient(165deg, #071a28 0%, #061521 45%, #0a1f30 100%),
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: auto, auto, auto, auto, 56px 56px, 56px 56px;
+    radial-gradient(ellipse 55% 45% at 100% 0%, rgba(37, 99, 235, 0.22), transparent 60%),
+    radial-gradient(ellipse 40% 35% at 0% 100%, rgba(15, 157, 138, 0.16), transparent 55%),
+    linear-gradient(180deg, #102a43 0%, #0d2438 100%);
+  background-size: auto, auto, auto;
   background-position: center;
 }
 
@@ -102,15 +99,17 @@ a {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background:
-    linear-gradient(105deg, transparent 40%, rgba(25, 183, 126, 0.04) 50%, transparent 60%),
-    radial-gradient(ellipse 70% 40% at 50% 120%, rgba(0, 0, 0, 0.35), transparent);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 85%);
 }
 
 .surface-grid {
   background-image:
-    linear-gradient(rgba(6, 21, 33, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(6, 21, 33, 0.025) 1px, transparent 1px);
+    linear-gradient(rgba(16, 42, 67, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 42, 67, 0.04) 1px, transparent 1px);
   background-size: 48px 48px;
 }
 

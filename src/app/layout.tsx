@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
+import "@fontsource/manrope/400.css";
+import "@fontsource/manrope/500.css";
 import "@fontsource/manrope/600.css";
 import "@fontsource/manrope/700.css";
 import "@fontsource/manrope/800.css";
@@ -26,7 +28,7 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL(getPublicAppUrl()),
   title: { default: `${APP_NAME} | ${TAGLINE}`, template: `%s | ${APP_NAME}` },
-  description: "Check loan options for your profile, see matched options, then choose the optional ₹99 Credit Profile Booster. Not a lender — no guaranteed approval.",
+  description: "Find loan options for your profile. Verify your email, unlock the ₹116.82 Credit Profile Booster, then complete your profile and explore matched options. Not a lender.",
   applicationName: APP_NAME,
   category: "financial education",
   keywords: ["credit profile booster", "loan matching", "loan readiness", "EMI calculator", "personal loan India", "VP Loan Connect"],
@@ -35,8 +37,8 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_IN",
     siteName: APP_NAME,
-    title: `${APP_NAME} — Profile assessment and optional ₹99 Credit Profile Booster`,
-    description: "Analyse your credit profile and discover profile-matched loan options. Not a lender — no guaranteed approval.",
+    title: `${APP_NAME} — Loan guidance and Credit Profile Booster`,
+    description: "Verify your email, unlock the ₹116.82 Credit Profile Booster, then explore matched loan options. Not a lender.",
     url: "/",
     images: [{ url: "/og.jpg", width: 1200, height: 627, alt: "VP Loan Connect — Credit Profile Booster" }],
   },
@@ -47,7 +49,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#061521",
+  themeColor: "#102A43",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

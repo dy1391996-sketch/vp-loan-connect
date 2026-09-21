@@ -20,6 +20,7 @@ import {
 } from "@/lib/apply/quick-apply-state";
 import { maskPan, normalizePan } from "@/lib/domain/identity";
 import { normalizeEmailInput } from "@/lib/apply/quick-apply-validation";
+import { LENDER_OUTCOME_DISCLAIMER, USP_GST_LABEL, USP_PRICE_LABEL, USP_TOTAL_WITH_GST_LABEL } from "@/lib/constants";
 import { cn, formatInr } from "@/lib/utils";
 
 const PURPOSE_ICONS: Record<string, typeof HeartPulse> = {
@@ -58,7 +59,7 @@ export function QuickApplyStepBody({ form, patch, step, errors, otp }: Props) {
           Start with your loan need
         </h1>
         <p className="mt-3 text-sm leading-7 text-slate-600">
-          Tell us the amount and verify your email. Work, income and PAN come next. Your result and matched options appear before the optional Credit Profile Booster.
+          Tell us the amount and purpose, then verify your email. The Credit Profile Booster ({USP_PRICE_LABEL} + {USP_GST_LABEL} GST, total {USP_TOTAL_WITH_GST_LABEL}) comes next. Work, income and PAN are collected only after payment.
         </p>
         <div className="mt-8 grid gap-4">
           <label className="block">
@@ -210,9 +211,40 @@ export function QuickApplyStepBody({ form, patch, step, errors, otp }: Props) {
   if (step === 3) {
     return (
       <div>
+        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-brand-700">Credit Profile Booster</p>
+        <h1 className="font-display mt-3 text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">Credit Profile Booster</h1>
+        <p className="mt-4 text-lg font-extrabold text-navy-950">
+          {USP_PRICE_LABEL} + {USP_GST_LABEL} GST
+        </p>
+        <p className="mt-1 text-3xl font-black tracking-[-0.04em] text-brand-700">Total: {USP_TOTAL_WITH_GST_LABEL}</p>
+        <p className="mt-4 text-sm leading-7 text-slate-600">
+          This payment is for the Credit Profile Booster service. It is not a lender processing fee, a loan repayment, or a payment for approval.
+        </p>
+        <ul className="mt-6 grid gap-3 text-sm leading-6 text-slate-700">
+          {[
+            "Detailed profile assessment",
+            "Loan-readiness insights",
+            "Matched loan categories and options",
+            "Official apply links where available",
+            "Profile improvement guidance",
+          ].map((item) => (
+            <li key={item} className="flex items-start gap-3 rounded-2xl border border-line bg-surface px-4 py-3 font-semibold text-navy-950">
+              <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-600 text-[11px] text-white">✓</span>
+              {item}
+            </li>
+          ))}
+        </ul>
+        <p className="mt-6 text-xs leading-6 text-slate-500">{LENDER_OUTCOME_DISCLAIMER}</p>
+      </div>
+    );
+  }
+
+  if (step === 4) {
+    return (
+      <div>
         <h1 className="font-display text-3xl font-extrabold tracking-[-0.045em] text-navy-950">Work, income and commitments</h1>
         <p className="mt-3 text-sm leading-7 text-slate-600">
-          A few details to estimate indicative affordability. This does not pull a bureau report or affect your CIBIL score.
+          Payment is confirmed. These details estimate indicative affordability. This does not pull a bureau report or affect your CIBIL score.
         </p>
         <div className="mt-6 grid gap-4">
           <Field label="Date of birth" required error={errors.dateOfBirth}>
@@ -358,7 +390,7 @@ export function QuickApplyStepBody({ form, patch, step, errors, otp }: Props) {
     );
   }
 
-  if (step === 4) {
+  if (step === 5) {
     const creditLabel = CREDIT_OPTIONS.find((item) => item.id === form.creditRange)?.label || "—";
     const employmentLabel = EMPLOYMENT_OPTIONS.find((item) => item.id === form.employmentUi)?.label || "—";
     return (

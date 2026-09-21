@@ -5,7 +5,8 @@ import { estimateIndicativeCapacity } from "@/lib/domain/cross-field-rules";
 import { buildPaymentReportSnapshot } from "@/lib/domain/early-checkout";
 import { maskPan } from "@/lib/domain/identity";
 import { calculateReadiness, incomeRangeMidpoints, type ScoreInput } from "@/lib/domain/scoring";
-import { CONSENT_VERSION, MARKETING_CONSENT_TEXT, SERVICE_CONSENT_TEXT } from "@/lib/constants";
+import { canCompleteDetailedProfile } from "@/lib/apply/funnel-route";
+import { CONSENT_VERSION, MARKETING_CONSENT_TEXT, SERVICE_CONSENT_TEXT, USP_PRODUCT_SLUG } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { getPublicAppUrl, getServerEnv } from "@/lib/env";
 import { sendWhatsAppTemplate } from "@/lib/providers/whatsapp";
@@ -189,6 +190,23 @@ export async function POST(request: NextRequest) {
           disclaimer: "Indicative eligibility estimate, not a loan approval. Not a bureau score or lender approval.",
         },
       });
+    }
+
+    if (input.draftAssessmentId) {
+      const paidOrder = await prisma.order.findFirst({
+        where: {
+          assessmentId: input.draftAssessmentId,
+          status: "PAID",
+          product: { slug: USP_PRODUCT_SLUG },
+        },
+        select: { id: true },
+      });
+      if (!canCompleteDetailedProfile(Boolean(paidOrder))) {
+        return NextResponse.json(
+          { error: "Unlock the Credit Profile Booster before completing your profile." },
+          { status: 402 },
+        );
+      }
     }
 
     const scoreInput: ScoreInput = {

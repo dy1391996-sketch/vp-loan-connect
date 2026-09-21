@@ -1,5 +1,5 @@
 export const APP_NAME = "VP Loan Connect";
-export const TAGLINE = "Profile assessment and loan discovery";
+export const TAGLINE = "Loan Profile Assessment & Option Discovery";
 /** Naked brand domain (emails, display). Prefer CANONICAL_SITE_ORIGIN for absolute URLs. */
 export const DOMAIN = "vploanconnect.in";
 /** Canonical public origin — always www in production. */
@@ -15,6 +15,7 @@ export const USP_PRODUCT_SLUG = "credit-health-action-plan";
 export const USP_PRODUCT_NAME = "Credit Profile Booster";
 export const USP_SALE_PRICE = 99;
 export const USP_PRICE_LABEL = "₹99";
+export const USP_GST_LABEL = "₹17.82";
 export const USP_TOTAL_WITH_GST_LABEL = "₹116.82";
 
 export const CONSENT_VERSION = "2026-07-v1";

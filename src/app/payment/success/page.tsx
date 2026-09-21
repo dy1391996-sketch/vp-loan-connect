@@ -6,6 +6,7 @@ import { ConnectOptionsPanel } from "@/components/connect-options-panel";
 import { PublicStatePanel } from "@/components/ui/public-state-panel";
 import { PUBLIC_SUPPORT_EMAIL } from "@/lib/constants";
 import { prisma } from "@/lib/db";
+import { AutoContinue } from "@/components/checkout/auto-continue";
 import { continueQuickApplyHref } from "@/lib/domain/early-checkout";
 import { getServerEnv } from "@/lib/env";
 import { getPaidConnectBundle } from "@/lib/matching/match-service";
@@ -92,9 +93,12 @@ export default async function PaymentSuccessPage({ searchParams }: { searchParam
               <Info label="Amount paid" value={formatInr(Number(report.order.totalAmount))} />
             </div>
             {pendingProfile ? (
-              <ButtonLink href={continueHref} size="lg" className="mt-7 w-full">
-                Continue detailed application <FileText size={18} />
-              </ButtonLink>
+              <>
+                <AutoContinue href={continueHref} />
+                <ButtonLink href={continueHref} size="lg" className="mt-7 w-full">
+                  Continue detailed application <FileText size={18} />
+                </ButtonLink>
+              </>
             ) : (
               <ButtonLink href={`/report/${report.id}?token=${encodeURIComponent(query.token)}`} size="lg" className="mt-7 w-full">
                 Open full booster report <FileText size={18} />
@@ -106,7 +110,7 @@ export default async function PaymentSuccessPage({ searchParams }: { searchParam
             <div className="mt-6 rounded-3xl border border-line bg-white p-6 shadow-sm">
               <h2 className="font-extrabold text-navy-950">Next: complete your profile</h2>
               <p className="mt-3 text-sm leading-7 text-slate-600">
-                Payment is verified. Finish any remaining profile details so the booster report can be generated. New applications complete the profile before this optional payment.
+                Payment is verified. Continue to your detailed profile for the eligibility result and matched options. Your verified email stays on this enquiry.
               </p>
               <ButtonLink href={continueHref} className="mt-5">
                 Continue application
