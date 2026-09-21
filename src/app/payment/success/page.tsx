@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { CheckCircle2, FileText, ReceiptText, ShieldCheck } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
+import { FunnelBeacon } from "@/components/analytics/funnel-beacon";
 import { ConnectOptionsPanel } from "@/components/connect-options-panel";
 import { PublicStatePanel } from "@/components/ui/public-state-panel";
 import { PUBLIC_SUPPORT_EMAIL } from "@/lib/constants";
@@ -66,6 +67,15 @@ export default async function PaymentSuccessPage({ searchParams }: { searchParam
     <section className="surface-grid min-h-[75vh] bg-surface py-14 sm:py-16">
       <div className="page-shell">
         <div className="mx-auto max-w-6xl">
+          <FunnelBeacon
+            eventName="payment_completed"
+            dedupeKey={`payment_${report.order.orderReference}`}
+            properties={{
+              product: report.order.product.slug,
+              currency: report.order.currency || "INR",
+              value: Number(report.order.totalAmount),
+            }}
+          />
           <div className="rounded-[2rem] border border-line/80 bg-white p-7 shadow-soft sm:p-10">
             <span className="grid h-16 w-16 place-items-center rounded-3xl bg-brand-100 text-brand-700"><CheckCircle2 size={31} /></span>
             <p className="mt-6 text-xs font-extrabold uppercase tracking-[0.2em] text-brand-700">Service fee verified</p>

@@ -156,6 +156,13 @@ export function QuickApplyClient() {
     return () => window.clearTimeout(timer);
   }, [step, form, otpVerified, phase]);
 
+  const resultViewTracked = useRef(false);
+  useEffect(() => {
+    if (phase !== "result" || resultViewTracked.current) return;
+    resultViewTracked.current = true;
+    trackEvent("free_result_viewed", { source: "quick_apply" });
+  }, [phase]);
+
   useEffect(() => {
     if (resendIn <= 0) return;
     const timer = window.setTimeout(() => setResendIn((value) => Math.max(0, value - 1)), 1000);
@@ -345,7 +352,6 @@ export function QuickApplyClient() {
     }
 
     if (step === 6) {
-      trackEvent("free_result_viewed");
       setPhase("result");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;

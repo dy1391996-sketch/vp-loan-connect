@@ -11,6 +11,7 @@ export const META_FUNNEL_EVENTS = [
   "EligibilityViewed",
   "CheckoutStarted",
   "PaymentSuccess",
+  "PaymentFailed",
   "Purchase",
   "InstagramProfileClick",
   "InstagramAdLanding",
@@ -31,10 +32,36 @@ export const FIRST_PARTY_TO_META: Record<string, MetaFunnelEvent[]> = {
   checkout_resumed: ["CheckoutStarted"],
   // Pixel/CAPI standard name is Purchase; funnel label PaymentSuccess is kept in custom_data.
   payment_completed: ["PaymentSuccess"],
+  payment_failed: ["PaymentFailed"],
   instagram_profile_click: ["InstagramProfileClick"],
 };
 
-/** Standard Meta event names where applicable; custom events keep funnel names. */
+/**
+ * Browser Pixel method must match the name sent to Conversions API.
+ * Non-standard names use trackCustom so they are not rejected or collapsed.
+ */
+const STANDARD_META_PIXEL_EVENTS = new Set([
+  "PageView",
+  "ViewContent",
+  "Search",
+  "AddToCart",
+  "AddToWishlist",
+  "InitiateCheckout",
+  "AddPaymentInfo",
+  "Purchase",
+  "Lead",
+  "CompleteRegistration",
+  "Contact",
+  "CustomizeProduct",
+  "Donate",
+  "FindLocation",
+  "Schedule",
+  "StartTrial",
+  "SubmitApplication",
+  "Subscribe",
+]);
+
+/** One standard Meta name per stage. Do not map several stages onto Lead. */
 export function metaPixelEventName(event: MetaFunnelEvent): string {
   switch (event) {
     case "LandingPageView":
@@ -45,12 +72,18 @@ export function metaPixelEventName(event: MetaFunnelEvent): string {
     case "CheckoutStarted":
       return "InitiateCheckout";
     case "OTPVerified":
+      return "CompleteRegistration";
     case "AssessmentCompleted":
-    case "QuickApplyStarted":
-      return "Lead";
+      return "SubmitApplication";
+    case "EligibilityViewed":
+      return "ViewContent";
     default:
       return event;
   }
+}
+
+export function metaBrowserTrackMethod(eventName: string): "track" | "trackCustom" {
+  return STANDARD_META_PIXEL_EVENTS.has(eventName) ? "track" : "trackCustom";
 }
 
 export function isMetaFunnelEvent(value: string): value is MetaFunnelEvent {

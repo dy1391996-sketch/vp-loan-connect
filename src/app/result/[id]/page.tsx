@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ArrowRight, Check, CircleAlert, FileCheck2, Gauge, ShieldCheck, Sparkles, TrendingUp, Zap } from "lucide-react";
 import { notFound } from "next/navigation";
+import { FunnelBeacon } from "@/components/analytics/funnel-beacon";
 import { ButtonLink } from "@/components/ui/button";
 import { PublicStatePanel } from "@/components/ui/public-state-panel";
 import { RESULT_DISCLAIMER } from "@/lib/constants";
@@ -44,6 +45,11 @@ export default async function ResultPage({ params, searchParams }: { params: Pro
     <section className="surface-grid min-h-screen bg-surface py-8 sm:py-14">
       <div className="page-shell">
         <div className="mx-auto max-w-6xl">
+          <FunnelBeacon
+            eventName="free_result_viewed"
+            dedupeKey={`result_${id}`}
+            firstParty={false}
+          />
           <div className="relative overflow-hidden rounded-[2.25rem] bg-navy-950 p-7 text-white shadow-card sm:p-11">
             <div className="absolute -right-20 -top-28 h-80 w-80 rounded-full bg-brand-500/20 blur-3xl" />
             <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">

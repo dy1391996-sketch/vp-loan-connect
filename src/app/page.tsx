@@ -40,10 +40,10 @@ export const metadata: Metadata = {
 };
 
 const trustItems = [
-  ["Free profile check", ShieldCheck],
+  ["Email OTP first", ShieldCheck],
   ["₹99 Credit Profile Booster", Sparkles],
   ["Matched lenders first", SearchCheck],
-  ["No docs in free check", FileCheck2],
+  ["No document upload", FileCheck2],
   ["Privacy-first", LockKeyhole],
   ["Official apply links", Landmark],
 ] as const;
@@ -69,7 +69,7 @@ const rejectionReasons = [
 
 const faqs = [
   ["Does VP Loan Connect lend money?", "No. VP Loan Connect is not a bank, NBFC, lender or credit bureau. We analyse your profile, explain credit readiness and show profile-matched lender options."],
-  ["Is the free result a loan approval?", "No. It is an indicative view based on your answers. Eligibility, APR, amount and approval are decided only by the relevant lender."],
+  ["Is the profile result a loan approval?", "No. It is an indicative view based on your answers. Eligibility, APR, amount and approval are decided only by the relevant lender."],
   ["Do I need to upload documents?", "Not during the initial assessment. We only ask whether documents are available. Never share a UPI PIN, CVV, bank password or Aadhaar OTP."],
   ["Will this profile check affect my CIBIL score?", "No. This assessment uses your self-reported CIBIL range; it does not pull a bureau report or create a lender enquiry."],
   ["Is the ₹99 Credit Profile Booster mandatory?", "Matched official apply links and the full Credit Profile Booster require ₹99 + GST. We are not a lender and do not charge a % platform fee on your loan amount."],
@@ -293,7 +293,7 @@ export default function HomePage() {
           <SectionHeading
             eyebrow="The complete journey"
             title="No pressure—every step remains your choice"
-            description="Start with the free assessment and continue only when it helps."
+            description="Verify your email, unlock the Credit Profile Booster, then finish the detailed profile. Continue only when it helps."
             align="center"
           />
           <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -331,7 +331,7 @@ export default function HomePage() {
             <SectionHeading
               eyebrow="Frequently asked questions"
               title="Clear answers for better decisions"
-              description="No false approval claims and no fake urgency. Payment is not required to view the initial result."
+              description="No false approval claims and no fake urgency. Matched official links require the Credit Profile Booster. It is not a lender fee."
             />
             <ButtonLink href="/contact" variant="secondary" className="mt-7">
               <MessageCircle size={18} />

@@ -6,7 +6,7 @@ import { trackEvent } from "@/lib/analytics-client";
 
 export function ReferralActions({ link }: { link: string }) {
   const [copied, setCopied] = useState(false);
-  const message = `Understand your credit profile before applying for a loan. A free check is available. View the ₹99 Credit Profile Booster here: ${link}. This does not guarantee loan approval.`;
+  const message = `Check loan options for your profile on VP Loan Connect. The ₹99 Credit Profile Booster unlocks matched official links and is not a loan approval: ${link}`;
 
   async function copy() {
     await navigator.clipboard.writeText(link);
