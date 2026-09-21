@@ -55,7 +55,7 @@ export function FunnelHeader({
           </p>
         </div>
       </div>
-      <ol className="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 pb-3 sm:px-6" aria-label="Application progress">
+      <ol className="mx-auto flex min-w-0 max-w-full gap-2 overflow-x-auto px-4 pb-3 sm:px-6" aria-label="Application progress">
         {FUNNEL_PROGRESS_LABELS.map((item, index) => {
           const n = index + 1;
           const done = progress > n;
@@ -130,7 +130,7 @@ export function FunnelSidebar({ step }: { step: number }) {
 
 export function MobileTrustStrip() {
   return (
-    <div className="mt-4 flex gap-2 overflow-x-auto pb-1 lg:hidden" aria-label="Trust indicators">
+    <div className="mt-4 flex w-full min-w-0 max-w-full gap-2 overflow-x-auto pb-1 lg:hidden" aria-label="Trust indicators">
       {TRUST_ITEMS.map((item) => (
         <span key={item} className="shrink-0 rounded-full border border-line bg-white px-3 py-2 text-[11px] font-semibold text-slate-600">
           {item}
