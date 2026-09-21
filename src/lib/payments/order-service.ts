@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { randomInt } from "node:crypto";
-import { randomToken, sha256 } from "@/lib/utils";
+import { randomToken, sha256 } from "@/lib/server-crypto";
 import { qualifiesForReferralReward } from "@/lib/domain/referrals";
 import { buildPaymentReportSnapshot, leadStageAfterPayment } from "@/lib/domain/early-checkout";
 

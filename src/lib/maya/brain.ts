@@ -74,8 +74,12 @@ export class MayaBrain {
       this.store.saveRelationshipState(defaultRelationshipState(input.ownerId, at));
     }
 
-    const conversation =
+    const existing =
       (input.conversationId ? this.store.getConversation(input.ownerId, input.conversationId) : undefined) ??
+      this.store.listConversations(input.ownerId).find((row) => row.channel === input.channel && !row.closedAt);
+
+    const conversation =
+      existing ??
       this.store.createConversation({
         conversationId: input.conversationId ?? newId(),
         ownerId: input.ownerId,

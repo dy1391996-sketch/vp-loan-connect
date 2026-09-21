@@ -7,7 +7,7 @@ import { fetchCashfreeOrder } from "@/lib/payments/providers/cashfree";
 import { processSuccessfulPayment } from "@/lib/payments/order-service";
 import { sendWhatsAppTemplate } from "@/lib/providers/whatsapp";
 import { signAccessToken } from "@/lib/security/tokens";
-import { sha256 } from "@/lib/utils";
+import { sha256 } from "@/lib/server-crypto";
 
 function amountsMatchRupees(paid: number | undefined, expectedPaise: number) {
   if (paid == null || !Number.isFinite(paid)) return false;

@@ -38,6 +38,8 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) return NextResponse.json({ error: "Invalid message." }, { status: 400 });
     const token = request.cookies.get(MAYA_COOKIE)?.value;
     const debugRequested = request.nextUrl.searchParams.get("debug") === "1" && process.env.NODE_ENV !== "production";
+    const queryConversationId = request.nextUrl.searchParams.get("conversationId") ?? undefined;
+    const conversationId = parsed.data.conversationId ?? (queryConversationId && z.string().uuid().safeParse(queryConversationId).success ? queryConversationId : undefined);
     const result = await withMayaRuntime(async ({ store, brain }) => {
       const auth = await ownerFromToken(store, token);
       if (!auth) return null;
@@ -46,7 +48,7 @@ export async function POST(request: NextRequest) {
         ownerId: auth.owner.ownerId,
         channel: "web",
         text: parsed.data.text,
-        conversationId: parsed.data.conversationId,
+        conversationId,
         ownerAuthorized: true,
       });
     }, debugRequested);

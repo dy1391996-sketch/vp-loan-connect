@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import test from "node:test";
-import { hasValidMetaSignature } from "@/app/api/webhooks/whatsapp/route";
+import { hasValidMetaSignature } from "@/lib/meta/whatsapp-signature";
 
 test("Meta WhatsApp webhook signature requires a matching SHA-256 HMAC", () => {
   const raw = JSON.stringify({ entry: [] });

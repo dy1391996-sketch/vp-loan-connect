@@ -27,6 +27,8 @@ export function retrieveRelevantContext(store: MayaStore, input: RetrievalInput)
     .slice(0, limit);
 
   const recentMessages = input.conversationId ? store.listMessages(input.ownerId, input.conversationId, 12) : [];
+  // Prefer the freshest turns; drop leading stale assistant monologues if the window is full of noise.
+  const trimmedRecent = sanitizeRecentMessages(recentMessages);
   const relationshipState = store.getRelationshipState(input.ownerId);
   const timeline = store.listTimeline(input.ownerId).slice(0, 8);
 
@@ -35,10 +37,16 @@ export function retrieveRelevantContext(store: MayaStore, input: RetrievalInput)
     people,
     projects,
     loops: loops.slice(0, 6),
-    recentMessages,
+    recentMessages: trimmedRecent,
     relationshipState,
     timeline,
   };
+}
+
+function sanitizeRecentMessages(messages: ReturnType<MayaStore["listMessages"]>) {
+  if (messages.length <= 8) return messages;
+  // Keep the latest 8 turns for the local model context window / coherence.
+  return messages.slice(-8);
 }
 
 function scoreMemory(

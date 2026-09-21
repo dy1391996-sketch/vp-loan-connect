@@ -248,6 +248,27 @@ function stripCorrectionWrapper(text: string) {
     .trim();
 }
 
+function isGreetingOrAck(text: string) {
+  const trimmed = text.trim();
+  return (
+    trimmed.length <= 40 &&
+    /^(hi+|hello|hey(\s+baby)?|yo|hola|namaste|kaise\s*ho|kya\s*haal|ok+|okay|hmm+|haan|han|theek|thanks|thank you|ty|i love u+|love you|miss you)\s*[.!?❤️🫀]*$/i.test(
+      trimmed,
+    )
+  );
+}
+
+function looksLikeAssistantPrompt(text: string) {
+  return /\b(batao\.\.\.|aapki duniya|kaise laga\?|what do you want to discuss|how can i help)\b/i.test(text);
+}
+
+function nextUnfinishedTopic(current: string | null | undefined, text: string) {
+  if (isGreetingOrAck(text)) return null;
+  if (looksLikeAssistantPrompt(text)) return current ?? null;
+  if (text.trim().length > 40) return text.slice(0, 160);
+  return current ?? null;
+}
+
 function updateConversationState(store: MayaStore, input: WritePipelineInput, at: string) {
   const current = store.getRelationshipState(input.ownerId) ?? defaultRelationshipState(input.ownerId, at);
   const mood = ownerReportedMood(input.text);
@@ -258,8 +279,8 @@ function updateConversationState(store: MayaStore, input: WritePipelineInput, at
     affectionContext: pickAffection(input.text, current.affectionContext),
     seriousness: /payment|business|serious|problem/.test(input.text) ? 0.7 : Math.max(0.2, current.seriousness - 0.05),
     playfulness: /joke|mazak|hehe|😂/.test(input.text) ? 0.7 : Math.max(0.15, current.playfulness - 0.04),
-    unfinishedTopic: input.text.length > 40 ? input.text.slice(0, 160) : current.unfinishedTopic,
-    languageStyle: /[\u0900-\u097F]/.test(input.text) ? "hinglish" : current.languageStyle,
+    unfinishedTopic: nextUnfinishedTopic(current.unfinishedTopic, input.text),
+    languageStyle: detectLanguageStyle(input.text, current.languageStyle),
     updatedAt: at,
   };
   if (isRoleplayUtterance(input.text)) {
@@ -271,12 +292,19 @@ function updateConversationState(store: MayaStore, input: WritePipelineInput, at
 }
 
 function pickAffection(text: string, previous: AffectionMode): AffectionMode {
-  if (/miss you|love you|pyaar/.test(text)) return "romantic";
+  if (/miss you|love you|pyaar|i love u/.test(text)) return "romantic";
   if (/sad|down|hurt|udaas/.test(text)) return "comforting";
   if (/joke|tease|mazak/.test(text)) return "teasing";
   if (/did it|ho gaya|cracked/.test(text)) return "proud";
   if (/payment|business|deadline/.test(text)) return "serious";
   return previous === "romantic" ? "gentle" : previous;
+}
+
+function detectLanguageStyle(text: string, previous: string) {
+  if (/[\u0900-\u097F]/.test(text)) return "hinglish";
+  if (/\b(hai|ho|kya|nahi|yar|acha|theek|batao|kaise|mere|tera|tum)\b/i.test(text)) return "hinglish";
+  if (/^[a-zA-Z0-9\s'",.!?-]+$/.test(text) && text.trim().split(/\s+/).length >= 4) return "english";
+  return previous;
 }
 
 function refreshConversationSummary(store: MayaStore, ownerId: string, conversationId: string, at: string) {

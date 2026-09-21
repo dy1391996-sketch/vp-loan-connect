@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getPublicAppUrl, getServerEnv } from "@/lib/env";
-import { sha256 } from "@/lib/utils";
+import { sha256 } from "@/lib/server-crypto";
 
 type Bucket = { count: number; resetsAt: number };
 const buckets = new Map<string, Bucket>();

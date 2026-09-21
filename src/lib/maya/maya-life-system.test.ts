@@ -546,3 +546,65 @@ describe("backup redacts owner secrets by default", () => {
     assert.equal(full.snapshot.owners.find((row) => row.ownerId === owner.ownerId)?.passwordHash, "hash");
   });
 });
+
+describe("conversation continuity and prompt message assembly", () => {
+  it("reuses the latest open conversation when conversationId is omitted", async () => {
+    const { store, owner, brain } = setup();
+    const first = await brain.respond({
+      ownerId: owner.ownerId,
+      channel: "web",
+      text: "mera project VP Nest active hai",
+      ownerAuthorized: true,
+    });
+    const second = await brain.respond({
+      ownerId: owner.ownerId,
+      channel: "web",
+      text: "hey",
+      ownerAuthorized: true,
+    });
+    assert.equal(second.conversationId, first.conversationId);
+    assert.equal(store.listConversations(owner.ownerId).length, 1);
+    assert.ok(store.listMessages(owner.ownerId, first.conversationId).length >= 4);
+  });
+
+  it("does not duplicate the latest owner utterance in LLM messages", async () => {
+    const { contextToMessages } = await import("./providers/types");
+    const { compileMayaContext } = await import("./compiler");
+    const { store, owner, brain } = setup();
+    const turn = await brain.respond({
+      ownerId: owner.ownerId,
+      channel: "web",
+      text: "project update baad mein",
+      ownerAuthorized: true,
+    });
+    // Mid-turn shape: owner message already stored, Maya reply not yet appended.
+    const midTurnMessages = store
+      .listMessages(owner.ownerId, turn.conversationId, 12)
+      .filter((message) => message.role === "owner" || message.role === "maya")
+      .slice(0, -1);
+    midTurnMessages.push({
+      messageId: newId(),
+      conversationId: turn.conversationId,
+      ownerId: owner.ownerId,
+      role: "owner",
+      channel: "web",
+      text: "hey baby",
+      createdAt: nowIso(),
+      roleplay: false,
+    });
+    const context = compileMayaContext({
+      store,
+      ownerId: owner.ownerId,
+      conversationId: turn.conversationId,
+      utterance: "hey baby",
+      channel: "web",
+      ownerAuthorized: true,
+    });
+    const withLatest = { ...context, recentMessages: midTurnMessages };
+    const messages = contextToMessages(withLatest, [{ role: "user", content: "hey baby" }]);
+    const userTurns = messages.filter((message) => message.role === "user");
+    assert.equal(userTurns.at(-1)?.content, "hey baby");
+    assert.equal(userTurns.filter((message) => message.content === "hey baby").length, 1);
+    assert.equal(messages.at(-1)?.role, "user");
+  });
+});

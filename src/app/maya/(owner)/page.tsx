@@ -1,5 +1,6 @@
 "use client";
 
+import MayaVoiceControls from "@/components/maya/MayaVoiceControls";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
@@ -28,6 +29,25 @@ export default function MayaChatPage() {
   }, []);
 
   useEffect(() => {
+    const onVoiceUpdate = () => {
+      const saved = window.sessionStorage.getItem("mayaConversationId") ?? "";
+      void (async () => {
+        const response = await fetch(`/api/maya/chat${saved ? `?conversationId=${saved}` : ""}`);
+        if (!response.ok) return;
+        const data = (await response.json()) as { conversationId: string | null; messages: ChatItem[] };
+        if (data.conversationId) {
+          setConversationId(data.conversationId);
+          window.sessionStorage.setItem("mayaConversationId", data.conversationId);
+        }
+        const history = data.messages.filter((message) => message.role === "owner" || message.role === "maya");
+        if (history.length) setItems(history);
+      })();
+    };
+    window.addEventListener("maya:conversation-updated", onVoiceUpdate);
+    return () => window.removeEventListener("maya:conversation-updated", onVoiceUpdate);
+  }, []);
+
+  useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
   }, [items, pending]);
 
@@ -51,11 +71,26 @@ export default function MayaChatPage() {
     const data = (await response.json()) as { text: string; conversationId: string };
     setConversationId(data.conversationId);
     window.sessionStorage.setItem("mayaConversationId", data.conversationId);
+    // Prefer server history so optimistic owner text cannot drift from persisted turns.
+    try {
+      const historyResponse = await fetch(`/api/maya/chat?conversationId=${data.conversationId}`);
+      if (historyResponse.ok) {
+        const history = (await historyResponse.json()) as { messages: ChatItem[] };
+        const synced = history.messages.filter((message) => message.role === "owner" || message.role === "maya");
+        if (synced.length) {
+          setItems(synced);
+          return;
+        }
+      }
+    } catch {
+      // fall through to local append
+    }
     setItems((current) => [...current, { role: "maya", text: data.text }]);
   }
 
   return (
-    <div className="mx-auto flex h-full max-w-3xl flex-col">
+    <>
+<div className="mx-auto flex h-full max-w-3xl flex-col">
       <header className="flex shrink-0 items-center gap-3 border-b border-[#3a2a31] px-4 py-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/api/maya/visual" alt="Maya" className="h-12 w-12 rounded-full object-cover" />
@@ -99,5 +134,7 @@ export default function MayaChatPage() {
         </div>
       </form>
     </div>
+      <MayaVoiceControls />
+    </>
   );
 }

@@ -21,10 +21,29 @@ export interface MayaLLMProvider {
   generate(input: LLMGenerateInput): Promise<LLMGenerateResult>;
 }
 
+/**
+ * Build chat messages for the LLM.
+ * Dedupes consecutive identical turns so the latest owner utterance is not
+ * sent twice when it is already present in recentMessages.
+ */
 export function contextToMessages(context: CompiledContext, extra: LLMMessage[] = []): LLMMessage[] {
-  const history = context.recentMessages.map((message) => ({
-    role: message.role === "maya" ? ("assistant" as const) : ("user" as const),
-    content: message.text,
-  }));
-  return [{ role: "system", content: context.system }, ...history, ...extra];
+  const history: LLMMessage[] = [];
+
+  const push = (role: LLMMessage["role"], raw: string) => {
+    const content = raw.trim();
+    if (!content || role === "system") return;
+    const previous = history[history.length - 1];
+    if (previous && previous.role === role && previous.content === content) return;
+    history.push({ role, content });
+  };
+
+  for (const message of context.recentMessages) {
+    push(message.role === "maya" ? "assistant" : "user", message.text);
+  }
+
+  for (const message of extra) {
+    push(message.role, message.content);
+  }
+
+  return [{ role: "system", content: context.system }, ...history];
 }
