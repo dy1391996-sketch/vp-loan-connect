@@ -6,10 +6,11 @@ import { signAccessToken, verifyAccessToken } from "@/lib/security/tokens";
 import { PublicStatePanel } from "@/components/ui/public-state-panel";
 import { ReportActions } from "@/components/report-actions";
 import { ConnectOptionsPanel } from "@/components/connect-options-panel";
+import { USP_PRODUCT_NAME, USP_PRODUCT_SLUG } from "@/lib/constants";
 import { getPaidConnectBundle } from "@/lib/matching/match-service";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Your Credit Profile Booster", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Your Loan Match & Readiness Report", robots: { index: false, follow: false } };
 
 export default async function ReportPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ token?: string }> }) {
   const { id } = await params;
@@ -61,20 +62,20 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
             <div className="flex items-start justify-between gap-4">
               <span className="grid h-14 w-14 place-items-center rounded-3xl bg-brand-100 text-brand-700"><FileText size={26} /></span>
               <span className="inline-flex items-center gap-2 rounded-full bg-brand-100 px-3.5 py-2 text-xs font-extrabold text-brand-700">
-                <CheckCircle2 size={14} />Credit Profile Booster unlocked
+                <CheckCircle2 size={14} />Loan Match & Readiness Report unlocked
               </span>
             </div>
             <p className="mt-7 text-xs font-extrabold uppercase tracking-[0.2em] text-brand-700">Secure profile report</p>
             <h1 className="font-display mt-3 text-3xl font-black tracking-[-0.045em] text-navy-950 sm:text-5xl">
-              {pendingProfile ? "Booster unlocked — finish your profile" : "Your loan-connect options are ready."}
+              {pendingProfile ? "Your Loan Match & Readiness Report is unlocked." : "Your matched loan options are ready."}
             </h1>
-            <p className="mt-3 text-sm leading-7 text-slate-600">{report.order.product.name} · Reference: {report.reportReference}</p>
+            <p className="mt-3 text-sm leading-7 text-slate-600">{report.order.product.slug === USP_PRODUCT_SLUG ? USP_PRODUCT_NAME : report.order.product.name} · Reference: {report.reportReference}</p>
             {pendingProfile ? (
               <a
                 href={continueHref}
                 className="mt-7 flex min-h-15 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 px-6 font-extrabold text-white shadow-[0_12px_32px_rgba(10,146,101,0.27)] transition hover:-translate-y-0.5 hover:bg-brand-700"
               >
-                Continue detailed application
+                Continue to My Profile
               </a>
             ) : (
               <>
@@ -94,13 +95,13 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
               <div className="rounded-[2rem] border border-line bg-white p-7 shadow-soft">
                 <h2 className="text-2xl font-extrabold text-navy-950">Complete your profile to unlock matches</h2>
                 <p className="mt-3 text-sm leading-7 text-slate-600">
-                  Payment is verified. Finish any remaining profile details so the booster report and extended platform list can be generated.
+                  Complete your profile to generate your readiness insights and matched loan options.
                 </p>
                 <a
                   href={continueHref}
                   className="mt-6 inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand-600 px-6 font-extrabold text-white"
                 >
-                  Continue detailed application
+                  Continue to My Profile
                 </a>
               </div>
             ) : (

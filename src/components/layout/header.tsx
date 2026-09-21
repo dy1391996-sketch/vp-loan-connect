@@ -8,7 +8,7 @@ import { ButtonLink } from "@/components/ui/button";
 const links = [
   ["Quick Apply", "/apply/quick"],
   ["Personal Loan", "/personal-loan"],
-  ["₹99 Booster", "/credit-health"],
+  ["Loan Matches", "/credit-health"],
   ["How it works", "/#how-it-works"],
   ["FAQ", "/#faq"],
 ];

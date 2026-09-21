@@ -26,9 +26,9 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { LENDER_OUTCOME_DISCLAIMER, PLATFORM_DISCLAIMER, RESULT_DISCLAIMER, USP_GST_LABEL, USP_PRICE_LABEL, USP_TOTAL_WITH_GST_LABEL } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "Find Loan Options for Your Profile | VP Loan Connect",
+  title: { absolute: "VP Loan Connect — Loan Match & Readiness Report" },
   description:
-    "Find loan options that fit your profile. Verify your email, unlock the ₹116.82 Credit Profile Booster, complete your profile and explore matched options. Not a lender.",
+    "Understand your loan readiness, key eligibility factors and matched loan options through VP Loan Connect.",
   alternates: { canonical: "/" },
 };
 
@@ -64,16 +64,16 @@ const faqs = [
   ["Is the profile result a loan approval?", "No. It is an indicative view based on your answers. Eligibility, APR, amount and approval are decided only by the relevant lender."],
   ["Do I need to upload documents?", "Not during the initial assessment. We only ask whether documents are available. Never share a UPI PIN, CVV, bank password or Aadhaar OTP."],
   ["Will this profile check affect my CIBIL score?", "No. This assessment uses your self-reported CIBIL range; it does not pull a bureau report or create a lender enquiry."],
-  ["What is the ₹116.82 payment for?", `It is the Credit Profile Booster service fee: ${USP_PRICE_LABEL} + ${USP_GST_LABEL} GST. It unlocks the detailed profile, loan-readiness insights, matched options and official apply links where available. It is not a lender processing fee and does not guarantee approval.`],
+  ["What is the ₹116.82 payment for?", `It is the Loan Match & Readiness Report service fee: ${USP_PRICE_LABEL} + ${USP_GST_LABEL} GST. It unlocks the detailed profile, loan-readiness insights, matched loan options and official application links where available. It is not a lender processing fee and does not guarantee approval.`],
   ["How will my information be used?", "Service consent covers the requested assessment. Marketing consent is separate and optional, and can be withdrawn."],
 ] as const;
 
 const journey = [
-  ["01", "Tell us your loan requirement", "Amount, purpose and contact details to open the enquiry."],
-  ["02", "Verify your email", "A one-time code confirms the email on this application."],
-  ["03", "Unlock Credit Profile Booster — ₹116.82", `${USP_PRICE_LABEL} + ${USP_GST_LABEL} GST. A service fee, not a lender charge.`],
-  ["04", "Complete your profile", "Work, income, PAN and address come after payment."],
-  ["05", "View matched options", "See readiness insights and official apply links where available."],
+  ["01", "Tell Us Your Requirement", "Amount, purpose and contact details to open the enquiry."],
+  ["02", "Verify Email", "A one-time code confirms the email on this application."],
+  ["03", "Unlock Loan Matches", "₹116.82 incl. GST"],
+  ["04", "Complete Profile", "Work, income, PAN and address come after payment."],
+  ["05", "View Options", "See readiness insights and official application links where available."],
 ] as const;
 
 export default function HomePage() {
@@ -115,7 +115,7 @@ export default function HomePage() {
               Find loan options that fit your profile.
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-8 text-slate-200 sm:text-xl">
-              Verify your email, unlock your Credit Profile Booster, complete your profile and explore matched loan options.
+              Verify your email, unlock your loan matches, complete your profile and explore matched loan options.
             </p>
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
               <ButtonLink href="/apply/quick" size="lg">
@@ -161,7 +161,7 @@ export default function HomePage() {
           <SectionHeading
             eyebrow="How it works"
             title="A clear path from enquiry to matched options"
-            description="Email verification, then the Credit Profile Booster, then your detailed profile. The price is shown before you pay."
+            description="Email verification, then unlock loan matches, then your detailed profile. The price is shown before you pay."
             align="center"
           />
           <div className="mt-12 grid gap-4 md:grid-cols-5">
@@ -279,9 +279,9 @@ export default function HomePage() {
         <div className="page-shell grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
             <SectionHeading
-              eyebrow="Credit Profile Booster"
-              title={`${USP_PRICE_LABEL} + ${USP_GST_LABEL} GST`}
-              description={`Total: ${USP_TOTAL_WITH_GST_LABEL}. This is the service fee for the detailed profile, readiness insights, matched options and official apply links where available.`}
+              eyebrow="Loan readiness"
+              title="Loan Match & Readiness Report"
+              description="Get a clearer view of your loan readiness, important eligibility factors and matched loan options based on your completed profile."
             />
             <ul className="mt-8 grid gap-3 text-sm font-semibold text-navy-950">
               {["Detailed profile assessment", "Loan-readiness insights", "Matched loan categories and options", "Official apply links where available", "Profile improvement guidance"].map((item) => (
@@ -297,7 +297,7 @@ export default function HomePage() {
             <p className="text-sm text-slate-300">GST (18%) {USP_GST_LABEL}</p>
             <p className="mt-3 text-4xl font-black">Total: {USP_TOTAL_WITH_GST_LABEL}</p>
             <ButtonLink href="/apply/quick" size="lg" className="mt-8 w-full">
-              Check My Loan Options <ArrowRight size={18} />
+              Unlock My Loan Matches — {USP_TOTAL_WITH_GST_LABEL} <ArrowRight size={18} />
             </ButtonLink>
             <p className="mt-4 text-xs leading-6 text-slate-300">{LENDER_OUTCOME_DISCLAIMER}</p>
           </div>
@@ -327,7 +327,7 @@ export default function HomePage() {
             <SectionHeading
               eyebrow="Frequently asked questions"
               title="Clear answers for better decisions"
-              description="The ₹116.82 payment is the Credit Profile Booster service fee. It is not a lender processing fee, and approval is never guaranteed."
+              description="The ₹116.82 payment is the Loan Match & Readiness Report service fee. It is not a lender processing fee, and approval is never guaranteed."
             />
             <ButtonLink href="/contact" variant="secondary" className="mt-7">
               <MessageCircle size={18} />
@@ -376,7 +376,7 @@ export default function HomePage() {
                 Ready to check loan options for your profile?
                 </h2>
                 <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
-                  Verify your email, unlock the {USP_TOTAL_WITH_GST_LABEL} Credit Profile Booster, then complete your profile and explore matched options.
+                  Verify your email, unlock your loan matches for {USP_TOTAL_WITH_GST_LABEL}, then complete your profile and explore matched options.
                 </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">

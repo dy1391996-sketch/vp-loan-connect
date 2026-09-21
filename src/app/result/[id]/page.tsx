@@ -117,17 +117,17 @@ export default async function ResultPage({ params, searchParams }: { params: Pro
             </div>
           ) : (
             <div className="mt-5 rounded-3xl border border-line bg-white p-6 text-sm leading-7 text-slate-600">
-              Matched options and official apply links are part of the Credit Profile Booster ({`₹116.82`} total). They are not shown before that service fee is verified.
+              Matched loan options and official application links are part of the Loan Match & Readiness Report ({`₹116.82`} total). They are not shown before that service fee is verified.
             </div>
           )}
 
           <div className="mt-5">
             {reportHref ? (
               <div className="rounded-[2.25rem] border border-brand-500/30 bg-white p-7 shadow-card sm:p-10">
-                <span className="inline-flex items-center gap-2 rounded-full bg-brand-100 px-4 py-2 text-xs font-extrabold text-brand-700"><Sparkles size={15} />Booster already unlocked</span>
-                <h2 className="mt-5 text-3xl font-black tracking-[-0.045em] text-navy-950">Your Credit Profile Booster report is ready</h2>
-                <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">Payment for ₹99 + ₹17.82 GST (₹116.82) is already verified for this profile. Open the report for the downloadable action plan.</p>
-                <ButtonLink href={reportHref} size="lg" className="mt-7">Open booster report <ArrowRight size={18} /></ButtonLink>
+                <span className="inline-flex items-center gap-2 rounded-full bg-brand-100 px-4 py-2 text-xs font-extrabold text-brand-700"><Sparkles size={15} />Report unlocked</span>
+                <h2 className="mt-5 text-3xl font-black tracking-[-0.045em] text-navy-950">Your Loan Match & Readiness Report is ready</h2>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">Payment for ₹99 + ₹17.82 GST (₹116.82) is already verified for this profile. Open the report for readiness insights and matched loan options.</p>
+                <ButtonLink href={reportHref} size="lg" className="mt-7">Open your Loan Match & Readiness Report <ArrowRight size={18} /></ButtonLink>
               </div>
             ) : (
               <CreditProfileBoosterPayCard checkoutUrl={checkoutUrl} />

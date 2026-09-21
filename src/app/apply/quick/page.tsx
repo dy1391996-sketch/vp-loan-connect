@@ -5,7 +5,7 @@ import { QuickApplyClient } from "@/components/apply/quick-apply-client";
 export const metadata: Metadata = {
   title: "Quick Apply — Check loan options for your profile",
   description:
-    "Tell us your loan need, verify your email, then unlock the ₹116.82 Credit Profile Booster before the detailed profile. Not a lender approval.",
+    "Understand your loan readiness, key eligibility factors and matched loan options through VP Loan Connect. Not a lender approval.",
   alternates: { canonical: "/apply/quick" },
   openGraph: {
     title: "Quick Apply | VP Loan Connect",

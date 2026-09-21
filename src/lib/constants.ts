@@ -12,7 +12,7 @@ export const PUBLIC_CONTACT_ROUTES = ["Quick Apply", "Instagram Direct", "Offici
 
 /** Primary paid USP — keep price/copy in sync across marketing + checkout */
 export const USP_PRODUCT_SLUG = "credit-health-action-plan";
-export const USP_PRODUCT_NAME = "Credit Profile Booster";
+export const USP_PRODUCT_NAME = "Loan Match & Readiness Report";
 export const USP_SALE_PRICE = 99;
 export const USP_PRICE_LABEL = "₹99";
 export const USP_GST_LABEL = "₹17.82";
@@ -40,7 +40,7 @@ export const PLATFORM_DISCLAIMER =
   `VP Loan Connect is a financial-information, profile-assessment and loan-discovery platform. We are not a bank, NBFC, lender or credit bureau. We do not sanction loans or guarantee approval, rates, credit-score improvement or disbursement. ${LENDER_OUTCOME_DISCLAIMER}`;
 
 export const PAYMENT_DESCRIPTION =
-  "This payment is for the ₹99 Credit Profile Booster: credit-profile guidance, loan-readiness analysis and access to profile-matched lender options. It is not a lender processing fee or a guarantee of loan approval.";
+  "This payment is for the ₹99 Loan Match & Readiness Report: loan-readiness insights, eligibility factors and access to profile-matched loan options. It is not a lender processing fee or a guarantee of loan approval.";
 
 export const CREDIT_REPORT_DISCLAIMER =
   "We are not TransUnion CIBIL, Experian, Equifax or CRIF High Mark. We cannot directly change or delete a bureau record and do not guarantee any score increase. Corrections depend on confirmation by the reporting credit institution.";

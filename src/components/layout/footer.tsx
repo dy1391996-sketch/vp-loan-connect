@@ -56,7 +56,7 @@ export function Footer() {
               ["Quick apply", "/apply/quick"],
               ["Personal loan", "/personal-loan"],
               ["Profile assessment", "/assessment"],
-              ["Credit Profile Booster (₹99)", "/credit-health"],
+              ["Loan Match & Readiness Report", "/credit-health"],
               ["Refer & Earn", "/refer"],
             ].map(([label, href]) => (
               <Link key={href} href={href} className="inline-flex min-h-11 items-center text-sm text-slate-300 transition hover:text-white">
@@ -103,7 +103,7 @@ export function Footer() {
       <div className="border-t border-white/10">
         <div className="page-shell flex flex-col gap-2 py-6 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} VP Loan Connect</p>
-          <p>₹99 Credit Profile Booster • www.vploanconnect.in</p>
+          <p>Loan Match & Readiness Report • ₹116.82 incl. GST • www.vploanconnect.in</p>
         </div>
       </div>
     </footer>

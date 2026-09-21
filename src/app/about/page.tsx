@@ -55,7 +55,7 @@ export default function AboutPage() {
           <div className="mt-8 rounded-[2rem] border border-line bg-white p-7 shadow-sm sm:p-9">
             <h2 className="text-2xl font-extrabold tracking-[-0.035em] text-navy-950">Our services</h2>
             <ul className="mt-5 grid gap-3 text-sm leading-7 text-slate-600">
-              <li>Credit Profile Booster ({USP_PRICE_LABEL} + GST) covering the detailed profile, readiness insights, matched options and a downloadable action plan.</li>
+              <li>{USP_PRODUCT_NAME} ({USP_PRICE_LABEL} + GST) covering the detailed profile, readiness insights, matched loan options and a downloadable action plan.</li>
             </ul>
             <p className="mt-6 text-sm leading-7 text-slate-600">{PLATFORM_DISCLAIMER}</p>
             <p className="mt-4 text-sm leading-7 text-slate-600">

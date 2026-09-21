@@ -13,7 +13,7 @@ const TRUST_ITEMS = [
 const NEXT_STEPS = [
   "Tell us your loan requirement",
   "Verify your email",
-  "Unlock Credit Profile Booster — ₹116.82",
+  "Unlock Loan Matches — ₹116.82",
   "Complete your profile",
   "View matched options",
 ];

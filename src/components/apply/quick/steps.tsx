@@ -59,7 +59,7 @@ export function QuickApplyStepBody({ form, patch, step, errors, otp }: Props) {
           Start with your loan need
         </h1>
         <p className="mt-3 text-sm leading-7 text-slate-600">
-          Tell us the amount and purpose, then verify your email. The Credit Profile Booster ({USP_PRICE_LABEL} + {USP_GST_LABEL} GST, total {USP_TOTAL_WITH_GST_LABEL}) comes next. Work, income and PAN are collected only after payment.
+          Tell us the amount and purpose, then verify your email. Next you unlock loan matches ({USP_PRICE_LABEL} + {USP_GST_LABEL} GST, total {USP_TOTAL_WITH_GST_LABEL}). Work, income and PAN are collected only after payment.
         </p>
         <div className="mt-8 grid gap-4">
           <label className="block">
@@ -211,22 +211,23 @@ export function QuickApplyStepBody({ form, patch, step, errors, otp }: Props) {
   if (step === 3) {
     return (
       <div>
-        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-brand-700">Credit Profile Booster</p>
-        <h1 className="font-display mt-3 text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">Credit Profile Booster</h1>
+        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-brand-700">Your next step</p>
+        <h1 className="font-display mt-3 text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">See Your Loan Matches & Readiness</h1>
+        <p className="mt-4 text-sm leading-7 text-slate-600">
+          Unlock your Loan Match & Readiness Report, then complete your profile to view personalized readiness insights and matched loan options.
+        </p>
         <p className="mt-4 text-lg font-extrabold text-navy-950">
           {USP_PRICE_LABEL} + {USP_GST_LABEL} GST
         </p>
-        <p className="mt-1 text-3xl font-black tracking-[-0.04em] text-brand-700">Total: {USP_TOTAL_WITH_GST_LABEL}</p>
-        <p className="mt-4 text-sm leading-7 text-slate-600">
-          This payment is for the Credit Profile Booster service. It is not a lender processing fee, a loan repayment, or a payment for approval.
-        </p>
+        <p className="mt-1 text-3xl font-black tracking-[-0.04em] text-brand-700">{USP_TOTAL_WITH_GST_LABEL} incl. GST</p>
+        <p className="mt-4 text-sm font-semibold text-slate-600">Secure checkout via Cashfree</p>
         <ul className="mt-6 grid gap-3 text-sm leading-6 text-slate-700">
           {[
-            "Detailed profile assessment",
             "Loan-readiness insights",
-            "Matched loan categories and options",
-            "Official apply links where available",
-            "Profile improvement guidance",
+            "Matched loan options based on your profile",
+            "Key eligibility factors that may affect your application",
+            "Guidance on profile areas that may need attention",
+            "Official application links where available",
           ].map((item) => (
             <li key={item} className="flex items-start gap-3 rounded-2xl border border-line bg-surface px-4 py-3 font-semibold text-navy-950">
               <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-600 text-[11px] text-white">✓</span>

@@ -104,10 +104,10 @@ export function ProductPage({ kind, title, heading, description, regular, price,
             <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-500/20 blur-3xl" />
             <MessageCircle className="relative mx-auto text-brand-500" size={30} />
             <h2 className="font-display relative mt-5 text-3xl font-extrabold tracking-[-0.045em] sm:text-4xl">
-              Unlock the booster, then complete your profile
+              Unlock your loan matches, then complete your profile
             </h2>
             <p className="relative mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-300">
-              Verify your email, pay the Credit Profile Booster service fee, then complete the detailed profile. There is no loan approval or score-increase guarantee.
+              Verify your email, pay the Loan Match & Readiness Report service fee, then complete the detailed profile. There is no loan approval or score-increase guarantee.
             </p>
             <ButtonLink href="/apply/quick" size="lg" className="relative mt-8">
               Check My Loan Options

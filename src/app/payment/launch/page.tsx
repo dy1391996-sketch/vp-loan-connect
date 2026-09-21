@@ -42,7 +42,7 @@ export default async function PaymentLaunchPage({
         icon={LockKeyhole}
         eyebrow="Secure payment"
         title="Payment already completed"
-        description="This order is already paid. Return to your result page to access the Credit Profile Booster."
+        description="This order is already paid. Return to your result page to access your Loan Match & Readiness Report."
         action={{ href: `/result/${order.assessmentId}`, label: "Back to result" }}
       />
     );
@@ -122,7 +122,7 @@ function InvalidLaunch() {
       icon={LockKeyhole}
       eyebrow="Secure payment"
       title="Secure payment link required"
-      description="Open checkout from your eligibility result and tap Proceed to secure payment."
+      description="Open checkout from your eligibility result and tap Unlock My Loan Matches — ₹116.82."
       action={{ href: "/apply/quick", label: "Start quick apply" }}
     />
   );

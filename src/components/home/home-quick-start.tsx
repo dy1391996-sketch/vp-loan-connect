@@ -101,7 +101,7 @@ export function HomeQuickStart() {
         Check My Loan Options <ArrowRight size={18} />
       </Button>
       <p className="mt-3 text-xs leading-5 text-slate-400">
-        Not a lender. Next: email verification, then the ₹116.82 Credit Profile Booster. No guaranteed approval.
+        Not a lender. Next: email verification, then unlock loan matches for ₹116.82 incl. GST. No guaranteed approval.
       </p>
     </div>
   );

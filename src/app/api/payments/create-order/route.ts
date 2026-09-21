@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { createProviderOrder, mapPaymentError, reportMissingPaymentCredentials } from "@/lib/payments";
 import { datedReference } from "@/lib/payments/order-service";
 import { assertSameOrigin, rateLimit } from "@/lib/security/request";
-import { USP_PRODUCT_SLUG, USP_SALE_PRICE } from "@/lib/constants";
+import { USP_PRODUCT_NAME, USP_PRODUCT_SLUG, USP_SALE_PRICE } from "@/lib/constants";
 import { getPublicAppUrl, getServerEnv, missingPaymentCredentialKeys } from "@/lib/env";
 import { verifyAccessToken } from "@/lib/security/tokens";
 import { isCheckoutEligibleAssessmentStatus } from "@/lib/domain/early-checkout";
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       include: { reports: { select: { id: true }, take: 1 } },
     });
     if (alreadyPaid?.reports[0]) {
-      return NextResponse.json({ error: "This booster is already unlocked for your assessment." }, { status: 409 });
+      return NextResponse.json({ error: "This Loan Match & Readiness Report is already unlocked for your assessment." }, { status: 409 });
     }
 
     const subtotal = product.slug === USP_PRODUCT_SLUG ? USP_SALE_PRICE : Number(product.salePrice);
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
             amountPaise,
             currency: "INR",
             name: "VP Loan Connect",
-            description: product.name,
+            description: product.slug === USP_PRODUCT_SLUG ? USP_PRODUCT_NAME : product.name,
             reused: true,
             checkout: {
               mode: "cashfree_checkout" as const,
@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
         amountPaise,
         currency: "INR",
         name: "VP Loan Connect",
-        description: product.name,
+        description: product.slug === USP_PRODUCT_SLUG ? USP_PRODUCT_NAME : product.name,
         checkout: provider.checkout,
       });
     } catch (error) {

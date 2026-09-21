@@ -982,7 +982,7 @@ function UnlockStep({ form, update }: StepProps) {
         </span>
         <h2 className="mt-4 text-3xl font-extrabold tracking-[-0.045em] sm:text-4xl">See your result</h2>
         <p className="mt-3 max-w-xl text-sm leading-7 text-slate-300">
-          The Credit Profile Booster ({USP_PRICE_LABEL} + GST, total {USP_TOTAL_WITH_GST_LABEL}) is required before the detailed profile, eligibility result and matched options. It is a service fee, not a lender processing fee.
+          The Loan Match & Readiness Report ({USP_PRICE_LABEL} + GST, total {USP_TOTAL_WITH_GST_LABEL}) is required before the detailed profile, eligibility result and matched loan options. It is a service fee, not a lender processing fee.
         </p>
       </div>
 
@@ -1006,7 +1006,7 @@ function UnlockStep({ form, update }: StepProps) {
       </p>
 
       <div className="mt-6 grid gap-3">
-        {["Credit profile explanation", "Loan-readiness analysis", "Best-fit lenders shown first", "Official apply links (you click voluntarily)"].map((item) => (
+        {["Loan-readiness insights", "Key eligibility factors", "Matched loan options based on your profile", "Official application links (you click voluntarily)"].map((item) => (
           <p key={item} className="flex items-center gap-2 text-sm font-semibold text-slate-700">
             <Check className="shrink-0 text-brand-600" size={17} />
             {item}
@@ -1015,7 +1015,7 @@ function UnlockStep({ form, update }: StepProps) {
       </div>
 
       <p className="mt-5 text-xs leading-6 text-slate-500">
-        Payment is not collected on this step. If you later choose the Credit Profile Booster, that fee is a report service only — not a lender fee or an approval.
+        Payment is not collected on this step. If you later choose the Loan Match & Readiness Report, that fee is a report service only — not a lender fee or an approval.
       </p>
 
       <div className="mt-6 grid gap-4">

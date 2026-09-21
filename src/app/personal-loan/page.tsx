@@ -20,11 +20,11 @@ import { PLATFORM_DISCLAIMER, RESULT_DISCLAIMER } from "@/lib/constants";
 export const metadata: Metadata = {
   title: "Personal Loan Profile Check",
   description:
-    "Explore personal-loan readiness. Verify your email, unlock the ₹116.82 Credit Profile Booster, then complete your profile.",
+    "Explore personal-loan readiness. Verify your email, unlock loan matches for ₹116.82 incl. GST, then complete your profile.",
   alternates: { canonical: "/personal-loan" },
   openGraph: {
     title: "Personal Loan Profile Check | VP Loan Connect",
-    description: "Email verification, ₹116.82 Credit Profile Booster, then a detailed personal-loan profile. Not a lender.",
+    description: "Understand your loan readiness, key eligibility factors and matched loan options through VP Loan Connect.",
     url: "/personal-loan",
   },
 };
@@ -39,7 +39,7 @@ const benefits = [
 const steps = [
   ["01", "Share your need", "Choose amount, purpose and basic contact details."],
   ["02", "Verify securely", "Complete OTP verification for a protected result link."],
-  ["03", "Unlock the booster", "Pay ₹99 + ₹17.82 GST (₹116.82) for the Credit Profile Booster service."],
+  ["03", "Unlock Loan Matches", "₹116.82 incl. GST for the Loan Match & Readiness Report."],
   ["04", "Complete your profile", "Income, existing EMIs and document readiness come after payment."],
   ["05", "Matched options", "Open official lender journeys only if you choose. Approval is not guaranteed."],
 ] as const;
@@ -171,7 +171,7 @@ export default function PersonalLoanPage() {
               <RateRow label="Common digital tenure band" value="12 – 60 months" />
               <RateRow label="Indicative interest range (market)" value="About 12% – 36% p.a." />
               <RateRow label="Processing / tech charges (market)" value="Often 1% – 3% + taxes" />
-              <RateRow label="Credit Profile Booster" value="₹99 + ₹17.82 GST = ₹116.82" />
+              <RateRow label="Loan Match & Readiness Report" value="₹99 + ₹17.82 GST = ₹116.82" />
             </dl>
             <div className="border-t border-line bg-navy-950 p-6 text-white sm:p-7">
               <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-500">Example EMI (estimate only)</p>
@@ -247,7 +247,7 @@ export default function PersonalLoanPage() {
               Personal loan options that fit your profile
             </h2>
             <p className="mt-4 text-base leading-8 text-slate-300">
-              Verify your email, unlock the ₹116.82 Credit Profile Booster, then complete your profile.
+              Verify your email, unlock loan matches for ₹116.82 incl. GST, then complete your profile.
             </p>
           </div>
           <ButtonLink href="/apply/quick?purpose=Other%20personal%20need" size="lg">

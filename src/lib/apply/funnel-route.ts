@@ -9,7 +9,7 @@ export const SCREEN = {
   PAN: 5,
 } as const;
 
-export const FUNNEL_PROGRESS_LABELS = ["Requirement", "Verify Email", "Booster", "Profile", "Results"] as const;
+export const FUNNEL_PROGRESS_LABELS = ["Requirement", "Verify Email", "Loan Matches", "Profile", "Results"] as const;
 
 export function isProfileScreen(step: number): boolean {
   return step === SCREEN.WORK || step === SCREEN.PAN;

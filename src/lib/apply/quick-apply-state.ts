@@ -10,7 +10,7 @@ export const MAX_LOAN_AMOUNT = 1_000_000;
 export const QUICK_APPLY_STEP_LABELS = [
   "Requirement",
   "Verify Email",
-  "Booster",
+  "Loan Matches",
   "Profile",
   "Results",
 ] as const;

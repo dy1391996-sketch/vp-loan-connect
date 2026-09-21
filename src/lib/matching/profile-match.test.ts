@@ -23,7 +23,7 @@ describe("rankLoanMatches", () => {
       candidatesFromCatalog(MATCH_CATALOG),
     );
     assert.ok(strong.length > 0);
-    assert.equal(strong[0].fitLabel, "Best profile fit");
+    assert.equal(strong[0].fitLabel, "Closest profile match");
     const names = strong.map((item) => item.name);
     assert.ok(names.includes("Paisabazaar") || names.includes("Poonawalla Fincorp") || names.includes("Hero FinCorp"));
   });

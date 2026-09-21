@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, CircleAlert, Loader2, LockKeyhole, ReceiptText, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusNotice } from "@/components/ui/status-notice";
-import { PAYMENT_DESCRIPTION, PLATFORM_DISCLAIMER } from "@/lib/constants";
+import { LENDER_OUTCOME_DISCLAIMER, PAYMENT_DESCRIPTION } from "@/lib/constants";
 import { trackEvent } from "@/lib/analytics-client";
 import { hasFunnelEventSent, markFunnelEventSent } from "@/components/analytics/funnel-beacon";
 import { buildCashfreeLaunchPath } from "@/lib/payments/cashfree-browser";
@@ -237,15 +237,15 @@ export function CheckoutClient(props: Props) {
     }
   }
 
-  const primaryLabel = busy ? "Preparing secure payment…" : resumeAvailable ? "Resume secure payment" : "Proceed to secure payment";
+  const primaryLabel = busy ? "Preparing secure payment…" : resumeAvailable ? "Resume secure payment" : "Unlock My Loan Matches — ₹116.82";
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_0.75fr]">
       <div className="rounded-[2rem] border border-line/80 bg-white p-6 shadow-soft sm:p-8">
         <div className="flex items-start justify-between gap-5 border-b border-line pb-6">
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-700">Credit Profile Booster</p>
-            <h2 className="mt-3 text-2xl font-extrabold tracking-[-0.035em] text-navy-950">{props.productName}</h2>
+            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-700">{props.productName}</p>
+            <h2 className="mt-3 text-2xl font-extrabold tracking-[-0.035em] text-navy-950">See Your Loan Matches & Readiness</h2>
           </div>
           <span className="grid h-11 w-11 place-items-center rounded-2xl bg-brand-100 text-brand-700">
             <ReceiptText size={21} />
@@ -253,7 +253,7 @@ export function CheckoutClient(props: Props) {
         </div>
 
         <div className="mt-6 grid gap-3 rounded-3xl bg-surface p-5 text-sm sm:p-6">
-          <Price label="Credit Profile Booster" value={props.subtotal} />
+          <Price label={props.productName} value={props.subtotal} />
           <Price label="GST (18%)" value={props.gst} />
           <div className="border-t border-line pt-4">
             <Price label="Total payable" value={props.total} strong />
@@ -281,18 +281,19 @@ export function CheckoutClient(props: Props) {
         </Button>
         <p className="mt-4 flex items-center justify-center gap-2 text-center text-xs leading-5 text-slate-500">
           <ShieldCheck className="shrink-0 text-brand-700" size={15} />
-          Hosted Cashfree checkout opens only when you tap the button. Resume reuses your active order when safe.
+          Secure payment • Transparent pricing • No guaranteed approvals
         </p>
       </div>
 
       <aside className="rounded-[2rem] bg-navy-950 p-6 text-white shadow-card sm:p-8">
-        <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-500">What you unlock after payment</p>
+        <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-500">What you get</p>
         <div className="mt-7 grid gap-5">
           {[
-            "Personalized Credit Profile Booster analysis",
-            "Downloadable action plan PDF",
-            "Extended official-platform list in the booster report",
-            "Refund protection for duplicate payments or system failures",
+            "Loan-readiness insights",
+            "Matched loan options based on your profile",
+            "Key eligibility factors that may affect your application",
+            "Guidance on profile areas that may need attention",
+            "Official application links where available",
           ].map((item) => (
             <p key={item} className="flex gap-3 text-sm leading-6 text-slate-300">
               <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-500/15 text-brand-500">
@@ -302,7 +303,7 @@ export function CheckoutClient(props: Props) {
             </p>
           ))}
         </div>
-        <p className="mt-8 border-t border-white/10 pt-6 text-xs leading-6 text-slate-400">{PLATFORM_DISCLAIMER}</p>
+        <p className="mt-8 border-t border-white/10 pt-6 text-xs leading-6 text-slate-400">{LENDER_OUTCOME_DISCLAIMER}</p>
       </aside>
     </div>
   );

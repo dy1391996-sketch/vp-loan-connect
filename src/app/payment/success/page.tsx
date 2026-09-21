@@ -4,7 +4,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { FunnelBeacon } from "@/components/analytics/funnel-beacon";
 import { ConnectOptionsPanel } from "@/components/connect-options-panel";
 import { PublicStatePanel } from "@/components/ui/public-state-panel";
-import { PUBLIC_SUPPORT_EMAIL } from "@/lib/constants";
+import { PUBLIC_SUPPORT_EMAIL, USP_PRODUCT_NAME, USP_PRODUCT_SLUG } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { AutoContinue } from "@/components/checkout/auto-continue";
 import { continueQuickApplyHref } from "@/lib/domain/early-checkout";
@@ -81,27 +81,27 @@ export default async function PaymentSuccessPage({ searchParams }: { searchParam
             <span className="grid h-16 w-16 place-items-center rounded-3xl bg-brand-100 text-brand-700"><CheckCircle2 size={31} /></span>
             <p className="mt-6 text-xs font-extrabold uppercase tracking-[0.2em] text-brand-700">Service fee verified</p>
             <h1 className="font-display mt-3 text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">
-              Report service fee confirmed — booster unlocked
+              Your Loan Match & Readiness Report is unlocked.
             </h1>
             <p className="mt-3 text-sm leading-7 text-slate-600">
-              Your {formatInr(Number(report.order.totalAmount))} payment is a Credit Profile Booster report / service fee only. It is not a loan repayment, disbursement, lender processing fee, or payment for guaranteed loan approval.
+              Complete your profile to generate your readiness insights and matched loan options. Your {formatInr(Number(report.order.totalAmount))} payment is a report / service fee only. It is not a loan repayment, disbursement, lender processing fee, or payment for guaranteed loan approval.
             </p>
             <div className="mt-7 grid gap-4 sm:grid-cols-2">
               <Info icon={ReceiptText} label="Order reference" value={report.order.orderReference} />
               <Info icon={FileText} label="Report reference" value={report.reportReference} />
-              <Info label="Service" value={report.order.product.name} />
+              <Info label="Service" value={report.order.product.slug === USP_PRODUCT_SLUG ? USP_PRODUCT_NAME : report.order.product.name} />
               <Info label="Amount paid" value={formatInr(Number(report.order.totalAmount))} />
             </div>
             {pendingProfile ? (
               <>
                 <AutoContinue href={continueHref} />
                 <ButtonLink href={continueHref} size="lg" className="mt-7 w-full">
-                  Continue detailed application <FileText size={18} />
+                  Continue to My Profile <FileText size={18} />
                 </ButtonLink>
               </>
             ) : (
               <ButtonLink href={`/report/${report.id}?token=${encodeURIComponent(query.token)}`} size="lg" className="mt-7 w-full">
-                Open full booster report <FileText size={18} />
+                Open your Loan Match & Readiness Report <FileText size={18} />
               </ButtonLink>
             )}
           </div>
@@ -113,7 +113,7 @@ export default async function PaymentSuccessPage({ searchParams }: { searchParam
                 Payment is verified. Continue to your detailed profile for the eligibility result and matched options. Your verified email stays on this enquiry.
               </p>
               <ButtonLink href={continueHref} className="mt-5">
-                Continue application
+                Continue to My Profile
               </ButtonLink>
             </div>
           ) : (

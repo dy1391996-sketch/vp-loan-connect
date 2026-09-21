@@ -17,7 +17,7 @@ export function ConnectOptionsPanel({
   tone = "dark",
   eyebrow = "Payment unlocked · Loan connect links",
   title = "Official platforms you can connect to",
-  intro = "Best-fit options appear first, followed by additional official loan links. We never auto-submit your data; each lender decides the amount, APR, fees and approval.",
+  intro = "Closer profile matches appear first, followed by additional official loan links. We never auto-submit your data; each lender decides the amount, APR, fees and approval.",
 }: Props) {
   const dark = tone === "dark";
 
@@ -96,7 +96,7 @@ function OptionCard({ option, dark }: { option: MatchedOption; dark: boolean }) 
     >
       <div className="flex items-start justify-between gap-4">
         <span className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.15em] text-brand-500">
-          {option.fitLabel === "Best profile fit" ? <><Sparkles size={15} />{option.fitLabel}</> : option.fitLabel}
+          {option.fitLabel === "Closest profile match" ? <><Sparkles size={15} />{option.fitLabel}</> : option.fitLabel}
           <span className={dark ? "rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-slate-200" : "rounded-full bg-white px-2 py-0.5 text-[10px] text-slate-500"}>
             Fit {option.fitScore}
           </span>

@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
       });
       if (!canCompleteDetailedProfile(Boolean(paidOrder))) {
         return NextResponse.json(
-          { error: "Unlock the Credit Profile Booster before completing your profile." },
+          { error: "Unlock your Loan Match & Readiness Report before completing your profile." },
           { status: 402 },
         );
       }

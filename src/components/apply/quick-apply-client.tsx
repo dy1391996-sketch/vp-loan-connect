@@ -474,7 +474,7 @@ export function QuickApplyClient() {
       return;
     }
     if (!canEnterProfileScreen(paid)) {
-      setError("Unlock the Credit Profile Booster before completing your profile.");
+      setError("Unlock your Loan Match & Readiness Report before completing your profile.");
       goToStep(SCREEN.BOOSTER);
       return;
     }
@@ -543,7 +543,7 @@ export function QuickApplyClient() {
         : step === SCREEN.BOOSTER
           ? paid
             ? "Continue to your profile"
-            : "Continue for ₹116.82"
+            : "Unlock My Loan Matches — ₹116.82"
           : step === SCREEN.PAN
             ? "See my result"
             : "Continue";

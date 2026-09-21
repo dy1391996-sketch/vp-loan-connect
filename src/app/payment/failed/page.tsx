@@ -30,7 +30,7 @@ export default async function PaymentFailedPage({ searchParams }: { searchParams
           <p className="mt-3 text-sm leading-7 text-slate-600">Your verified email and loan enquiry are still saved. Retry uses the same checkout when a payment session is still open.</p>
           <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <ButtonLink href={retry} size="lg" className="w-full sm:w-auto"><RefreshCw size={17} />Retry payment</ButtonLink>
-            <ButtonLink href={resume} variant="secondary" size="lg" className="w-full sm:w-auto">Back to booster</ButtonLink>
+            <ButtonLink href={resume} variant="secondary" size="lg" className="w-full sm:w-auto">Back to loan matches</ButtonLink>
           </div>
           <div className="mt-6 flex items-start gap-3 rounded-2xl bg-amber-50 p-4 text-left text-xs leading-6 text-amber-950">
             <CircleAlert className="mt-0.5 shrink-0" size={17} />If your account was debited, do not pay again immediately. Contact support with the gateway reference.
