@@ -552,7 +552,7 @@ export function QuickApplyClient() {
     <div className="min-h-screen bg-surface">
       <FunnelHeader step={step} saved={saved} phase="form" />
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:py-10">
-        <div>
+        <div className="min-w-0">
           <MobileTrustStrip />
           <div className="mt-4 rounded-[1.75rem] border border-line bg-white p-5 shadow-soft sm:p-8">
             <QuickApplyStepBody
