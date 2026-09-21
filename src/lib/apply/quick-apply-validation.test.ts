@@ -10,13 +10,7 @@ import {
   maskEmail,
   toPersistedDraft,
 } from "./quick-apply-state";
-import {
-  getNextQuickApplyStep,
-  getPreviousQuickApplyStep,
-  normalizeEmailInput,
-  validateQuickApplyStep,
-  validateQuickApplyStepFields,
-} from "./quick-apply-validation";
+import { normalizeEmailInput, validateQuickApplyStep, validateQuickApplyStepFields } from "./quick-apply-validation";
 
 function form(overrides: Partial<ReturnType<typeof defaultQuickApplyForm>> = {}) {
   return { ...defaultQuickApplyForm(), ...overrides };
@@ -79,17 +73,17 @@ describe("quick apply amount and purpose", () => {
 });
 
 describe("quick apply work, credit, PAN and consent", () => {
-  it("requires DOB 21–60 plus conditional salaried fields and credit commitments on step 3", () => {
+  it("requires DOB 21–60 plus conditional salaried fields and credit commitments on the profile step", () => {
     const employed = form({
       employmentUi: "SALARIED",
       monthlyIncome: "45000",
       employerOrBusinessName: "Acme Private Limited",
       durationMonths: "24",
     });
-    assert.match(validateQuickApplyStep(3, employed), /date of birth|21 and 60|salary|EMI|loans|outstanding|overdue|CIBIL/i);
+    assert.match(validateQuickApplyStep(4, employed), /date of birth|21 and 60|salary|EMI|loans|outstanding|overdue|CIBIL/i);
     assert.equal(
       validateQuickApplyStep(
-        3,
+        4,
         form({
           ...employed,
           dateOfBirth: "1995-06-15",
@@ -108,7 +102,7 @@ describe("quick apply work, credit, PAN and consent", () => {
     assert.equal(mapIncomeToRange(45000), "40000_59999");
   });
 
-  it("validates Indian PAN format and consent on step 4", () => {
+  it("validates Indian PAN format and consent on the final profile step", () => {
     const ready = form({
       panNumber: "ABCPT1234F",
       residentialAddress: "12, Lotus Apartments, Sector 50",
@@ -119,12 +113,13 @@ describe("quick apply work, credit, PAN and consent", () => {
       yearsAtAddress: "2",
       serviceConsent: true,
     });
-    assert.equal(validateQuickApplyStep(4, ready), "");
-    const panErrors = validateQuickApplyStepFields(4, form({ ...ready, panNumber: "ABCDE12" }));
+    assert.equal(validateQuickApplyStep(5, ready), "");
+    const panErrors = validateQuickApplyStepFields(5, form({ ...ready, panNumber: "ABCDE12" }));
     assert.match(panErrors.panNumber || "", /10-character PAN/);
-    const companyPan = validateQuickApplyStepFields(4, form({ ...ready, panNumber: "ABCCD1234F" }));
+    const companyPan = validateQuickApplyStepFields(5, form({ ...ready, panNumber: "ABCCD1234F" }));
     assert.match(companyPan.panNumber || "", /individual PAN/);
-    assert.match(validateQuickApplyStep(4, form({ ...ready, serviceConsent: false })), /consent/i);
+    assert.match(validateQuickApplyStep(5, form({ ...ready, serviceConsent: false })), /consent/i);
+    assert.equal(validateQuickApplyStep(3, ready), "");
   });
 
   it("does not persist PAN or OTP tokens in draft", () => {
@@ -140,20 +135,6 @@ describe("quick apply work, credit, PAN and consent", () => {
 
   it("masks email for OTP step", () => {
     assert.match(maskEmail("rahul.sharma@gmail.com"), /\*\*\*/);
-  });
-});
-
-describe("funnel routing after OTP", () => {
-  it("sends OTP-verified users to the profile assessment, not checkout", () => {
-    assert.equal(getNextQuickApplyStep(2), 3);
-    assert.equal(getNextQuickApplyStep(3), 4);
-    assert.equal(getNextQuickApplyStep(4), 4);
-    assert.equal(getPreviousQuickApplyStep(4), 3);
-    assert.equal(getPreviousQuickApplyStep(3), 2);
-  });
-
-  it("does not insert a payment step when purpose is already filled", () => {
-    assert.equal(getNextQuickApplyStep(2), 3);
   });
 });
 

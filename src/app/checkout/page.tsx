@@ -3,13 +3,13 @@ import Script from "next/script";
 import { LockKeyhole } from "lucide-react";
 import { CheckoutClient } from "@/components/checkout/checkout-client";
 import { PublicStatePanel } from "@/components/ui/public-state-panel";
-import { USP_PRICE_LABEL, USP_PRODUCT_NAME, USP_PRODUCT_SLUG, USP_SALE_PRICE } from "@/lib/constants";
+import { USP_PRODUCT_NAME, USP_PRODUCT_SLUG, USP_SALE_PRICE } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 import { verifyAccessToken } from "@/lib/security/tokens";
 import { formatInr } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: `Secure ${USP_PRICE_LABEL} Checkout`, robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "See Your Loan Matches & Readiness", robots: { index: false, follow: false } };
 
 export default async function CheckoutPage({
   searchParams,
@@ -42,17 +42,17 @@ export default async function CheckoutPage({
           <div className="mb-8">
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-brand-700">Secure payment</p>
             <h1 className="mt-3 text-3xl font-extrabold tracking-[-0.045em] text-navy-950 sm:text-4xl">
-              Review your {USP_PRICE_LABEL} {USP_PRODUCT_NAME}
+              See Your Loan Matches & Readiness
             </h1>
             <p className="mt-3 text-sm leading-7 text-slate-600">
-              Review pricing below, then tap Proceed to secure payment. You will be redirected to Cashfree&apos;s hosted payment page for ₹116.82.
+              Complete your profile to view loan-readiness insights, matched loan options and official application links based on the information you provide.
             </p>
           </div>
           <CheckoutClient
             assessmentId={assessment.id}
             productSlug={product.slug}
             resultToken={query.token}
-            productName={product.name}
+            productName={product.slug === USP_PRODUCT_SLUG ? USP_PRODUCT_NAME : product.name}
             subtotal={formatInr(subtotal)}
             gst={formatInr(gst)}
             total={formatInr(total)}
@@ -72,7 +72,7 @@ function InvalidCheckout() {
       icon={LockKeyhole}
       eyebrow="Secure checkout"
       title="Secure payment link required"
-      description="Verify your email first so we can open the ₹116.82 Credit Profile Booster checkout."
+      description="Verify your email first so we can open the ₹116.82 Loan Match & Readiness Report checkout."
       action={{ href: "/apply/quick", label: "Start quick apply" }}
     />
   );

@@ -6,7 +6,7 @@ import { trackEvent } from "@/lib/analytics-client";
 
 export function ReferralActions({ link }: { link: string }) {
   const [copied, setCopied] = useState(false);
-  const message = `Check loan options for your profile on VP Loan Connect. The eligibility result and matched options come first. The ₹99 Credit Profile Booster is optional and is not a loan approval: ${link}`;
+  const message = `Check loan options for your profile on VP Loan Connect. Verify your email, then unlock the ₹116.82 Loan Match & Readiness Report. It is a service fee, not a loan approval: ${link}`;
 
   async function copy() {
     await navigator.clipboard.writeText(link);

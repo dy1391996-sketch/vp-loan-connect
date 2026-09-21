@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
+import "@fontsource/manrope/400.css";
+import "@fontsource/manrope/500.css";
 import "@fontsource/manrope/600.css";
 import "@fontsource/manrope/700.css";
 import "@fontsource/manrope/800.css";
@@ -25,20 +27,20 @@ export const metadata: Metadata = {
     google: "4F1i1VfD52pj7yuswc0nHv-FPUd1gqBV7IaHNjIZzfY",
   },
   metadataBase: new URL(getPublicAppUrl()),
-  title: { default: `${APP_NAME} | ${TAGLINE}`, template: `%s | ${APP_NAME}` },
-  description: "Check loan options for your profile, see matched options, then choose the optional ₹99 Credit Profile Booster. Not a lender — no guaranteed approval.",
+  title: { default: `${APP_NAME} — Loan Match & Readiness Report`, template: `%s | ${APP_NAME}` },
+  description: "Understand your loan readiness, key eligibility factors and matched loan options through VP Loan Connect.",
   applicationName: APP_NAME,
   category: "financial education",
-  keywords: ["credit profile booster", "loan matching", "loan readiness", "EMI calculator", "personal loan India", "VP Loan Connect"],
+  keywords: ["loan match", "loan readiness report", "loan readiness", "EMI calculator", "personal loan India", "VP Loan Connect"],
   authors: [{ name: APP_NAME }],
   openGraph: {
     type: "website",
     locale: "en_IN",
     siteName: APP_NAME,
-    title: `${APP_NAME} — Profile assessment and optional ₹99 Credit Profile Booster`,
-    description: "Analyse your credit profile and discover profile-matched loan options. Not a lender — no guaranteed approval.",
+    title: `${APP_NAME} — Loan Match & Readiness Report`,
+    description: "Understand your loan readiness, key eligibility factors and matched loan options through VP Loan Connect.",
     url: "/",
-    images: [{ url: "/og.jpg", width: 1200, height: 627, alt: "VP Loan Connect — Credit Profile Booster" }],
+    images: [{ url: "/og.jpg", width: 1200, height: 627, alt: "VP Loan Connect — Loan Match & Readiness Report" }],
   },
   twitter: { card: "summary_large_image", title: APP_NAME, description: TAGLINE, images: ["/og.jpg"] },
   robots: { index: true, follow: true },
@@ -47,7 +49,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#061521",
+  themeColor: "#102A43",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

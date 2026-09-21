@@ -43,7 +43,7 @@ export default function AboutPage() {
             <InfoCard
               icon={FileText}
               title="What customers pay for"
-              body={`The only public paid offer is the ${USP_PRODUCT_NAME}: ${USP_PRICE_LABEL} + GST (${USP_TOTAL_WITH_GST_LABEL}). It is optional after your eligibility result.`}
+              body={`The public paid offer is the ${USP_PRODUCT_NAME}: ${USP_PRICE_LABEL} + GST (${USP_TOTAL_WITH_GST_LABEL}). It comes after email verification and before the detailed profile.`}
             />
             <InfoCard
               icon={Building2}
@@ -55,10 +55,7 @@ export default function AboutPage() {
           <div className="mt-8 rounded-[2rem] border border-line bg-white p-7 shadow-sm sm:p-9">
             <h2 className="text-2xl font-extrabold tracking-[-0.035em] text-navy-950">Our services</h2>
             <ul className="mt-5 grid gap-3 text-sm leading-7 text-slate-600">
-              <li>Profile assessment that explains credit-readiness indicators from the information you provide, then shows matched options.</li>
-              <li>
-                Optional {USP_PRODUCT_NAME} ({USP_PRICE_LABEL} + GST) with a downloadable action plan and extended guidance.
-              </li>
+              <li>{USP_PRODUCT_NAME} ({USP_PRICE_LABEL} + GST) covering the detailed profile, readiness insights, matched loan options and a downloadable action plan.</li>
             </ul>
             <p className="mt-6 text-sm leading-7 text-slate-600">{PLATFORM_DISCLAIMER}</p>
             <p className="mt-4 text-sm leading-7 text-slate-600">
@@ -68,8 +65,8 @@ export default function AboutPage() {
           </div>
 
           <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-            <ButtonLink href="/assessment" size="lg">
-              Start profile assessment
+            <ButtonLink href="/apply/quick" size="lg">
+              Check My Loan Options
             </ButtonLink>
             <ButtonLink href="/contact" variant="secondary" size="lg">
               Contact support

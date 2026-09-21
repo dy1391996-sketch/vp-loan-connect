@@ -105,5 +105,5 @@ function Metric({ icon: Icon, label, value }: { icon: typeof CircleDollarSign; l
 }
 
 function Restricted() {
-  return <PublicStatePanel icon={ShieldCheck} eyebrow="Referral access" title="Verified profile access required" description="Open the referral dashboard from your secure assessment result." action={{ href: "/assessment", label: "Start free assessment" }} />;
+  return <PublicStatePanel icon={ShieldCheck} eyebrow="Referral access" title="Verified profile access required" description="Open the referral dashboard from your secure assessment result." action={{ href: "/apply/quick", label: "Start Quick Apply" }} />;
 }

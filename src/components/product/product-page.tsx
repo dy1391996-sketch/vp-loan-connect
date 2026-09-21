@@ -1,6 +1,6 @@
 import { CircleAlert, FileText, LockKeyhole, MessageCircle, ShieldCheck, Sparkles } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
-import { CREDIT_REPORT_DISCLAIMER, PAYMENT_DESCRIPTION, PLATFORM_DISCLAIMER } from "@/lib/constants";
+import { CREDIT_REPORT_DISCLAIMER, PAYMENT_DESCRIPTION, PLATFORM_DISCLAIMER, USP_PRICE_LABEL } from "@/lib/constants";
 
 type Props = {
   kind: "credit" | "readiness";
@@ -30,8 +30,8 @@ export function ProductPage({ kind, title, heading, description, regular, price,
               {heading}
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">{description}</p>
-            <ButtonLink href="/assessment" size="lg" className="mt-9">
-              Start profile assessment
+            <ButtonLink href="/apply/quick" size="lg" className="mt-9">
+              Check My Loan Options
             </ButtonLink>
           </div>
 
@@ -53,7 +53,7 @@ export function ProductPage({ kind, title, heading, description, regular, price,
                 <p className="mt-2 text-sm font-bold text-brand-700">{total}</p>
                 <div className="mt-7 flex gap-3 rounded-2xl bg-surface p-4 text-xs leading-6 text-slate-600">
                   <LockKeyhole className="shrink-0 text-brand-700" size={17} />
-                  The booster is optional after your eligibility result. The fee covers the report service only.
+                  {USP_PRICE_LABEL} + GST unlocks the detailed profile after email verification. The fee covers the report service only.
                 </div>
               </div>
             </div>
@@ -104,13 +104,13 @@ export function ProductPage({ kind, title, heading, description, regular, price,
             <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-500/20 blur-3xl" />
             <MessageCircle className="relative mx-auto text-brand-500" size={30} />
             <h2 className="font-display relative mt-5 text-3xl font-extrabold tracking-[-0.045em] sm:text-4xl">
-              See your result before the optional booster
+              Unlock your loan matches, then complete your profile
             </h2>
             <p className="relative mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-300">
-              Complete the profile assessment, then choose the Credit Profile Booster only if you want the downloadable action plan. There is no loan approval or score-increase guarantee.
+              Verify your email, pay the Loan Match & Readiness Report service fee, then complete the detailed profile. There is no loan approval or score-increase guarantee.
             </p>
-            <ButtonLink href="/assessment" size="lg" className="relative mt-8">
-              Start profile assessment
+            <ButtonLink href="/apply/quick" size="lg" className="relative mt-8">
+              Check My Loan Options
             </ButtonLink>
           </div>
         </div>

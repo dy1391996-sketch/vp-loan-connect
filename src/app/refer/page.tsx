@@ -32,14 +32,14 @@ export default function ReferPage() {
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-brand-500">VP Refer & Earn</p>
             <h1 className="mt-5 text-balance text-4xl font-extrabold tracking-[-0.05em] sm:text-5xl">Share responsible profile checks</h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">Earn only when a referred user completes a validated, non-refunded qualifying report purchase—not for clicks, registrations or loan approval. Rewards are never tied to lender decisions.</p>
-            <ButtonLink href="/assessment" size="lg" className="mt-9">Start profile assessment <ArrowRight size={18} /></ButtonLink>
+            <ButtonLink href="/apply/quick" size="lg" className="mt-9">Check My Loan Options <ArrowRight size={18} /></ButtonLink>
           </div>
           <div className="rounded-[2rem] border border-white/10 bg-white/8 p-4 shadow-2xl backdrop-blur">
             <div className="rounded-3xl bg-white p-7 text-navy-950 sm:p-8">
               <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-100 text-brand-700"><IndianRupee size={24} /></span>
               <p className="mt-6 text-sm font-semibold text-slate-500">Default qualifying reward</p>
               <p className="mt-1 text-5xl font-black tracking-[-0.06em]">₹20</p>
-              <p className="mt-3 text-sm leading-7 text-slate-600">Per validated ₹99 Credit Profile Booster purchase. Reward values remain configurable.</p>
+              <p className="mt-3 text-sm leading-7 text-slate-600">Per validated ₹99 Loan Match & Readiness Report purchase. Reward values remain configurable.</p>
               <div className="mt-6 rounded-2xl bg-surface p-5 text-sm text-slate-600">Minimum payout threshold <strong className="mt-1 block text-lg text-navy-950">₹250</strong></div>
             </div>
           </div>
@@ -73,7 +73,7 @@ export default function ReferPage() {
           <div className="rounded-[2rem] border border-amber-200 bg-amber-50 p-7 sm:p-9">
             <CircleAlert className="text-amber-700" size={26} />
             <h2 className="mt-6 text-2xl font-extrabold text-amber-950">Share responsibly</h2>
-            <p className="mt-4 text-sm leading-7 text-amber-950">The referral message describes a profile assessment and an optional educational report. It never promises a loan, approval, rate or credit-score increase.</p>
+            <p className="mt-4 text-sm leading-7 text-amber-950">The referral message describes the ₹116.82 Loan Match & Readiness Report. It never promises a loan, approval, rate or credit-score increase.</p>
           </div>
         </div>
       </section>

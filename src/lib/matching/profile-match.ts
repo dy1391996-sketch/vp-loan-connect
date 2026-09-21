@@ -36,7 +36,7 @@ export type MatchedOption = {
   disclosure: string;
   category: string;
   fitScore: number;
-  fitLabel: "Best profile fit" | "Strong match" | "Alternative option";
+  fitLabel: "Closest profile match" | "Strong match" | "Alternative option";
   reasons: string[];
 };
 
@@ -161,7 +161,7 @@ export function scoreCandidate(profile: MatchProfile, candidate: MatchCandidateI
 }
 
 function fitLabel(score: number, index: number): MatchedOption["fitLabel"] {
-  if (index === 0) return "Best profile fit";
+  if (index === 0) return "Closest profile match";
   if (score >= 70) return "Strong match";
   return "Alternative option";
 }

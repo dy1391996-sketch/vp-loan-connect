@@ -60,7 +60,7 @@ export default async function PaymentPendingPage({
           </h1>
           <p className="mt-4 text-sm leading-7 text-slate-600">
             {query.reason ||
-              "Your bank or UPI app may have approved the transfer. We unlock the Credit Profile Booster only after secure server-side verification — never from this page alone."}
+              "Your bank or UPI app may have approved the transfer. We unlock the Loan Match & Readiness Report only after secure server-side verification — never from this page alone."}
           </p>
           <p className="mt-3 text-xs font-semibold text-slate-500">Order reference: {query.order}</p>
 
