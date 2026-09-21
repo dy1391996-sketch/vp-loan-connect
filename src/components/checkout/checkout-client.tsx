@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { StatusNotice } from "@/components/ui/status-notice";
 import { PAYMENT_DESCRIPTION, PLATFORM_DISCLAIMER } from "@/lib/constants";
 import { trackEvent } from "@/lib/analytics-client";
+import { hasFunnelEventSent, markFunnelEventSent } from "@/components/analytics/funnel-beacon";
 import { buildCashfreeLaunchPath } from "@/lib/payments/cashfree-browser";
 
 declare global {
@@ -66,14 +67,32 @@ export function CheckoutClient(props: Props) {
   const [activeOrderReference, setActiveOrderReference] = useState("");
   const payInFlight = useRef(false);
 
-  async function completeVerified(verified: { orderReference: string; reportId: string; reportToken: string }, provider: string) {
-    trackEvent("payment_completed", { product: props.productSlug, provider });
+  async function completeVerified(
+    verified: { orderReference: string; reportId: string; reportToken: string },
+    provider: string,
+    commerce?: { value?: number; currency?: string },
+  ) {
+    const dedupeKey = `payment_${verified.orderReference}`;
+    if (!hasFunnelEventSent(dedupeKey)) {
+      markFunnelEventSent(dedupeKey);
+      trackEvent("payment_completed", {
+        product: props.productSlug,
+        provider,
+        currency: commerce?.currency || "INR",
+        ...(commerce?.value != null ? { value: commerce.value } : {}),
+      });
+    }
     router.push(
       `/payment/success?order=${encodeURIComponent(verified.orderReference)}&report=${verified.reportId}&token=${encodeURIComponent(verified.reportToken)}`,
     );
   }
 
-  async function verifyWithServer(internalOrderId: string, payload: Record<string, unknown>, provider: string) {
+  async function verifyWithServer(
+    internalOrderId: string,
+    payload: Record<string, unknown>,
+    provider: string,
+    commerce?: { value?: number; currency?: string },
+  ) {
     const verifyResponse = await fetch("/api/payments/verify", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -85,7 +104,7 @@ export function CheckoutClient(props: Props) {
       setBusy(false);
       return;
     }
-    await completeVerified(verified, provider);
+    await completeVerified(verified, provider, commerce);
   }
 
   async function pay() {
@@ -134,7 +153,7 @@ export function CheckoutClient(props: Props) {
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Test payment could not be completed.");
-        await completeVerified(data, "mock");
+        await completeVerified(data, "mock", { value: order.amountPaise / 100, currency: order.currency || "INR" });
         return;
       }
 
@@ -160,6 +179,7 @@ export function CheckoutClient(props: Props) {
           theme: { color: "#0a9265" },
           modal: {
             ondismiss: () => {
+              trackEvent("payment_failed", { provider: "razorpay", reason: "dismissed" });
               setBusy(false);
               payInFlight.current = false;
             },
@@ -167,7 +187,10 @@ export function CheckoutClient(props: Props) {
           },
           handler: async (payment: Record<string, string>) => {
             try {
-              await verifyWithServer(order.internalOrderId, payment, "razorpay");
+              await verifyWithServer(order.internalOrderId, payment, "razorpay", {
+                value: order.amountPaise / 100,
+                currency: order.currency || "INR",
+              });
             } catch {
               setError("Payment was taken but verification failed. Contact support with your payment reference.");
               setBusy(false);
@@ -207,6 +230,7 @@ export function CheckoutClient(props: Props) {
 
       throw new Error("Unsupported checkout mode for the configured payment provider.");
     } catch (caught) {
+      trackEvent("payment_failed", { provider: "checkout", reason: "start_failed" });
       setError(caught instanceof Error ? caught.message : "Payment could not be started.");
       setBusy(false);
       payInFlight.current = false;
@@ -267,7 +291,7 @@ export function CheckoutClient(props: Props) {
           {[
             "Personalized Credit Profile Booster analysis",
             "Downloadable action plan PDF",
-            "Official partner apply links (matched first)",
+            "Extended official-platform list in the booster report",
             "Refund protection for duplicate payments or system failures",
           ].map((item) => (
             <p key={item} className="flex gap-3 text-sm leading-6 text-slate-300">

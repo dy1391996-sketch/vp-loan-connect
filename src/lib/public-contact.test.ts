@@ -18,6 +18,19 @@ describe("public contact policy", () => {
     assert.equal(getPublicInstagramUrl({ NEXT_PUBLIC_INSTAGRAM_URL: "vploanconnect" }), "https://www.instagram.com/vploanconnect/");
   });
 
+  it("rewrites the obsolete vploanconnect.in Instagram handle to the approved profile", () => {
+    assert.equal(getPublicInstagramUrl({ NEXT_PUBLIC_INSTAGRAM_URL: "@vploanconnect.in" }), "https://www.instagram.com/vploanconnect/");
+    assert.equal(getPublicInstagramUrl({ NEXT_PUBLIC_INSTAGRAM_URL: "vploanconnect.in" }), "https://www.instagram.com/vploanconnect/");
+    assert.equal(
+      getPublicInstagramUrl({ NEXT_PUBLIC_INSTAGRAM_URL: "https://www.instagram.com/vploanconnect.in/" }),
+      "https://www.instagram.com/vploanconnect/",
+    );
+    assert.equal(
+      getPublicInstagramUrl({ NEXT_PUBLIC_INSTAGRAM_URL: "https://instagram.com/vploanconnect.in" }),
+      "https://www.instagram.com/vploanconnect/",
+    );
+  });
+
   it("detects WhatsApp and tel public CTA hrefs", () => {
     assert.equal(isPublicWhatsAppHref("https://wa.me/917827110079"), true);
     assert.equal(isPublicWhatsAppHref("https://api.whatsapp.com/send?phone=91"), true);

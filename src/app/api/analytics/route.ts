@@ -15,6 +15,7 @@ const allowed = [
   "checkout_opened",
   "checkout_resumed",
   "payment_completed",
+  "payment_failed",
   "report_downloaded",
   "referral_link_copied",
   "referral_link_shared",

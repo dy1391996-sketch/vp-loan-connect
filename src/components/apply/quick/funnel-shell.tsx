@@ -4,17 +4,18 @@ import { cn } from "@/lib/utils";
 
 const TRUST_ITEMS = [
   "Secure email verification",
-  "Privacy-first profile check",
+  "Profile assessment first",
   "No effect on CIBIL score",
-  "Transparent ₹99 + GST fee",
-  "Official lender links after unlock",
+  "Optional ₹99 + GST booster",
+  "Matched options before payment",
 ];
 
 const NEXT_STEPS = [
   "Verify your email",
-  "Unlock Credit Profile Booster",
-  "Complete your detailed profile",
-  "View matched loan options",
+  "Complete your profile",
+  "View your eligibility result",
+  "See matched options",
+  "Choose the booster only if you want it",
 ];
 
 export function FunnelHeader({

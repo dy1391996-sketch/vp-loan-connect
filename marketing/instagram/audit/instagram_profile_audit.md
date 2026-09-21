@@ -1,3 +1,7 @@
+# Instagram profile audit — historical session
+
+Superseded for website configuration: the approved public username is `@vploanconnect` (`https://www.instagram.com/vploanconnect/`). This file records the 2026-08-16 session.
+
 # Instagram profile audit — @vploanconnect.in
 
 Date (UTC): 2026-08-16

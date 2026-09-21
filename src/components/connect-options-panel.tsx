@@ -6,9 +6,19 @@ type Props = {
   matched: MatchedOption[];
   more: MatchedOption[];
   tone?: "dark" | "light";
+  eyebrow?: string;
+  title?: string;
+  intro?: string;
 };
 
-export function ConnectOptionsPanel({ matched, more, tone = "dark" }: Props) {
+export function ConnectOptionsPanel({
+  matched,
+  more,
+  tone = "dark",
+  eyebrow = "Payment unlocked · Loan connect links",
+  title = "Official platforms you can connect to",
+  intro = "Best-fit options appear first, followed by additional official loan links. We never auto-submit your data; each lender decides the amount, APR, fees and approval.",
+}: Props) {
   const dark = tone === "dark";
 
   return (
@@ -19,13 +29,13 @@ export function ConnectOptionsPanel({ matched, more, tone = "dark" }: Props) {
         </span>
         <div>
           <p className={dark ? "text-xs font-extrabold uppercase tracking-[0.18em] text-brand-500" : "text-xs font-extrabold uppercase tracking-[0.18em] text-brand-700"}>
-            Payment unlocked · Loan connect links
+            {eyebrow}
           </p>
           <h2 className={dark ? "mt-3 font-display text-3xl font-black tracking-[-0.04em]" : "mt-3 font-display text-3xl font-black tracking-[-0.04em] text-navy-950"}>
-            Official platforms you can connect to
+            {title}
           </h2>
           <p className={dark ? "mt-3 max-w-3xl text-sm leading-7 text-slate-300" : "mt-3 max-w-3xl text-sm leading-7 text-slate-600"}>
-            Best-fit options appear first, followed by additional official loan links. We never auto-submit your data; each lender decides the amount, APR, fees and approval.
+            {intro}
           </p>
         </div>
       </div>

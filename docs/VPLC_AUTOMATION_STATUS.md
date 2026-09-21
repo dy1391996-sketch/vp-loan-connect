@@ -11,7 +11,7 @@
 | --- | --- |
 | Brand | VP Loan Connect |
 | Website | https://www.vploanconnect.in |
-| Instagram | https://www.instagram.com/vploanconnect.in/ |
+| Instagram | https://www.instagram.com/vploanconnect/ (approved username `@vploanconnect`; older `@vploanconnect.in` website values are rewritten at runtime) |
 | Business Portfolio | **VP Loan Connect** `1065984692638768` |
 | Canonical business email | `info@vploanconnect.in` (visible in Meta business/ad-account contact config) |
 | Public phone / WhatsApp / Call CTA | **Must stay hidden** on website (Quick Apply + Instagram Direct + support email only) |
@@ -47,6 +47,8 @@ Pixel/consent/public-config remain live on Production. Funnel/UI from **#25** is
 - **DOMAIN_MATCH:** yes — `https://www.vploanconnect.in` / `https://vploanconnect.in`
 - Latest Production deployment observed Ready (~3h before last autonomous pass)
 - `META_CAPI_ACCESS_TOKEN` present on Production (Updated ~3h); value never logged
+
+Website code now rewrites a stored `@vploanconnect.in` value to `https://www.instagram.com/vploanconnect/`. The tables below record the 2026-08-16 observation and are not the current handle.
 
 ## Production environment variable NAMES (no values)
 
@@ -152,7 +154,7 @@ Cannot generate a new CAPI token, migrate Vercel Pixel/CAPI IDs, or verify `sent
 | --- | --- |
 | Dataset/Pixel `1057590634424945` | Exists; browser Pixel path works after consent; CAPI token generation blocked |
 | Business Portfolio VP Loan Connect | Exists; **Events Manager / advertising / pixel-creation restricted** |
-| Instagram `@vploanconnect.in` | Live on website CTA; owner privacy polish deferred |
+| Instagram `@vploanconnect` | Approved website target. August 2026 notes recorded `@vploanconnect.in`; logged-in profile fields still need owner verification |
 | Ad campaigns / spend | None (₹0) |
 
 ## Remaining hard blockers (human / Meta only)

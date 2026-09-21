@@ -1,8 +1,8 @@
 import type { AttributionMap } from "@/lib/attribution";
 import type { incomeRangeMidpoints } from "@/lib/domain/scoring";
 
-export const QUICK_APPLY_STEPS = 6;
-export const QUICK_APPLY_DRAFT_KEY = "vplc_quick_apply_draft_v3";
+export const QUICK_APPLY_STEPS = 4;
+export const QUICK_APPLY_DRAFT_KEY = "vplc_quick_apply_draft_v4";
 export const QUICK_APPLY_RESULT_KEY = "vplc_quick_apply_result_v2";
 export const MIN_LOAN_AMOUNT = 10_000;
 export const MAX_LOAN_AMOUNT = 1_000_000;
@@ -10,10 +10,8 @@ export const MAX_LOAN_AMOUNT = 1_000_000;
 export const QUICK_APPLY_STEP_LABELS = [
   "Loan need & details",
   "Email verification",
-  "Credit Profile Booster",
   "Work & credit",
   "PAN & consent",
-  "Loan options",
 ] as const;
 
 export const QUICK_AMOUNTS = [25_000, 50_000, 100_000, 200_000, 500_000] as const;

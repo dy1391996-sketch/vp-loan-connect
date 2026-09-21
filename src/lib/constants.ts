@@ -1,5 +1,5 @@
 export const APP_NAME = "VP Loan Connect";
-export const TAGLINE = "AI Credit Profile Analysis & Smart Loan Matching";
+export const TAGLINE = "Profile assessment and loan discovery";
 /** Naked brand domain (emails, display). Prefer CANONICAL_SITE_ORIGIN for absolute URLs. */
 export const DOMAIN = "vploanconnect.in";
 /** Canonical public origin — always www in production. */
@@ -31,8 +31,12 @@ export const LENDER_REFERRAL_CONSENT_TEXT =
 export const RESULT_DISCLAIMER =
   "This is an indicative profile assessment, not a loan approval. Final eligibility, amount, APR, charges, tenure and disbursement are decided only by the relevant lender after verification.";
 
+/** Required public outcome disclaimer. Do not shorten this sentence on customer-facing surfaces. */
+export const LENDER_OUTCOME_DISCLAIMER =
+  "Loan approval, interest rate and disbursement depend on the lender’s eligibility criteria, documentation, credit profile and internal policies. VP Loan Connect is not a lender.";
+
 export const PLATFORM_DISCLAIMER =
-  "VP Loan Connect is a financial-information, profile-assessment and loan-discovery platform. We are not a bank, NBFC, lender or credit bureau. We do not sanction loans or guarantee approval, rates, credit-score improvement or disbursement.";
+  `VP Loan Connect is a financial-information, profile-assessment and loan-discovery platform. We are not a bank, NBFC, lender or credit bureau. We do not sanction loans or guarantee approval, rates, credit-score improvement or disbursement. ${LENDER_OUTCOME_DISCLAIMER}`;
 
 export const PAYMENT_DESCRIPTION =
   "This payment is for the ₹99 Credit Profile Booster: credit-profile guidance, loan-readiness analysis and access to profile-matched lender options. It is not a lender processing fee or a guarantee of loan approval.";
@@ -55,7 +59,7 @@ export const LEAD_STAGE_LABELS: Record<string, string> = {
   OTP_VERIFIED: "OTP verified",
   ASSESSMENT_STARTED: "Assessment started",
   ASSESSMENT_COMPLETED: "Assessment completed",
-  FREE_RESULT_VIEWED: "Free result viewed",
+  FREE_RESULT_VIEWED: "Eligibility result viewed",
   PAYMENT_PENDING: "Payment pending",
   PAID: "Paid",
   REPORT_PROCESSING: "Report processing",

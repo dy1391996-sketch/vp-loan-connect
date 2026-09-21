@@ -1,6 +1,6 @@
 "use client";
 
-import { createMetaEventId, isMetaFunnelEvent, metaPixelEventName, type MetaFunnelEvent } from "@/lib/meta/events";
+import { createMetaEventId, isMetaFunnelEvent, metaBrowserTrackMethod, metaPixelEventName, type MetaFunnelEvent } from "@/lib/meta/events";
 import { hasMarketingConsent } from "@/lib/consent/marketing-consent";
 
 declare global {
@@ -45,6 +45,6 @@ export function trackMetaPixelEvent(
   }
   if (funnel && pixelName !== funnel) params.vplc_event = funnel;
 
-  window.fbq("track", pixelName, params, { eventID: eventId });
+  window.fbq(metaBrowserTrackMethod(pixelName), pixelName, params, { eventID: eventId });
   return eventId;
 }

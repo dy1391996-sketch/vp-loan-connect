@@ -75,7 +75,7 @@ export default function ContactPage() {
               <a className="font-bold underline underline-offset-4" href={`mailto:${PUBLIC_GRIEVANCE_EMAIL}?subject=Grievance`}>
                 {PUBLIC_GRIEVANCE_EMAIL}
               </a>{" "}
-              with “Grievance” in the subject and include your registered mobile and order or report reference where relevant.
+              with “Grievance” in the subject and include your registered email address and order or report reference, where relevant. Do not email OTP, PIN, passwords or banking credentials.
             </p>
           </div>
         </div>

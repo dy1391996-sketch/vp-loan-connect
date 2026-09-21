@@ -5,6 +5,7 @@ import {
   META_FUNNEL_EVENTS,
   createMetaEventId,
   isMetaFunnelEvent,
+  metaBrowserTrackMethod,
   metaPixelEventName,
 } from "@/lib/meta/events";
 import { buildCapIPayload, getMetaCapiConfig, sendMetaCapiEvent } from "@/lib/meta/capi";
@@ -20,6 +21,7 @@ describe("Meta funnel events", () => {
       "EligibilityViewed",
       "CheckoutStarted",
       "PaymentSuccess",
+      "PaymentFailed",
       "Purchase",
       "InstagramProfileClick",
       "InstagramAdLanding",
@@ -35,6 +37,7 @@ describe("Meta funnel events", () => {
     assert.deepEqual(FIRST_PARTY_TO_META.email_verified, ["OTPVerified"]);
     assert.deepEqual(FIRST_PARTY_TO_META.checkout_opened, ["CheckoutStarted"]);
     assert.deepEqual(FIRST_PARTY_TO_META.payment_completed, ["PaymentSuccess"]);
+    assert.deepEqual(FIRST_PARTY_TO_META.payment_failed, ["PaymentFailed"]);
     assert.deepEqual(FIRST_PARTY_TO_META.instagram_profile_click, ["InstagramProfileClick"]);
   });
 
@@ -47,9 +50,25 @@ describe("Meta funnel events", () => {
     assert.ok(b.length <= 50);
   });
 
-  it("maps PaymentSuccess to standard Purchase for Meta", () => {
+  it("maps each funnel stage to a distinct Meta event", () => {
     assert.equal(metaPixelEventName("PaymentSuccess"), "Purchase");
     assert.equal(metaPixelEventName("LandingPageView"), "PageView");
+    assert.equal(metaPixelEventName("QuickApplyStarted"), "QuickApplyStarted");
+    assert.equal(metaPixelEventName("OTPVerified"), "CompleteRegistration");
+    assert.equal(metaPixelEventName("AssessmentCompleted"), "SubmitApplication");
+    assert.equal(metaPixelEventName("EligibilityViewed"), "ViewContent");
+    assert.equal(metaPixelEventName("CheckoutStarted"), "InitiateCheckout");
+    assert.equal(metaPixelEventName("PaymentFailed"), "PaymentFailed");
+    const names = (["QuickApplyStarted", "OTPVerified", "AssessmentCompleted"] as const).map((event) => metaPixelEventName(event));
+    assert.equal(new Set(names).size, 3);
+    assert.equal(names.includes("Lead"), false);
+  });
+
+  it("uses trackCustom for non-standard Pixel names", () => {
+    assert.equal(metaBrowserTrackMethod("Purchase"), "track");
+    assert.equal(metaBrowserTrackMethod("CompleteRegistration"), "track");
+    assert.equal(metaBrowserTrackMethod("QuickApplyStarted"), "trackCustom");
+    assert.equal(metaBrowserTrackMethod("PaymentFailed"), "trackCustom");
   });
 });
 
