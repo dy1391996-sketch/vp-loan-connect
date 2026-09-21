@@ -24,3 +24,7 @@ prisma/*.db
 prisma/*.db-journal
 generated-reports/
 .vercel
+data/maya/backups/*.json
+data/maya/exports/*
+!data/maya/backups/.gitkeep
+!data/maya/exports/.gitkeep

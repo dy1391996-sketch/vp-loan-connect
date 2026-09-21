@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { readMarketingConsent, writeMarketingConsent, type MarketingConsentValue } from "@/lib/consent/marketing-consent";
 
 export function MarketingConsentBanner() {
+  const pathname = usePathname() || "";
   const [choice, setChoice] = useState<MarketingConsentValue | null | "loading">("loading");
 
   useEffect(() => {
@@ -17,6 +19,7 @@ export function MarketingConsentBanner() {
     window.dispatchEvent(new CustomEvent("vplc:marketing-consent", { detail: value }));
   }
 
+  if (pathname.startsWith("/maya")) return null;
   if (choice === "loading" || choice !== null) return null;
 
   return (
