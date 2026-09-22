@@ -53,6 +53,9 @@ const CONNECT_SRC = [
   "https://*.msg91.com",
   "https://*.phone91.com",
   "https://www.google.com",
+  // Chrome Web Speech recognition (free browser STT; no paid API keys).
+  "wss://www.google.com",
+  "https://www.google.com/speech-api/",
   "https://www.googletagmanager.com",
   "https://www.google-analytics.com",
   "https://*.google-analytics.com",

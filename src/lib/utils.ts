@@ -1,6 +1,5 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { createHash, randomBytes } from "node:crypto";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -21,19 +20,6 @@ export function normalizeIndianMobile(value: string) {
   return `+91${local}`;
 }
 
-export function sha256(value: string) {
-  return createHash("sha256").update(value).digest("hex");
-}
-
-export function randomToken(bytes = 32) {
-  return randomBytes(bytes).toString("hex");
-}
-
-export function generateReferralCode(seed?: string) {
-  const suffix = sha256(seed ?? randomToken(8)).slice(0, 7).toUpperCase();
-  return `VPLC${suffix}`;
-}
-
 export function safeJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value, (_key, item) => (typeof item === "bigint" ? item.toString() : item)));
 }
@@ -43,4 +29,3 @@ export function redactMobile(mobile: string) {
 }
 
 export { maskPan } from "@/lib/domain/identity";
-

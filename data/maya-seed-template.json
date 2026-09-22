@@ -1,6 +1,8 @@
 {
   "version": "1.0.0",
   "source": "SYSTEM_SEED",
+  "ownerHistoryStatus": "not-provided",
+  "importPolicy": "Import only verified owner-supplied facts. Do not invent owner history, romantic events, meetings, dates, calls, trips, physical interactions, promises, or shared experiences. Relationship style may be seeded. Specific events require verified:true.",
   "warning": "Seed only verified owner-provided facts. Do not invent romantic history or events.",
   "ownerProfile": {
     "displayName": "",

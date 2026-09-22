@@ -1,0 +1,26 @@
+[
+  {
+    "id": "8ac9f2c1-5569-4231-a720-e38f0a7bea31",
+    "file": "reference-1.jpeg",
+    "sha256": "e459125b1f1a59af8a433233d18697c1fb3116bb11883a968a4ed25e9bb5851b",
+    "title": "User reference 1 \u2014 mirror photo"
+  },
+  {
+    "id": "bd707214-4c66-4bfc-84f2-d019e4f2889b",
+    "file": "reference-2.jpeg",
+    "sha256": "12b90fc20ab8d3fba18328c6f1981e2426eb59ad5929ea0f9af9581245099a5a",
+    "title": "User reference 2 \u2014 side pose"
+  },
+  {
+    "id": "263eaf74-2f6b-433d-96c5-b17d4f0690b5",
+    "file": "reference-3.png",
+    "sha256": "b4b6243e4ab8394c8850c0dcf65f5802ee92130b423b550b1f9565680c45aa58",
+    "title": "User reference 3 \u2014 close portrait"
+  },
+  {
+    "id": "2201bc2e-b204-4346-a5cf-9b10eb76260d",
+    "file": "reference-4.png",
+    "sha256": "2e9aad44ae1336fb913ff76d1fa8108c5e4c4499b920444e05ddb0c66c8884c8",
+    "title": "Existing approved secondary Maya reference"
+  }
+]

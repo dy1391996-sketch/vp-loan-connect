@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { AdminRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { sha256 } from "@/lib/utils";
+import { sha256 } from "@/lib/server-crypto";
 import { verifyAccessToken } from "@/lib/security/tokens";
 
 export async function getAdminSession() {

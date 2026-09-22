@@ -217,6 +217,20 @@ export interface MayaDebugInfo {
   conflictDecisions: string[];
   modelProvider: string;
   latencyMs: number;
+  phaseMs?: {
+    writePipeline?: number;
+    compile?: number;
+    model?: number;
+    groundPersist?: number;
+  };
+  usage?: {
+    promptEvalCount?: number;
+    evalCount?: number;
+    totalDurationMs?: number;
+    loadDurationMs?: number;
+    promptEvalDurationMs?: number;
+    evalDurationMs?: number;
+  };
 }
 
 export interface MayaTurnResult {
@@ -242,6 +256,8 @@ export interface CompiledContext {
 export interface MayaSeedDocument {
   version: string;
   source: "SYSTEM_SEED";
+  ownerHistoryStatus?: "not-provided" | "verified-partial" | "verified";
+  importPolicy?: string;
   ownerProfile?: {
     displayName?: string;
     preferredLanguage?: string;
@@ -253,12 +269,13 @@ export interface MayaSeedDocument {
     content: string;
     confidence?: MayaConfidence;
     importance?: number;
+    verified?: boolean;
   }>;
-  people?: Array<{ name: string; aliases?: string[]; relationshipToOwner?: string; relevantContext?: string; confidence?: MayaConfidence }>;
-  projects?: Array<{ name: string; aliases?: string[]; description?: string; status?: MayaProjectStatus; currentGoal?: string }>;
-  preferences?: Array<{ content: string; confidence?: MayaConfidence }>;
-  events?: Array<{ content: string; occurredAt?: string; precision?: "exact" | "approximate" | "unknown"; confidence?: MayaConfidence }>;
-  ongoingMatters?: Array<{ content: string; importance?: number }>;
+  people?: Array<{ name: string; aliases?: string[]; relationshipToOwner?: string; relevantContext?: string; confidence?: MayaConfidence; verified?: boolean }>;
+  projects?: Array<{ name: string; aliases?: string[]; description?: string; status?: MayaProjectStatus; currentGoal?: string; verified?: boolean }>;
+  preferences?: Array<{ content: string; confidence?: MayaConfidence; verified?: boolean }>;
+  events?: Array<{ content: string; occurredAt?: string; precision?: "exact" | "approximate" | "unknown"; confidence?: MayaConfidence; verified?: boolean }>;
+  ongoingMatters?: Array<{ content: string; importance?: number; verified?: boolean }>;
   communicationStyle?: { languages?: string[]; emojiComfort?: string; formality?: string };
 }
 

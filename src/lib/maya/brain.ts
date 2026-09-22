@@ -1,10 +1,11 @@
+import { isMediaRequest, handleMediaChat } from "./media/chat";
 import type { MayaChannel, MayaDebugInfo, MayaTurnResult, WriteDecision } from "./types";
 import { compileMayaContext, contextSources } from "./compiler";
-import { retrieveRelevantContext } from "./retrieval";
 import { newId, nowIso, type MayaStore } from "./store";
 import { runWritePipeline } from "./write-pipeline";
 import { defaultRelationshipState } from "./state";
 import type { MayaLLMProvider } from "./providers/types";
+import { groundAssistantReply } from "./grounding";
 import { contextToMessages } from "./providers/types";
 import { createMockMayaProvider } from "./providers/mock";
 
@@ -15,6 +16,11 @@ export interface MayaBrainOptions {
   debug?: boolean;
 }
 
+export interface MayaRespondOptions {
+  signal?: AbortSignal;
+  onToken?: (token: string) => void;
+}
+
 export class MayaBrain {
   constructor(private readonly options: MayaBrainOptions) {}
 
@@ -22,15 +28,19 @@ export class MayaBrain {
     return this.options.store;
   }
 
-  async respond(input: {
-    ownerId: string;
-    channel: MayaChannel;
-    text: string;
-    conversationId?: string;
-    ownerAuthorized: boolean;
-    senderId?: string;
-  }): Promise<MayaTurnResult> {
+  async respond(
+    input: {
+      ownerId: string;
+      channel: MayaChannel;
+      text: string;
+      conversationId?: string;
+      ownerAuthorized: boolean;
+      senderId?: string;
+    },
+    respondOptions?: MayaRespondOptions,
+  ): Promise<MayaTurnResult> {
     const started = Date.now();
+    const phaseMs: NonNullable<MayaDebugInfo["phaseMs"]> = {};
     const now = this.options.now?.() ?? new Date();
     const at = nowIso(now);
 
@@ -44,10 +54,13 @@ export class MayaBrain {
         channel: input.channel,
         ownerAuthorized: false,
       });
-      const generated = await provider.generate({
-        context,
-        messages: contextToMessages(context, [{ role: "user", content: input.text }]),
-      });
+      const generated = await provider.generate(
+        {
+          context,
+          messages: contextToMessages(context, [{ role: "user", content: input.text }]),
+        },
+        { signal: respondOptions?.signal, onToken: respondOptions?.onToken },
+      );
       return {
         conversationId: "public",
         messageId: newId(),
@@ -62,6 +75,7 @@ export class MayaBrain {
               conflictDecisions: [],
               modelProvider: generated.provider,
               latencyMs: Date.now() - started,
+              usage: generated.usage,
             }
           : undefined,
       };
@@ -74,8 +88,14 @@ export class MayaBrain {
       this.store.saveRelationshipState(defaultRelationshipState(input.ownerId, at));
     }
 
+    // An explicit conversation id must stay on that thread. Only omit-id turns
+    // continue the latest open conversation on this channel.
+    const existing = input.conversationId
+      ? this.store.getConversation(input.ownerId, input.conversationId)
+      : this.store.listConversations(input.ownerId).find((row) => row.channel === input.channel && !row.closedAt);
+
     const conversation =
-      (input.conversationId ? this.store.getConversation(input.ownerId, input.conversationId) : undefined) ??
+      existing ??
       this.store.createConversation({
         conversationId: input.conversationId ?? newId(),
         ownerId: input.ownerId,
@@ -85,6 +105,7 @@ export class MayaBrain {
         roleplayActive: false,
       });
 
+    const visualRequest = isMediaRequest(input.text);
     const userMessage = this.store.addMessage({
       messageId: newId(),
       conversationId: conversation.conversationId,
@@ -93,9 +114,18 @@ export class MayaBrain {
       channel: input.channel,
       text: input.text,
       createdAt: at,
-      roleplay: conversation.roleplayActive,
+      roleplay: visualRequest || conversation.roleplayActive,
     });
 
+    // Visual requests never enter factual memory extraction or model invention.
+    if (visualRequest) {
+      const text = await handleMediaChat(input.ownerId, input.text);
+      const reply = this.store.addMessage({ messageId: newId(), conversationId: conversation.conversationId, ownerId: input.ownerId, role: "maya", channel: input.channel, text, createdAt: nowIso(), roleplay: true });
+      respondOptions?.onToken?.(text);
+      return { conversationId: conversation.conversationId, messageId: reply.messageId, text, ownerAuthorized: true };
+    }
+
+    const writeStarted = Date.now();
     const write = runWritePipeline(this.store, {
       ownerId: input.ownerId,
       conversationId: conversation.conversationId,
@@ -105,12 +135,9 @@ export class MayaBrain {
       roleplayActive: conversation.roleplayActive,
       now,
     });
+    phaseMs.writePipeline = Date.now() - writeStarted;
 
-    const retrieved = retrieveRelevantContext(this.store, {
-      ownerId: input.ownerId,
-      utterance: input.text,
-      conversationId: conversation.conversationId,
-    });
+    const compileStarted = Date.now();
     const context = compileMayaContext({
       store: this.store,
       ownerId: input.ownerId,
@@ -119,37 +146,66 @@ export class MayaBrain {
       channel: input.channel,
       ownerAuthorized: true,
     });
-    const provider = this.options.provider ?? createMockMayaProvider();
-    const generated = await provider.generate({
-      context,
-      messages: contextToMessages(context, [{ role: "user", content: input.text }]),
-    });
+    phaseMs.compile = Date.now() - compileStarted;
 
+    const provider = this.options.provider ?? createMockMayaProvider();
+    const modelStarted = Date.now();
+    const generated = await provider.generate(
+      {
+        context,
+        messages: contextToMessages(context, [{ role: "user", content: input.text }]),
+      },
+      { signal: respondOptions?.signal, onToken: respondOptions?.onToken },
+    );
+    phaseMs.model = Date.now() - modelStarted;
+
+    if (respondOptions?.signal?.aborted) {
+      const aborted = new Error("Aborted");
+      aborted.name = "AbortError";
+      throw aborted;
+    }
+
+    const persistStarted = Date.now();
+    const factualCorpus = [
+      ...context.recentMessages.filter((message) => message.role === "owner").map((message) => message.text),
+      input.text,
+      ...context.memories.map((memory) => memory.content),
+    ].join("\n");
+    const groundedText = groundAssistantReply(generated.text, factualCorpus, input.text);
+
+    // Exactly-once persistence of the final grounded reply (not streamed partials).
     const reply = this.store.addMessage({
       messageId: newId(),
       conversationId: conversation.conversationId,
       ownerId: input.ownerId,
       role: "maya",
       channel: input.channel,
-      text: generated.text,
+      text: groundedText,
       createdAt: nowIso(this.options.now?.() ?? new Date()),
       roleplay: conversation.roleplayActive,
     });
+    phaseMs.groundPersist = Date.now() - persistStarted;
 
     const debug: MayaDebugInfo = {
-      retrievedMemoryIds: retrieved.ranked.map((row) => row.memory.memoryId),
-      retrievalScores: retrieved.ranked.map((row) => ({ memoryId: row.memory.memoryId, score: row.score, reasons: row.reasons })),
+      retrievedMemoryIds: context.memories.map((memory) => memory.memoryId),
+      retrievalScores: context.memories.map((memory) => ({
+        memoryId: memory.memoryId,
+        score: 0,
+        reasons: ["compiled"],
+      })),
       contextSource: contextSources(context),
       writeDecisions: [write],
       conflictDecisions: conflictNotes(write),
       modelProvider: generated.provider,
       latencyMs: Date.now() - started,
+      phaseMs,
+      usage: generated.usage,
     };
 
     return {
       conversationId: conversation.conversationId,
       messageId: reply.messageId,
-      text: generated.text,
+      text: groundedText,
       ownerAuthorized: true,
       debug: this.options.debug ? debug : undefined,
     };

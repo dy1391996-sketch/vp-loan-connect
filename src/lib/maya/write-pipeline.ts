@@ -248,18 +248,65 @@ function stripCorrectionWrapper(text: string) {
     .trim();
 }
 
+function isGreetingOrAck(text: string) {
+  const trimmed = text.trim();
+  return (
+    trimmed.length <= 40 &&
+    /^(hi+|hello|hey(\s+baby)?|yo|hola|namaste|kaise\s*ho|kya\s*haal|ok+|okay|hmm+|haan|han|theek|thanks|thank you|ty|i love u+|love you|miss you)\s*[.!?❤️🫀]*$/i.test(
+      trimmed,
+    )
+  );
+}
+
+function looksLikeAssistantPrompt(text: string) {
+  return /\b(batao\.\.\.|aapki duniya|kaise laga\?|what do you want to discuss|how can i help)\b/i.test(text);
+}
+
+function nextUnfinishedTopic(current: string | null | undefined, text: string) {
+  if (isGreetingOrAck(text)) return null;
+  if (looksLikeAssistantPrompt(text)) return current ?? null;
+  // Clear forced unfinished topics when the owner clearly changes subject.
+  if (current && looksLikeSubjectChange(current, text)) {
+    return text.trim().length > 40 ? text.slice(0, 160) : null;
+  }
+  if (text.trim().length > 40) return text.slice(0, 160);
+  return current ?? null;
+}
+
+function looksLikeSubjectChange(previous: string, text: string) {
+  const prev = previous.toLowerCase();
+  const next = text.toLowerCase();
+  if (/\b(kitne\s*baje|yaad|remember|woh\s+call|that\s+call)\b/i.test(next)) return false;
+  const markers = [
+    /\brent\b|\bsalary\b|\bpercent\b|\bhisab\b/,
+    /\bchai\b|\belaichi\b|\badrak\b/,
+    /\bcall\b|\bmeeting\b|\bappointment\b/,
+    /\bthak\b|\btired\b|\bthak\s*gaya\b/,
+  ];
+  const prevHits = markers.map((pattern) => pattern.test(prev));
+  const nextHits = markers.map((pattern) => pattern.test(next));
+  if (nextHits.some(Boolean) && prevHits.some(Boolean)) {
+    return nextHits.findIndex(Boolean) !== prevHits.findIndex(Boolean);
+  }
+  return false;
+}
+
 function updateConversationState(store: MayaStore, input: WritePipelineInput, at: string) {
   const current = store.getRelationshipState(input.ownerId) ?? defaultRelationshipState(input.ownerId, at);
   const mood = ownerReportedMood(input.text);
+  const practicalShift =
+    /\b(rent|salary|percent|hisab|calculate|call|meeting|appointment|doctor|chai|fees?|price|amount)\b/i.test(input.text) &&
+    !/\b(thak|tired|sad|udaas|gussa|feel|feeling|mood)\b/i.test(input.text);
   const next: MayaRelationshipState = {
     ...current,
-    ownerReportedMood: mood ?? current.ownerReportedMood,
-    conversationTone: mood === "low" || mood === "frustrated" ? "careful" : mood === "upbeat" ? "warm" : current.conversationTone,
+    // Clear sticky tired/low mood once the owner moves to a practical topic.
+    ownerReportedMood: mood ?? (practicalShift ? null : current.ownerReportedMood),
+    conversationTone: mood === "low" || mood === "frustrated" ? "careful" : mood === "upbeat" ? "warm" : practicalShift ? "neutral" : current.conversationTone,
     affectionContext: pickAffection(input.text, current.affectionContext),
     seriousness: /payment|business|serious|problem/.test(input.text) ? 0.7 : Math.max(0.2, current.seriousness - 0.05),
     playfulness: /joke|mazak|hehe|😂/.test(input.text) ? 0.7 : Math.max(0.15, current.playfulness - 0.04),
-    unfinishedTopic: input.text.length > 40 ? input.text.slice(0, 160) : current.unfinishedTopic,
-    languageStyle: /[\u0900-\u097F]/.test(input.text) ? "hinglish" : current.languageStyle,
+    unfinishedTopic: nextUnfinishedTopic(current.unfinishedTopic, input.text),
+    languageStyle: detectLanguageStyle(input.text, current.languageStyle),
     updatedAt: at,
   };
   if (isRoleplayUtterance(input.text)) {
@@ -271,12 +318,23 @@ function updateConversationState(store: MayaStore, input: WritePipelineInput, at
 }
 
 function pickAffection(text: string, previous: AffectionMode): AffectionMode {
-  if (/miss you|love you|pyaar/.test(text)) return "romantic";
+  if (/miss you|love you|pyaar|i love u/.test(text)) return "romantic";
   if (/sad|down|hurt|udaas/.test(text)) return "comforting";
   if (/joke|tease|mazak/.test(text)) return "teasing";
   if (/did it|ho gaya|cracked/.test(text)) return "proud";
   if (/payment|business|deadline/.test(text)) return "serious";
+  // Practical topic shifts should not keep a prior "comforting" cling.
+  if (/\b(rent|salary|percent|hisab|calculate|call|meeting|appointment|doctor|chai)\b/i.test(text)) {
+    return "gentle";
+  }
   return previous === "romantic" ? "gentle" : previous;
+}
+
+function detectLanguageStyle(text: string, previous: string) {
+  if (/[\u0900-\u097F]/.test(text)) return "hinglish";
+  if (/\b(hai|ho|kya|nahi|yar|acha|theek|batao|kaise|mere|tera|tum)\b/i.test(text)) return "hinglish";
+  if (/^[a-zA-Z0-9\s'",.!?-]+$/.test(text) && text.trim().split(/\s+/).length >= 4) return "english";
+  return previous;
 }
 
 function refreshConversationSummary(store: MayaStore, ownerId: string, conversationId: string, at: string) {

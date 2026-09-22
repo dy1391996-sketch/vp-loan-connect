@@ -4,7 +4,8 @@ import { prisma } from "@/lib/db";
 import { getServerEnv } from "@/lib/env";
 import { assertSameOrigin, rateLimit, sanitizeText } from "@/lib/security/request";
 import { signAccessToken } from "@/lib/security/tokens";
-import { generateReferralCode, normalizeIndianMobile } from "@/lib/utils";
+import { normalizeIndianMobile } from "@/lib/utils";
+import { generateReferralCode } from "@/lib/server-crypto";
 
 const schema = z.object({
   fullName: z.string().trim().min(2).max(100),
