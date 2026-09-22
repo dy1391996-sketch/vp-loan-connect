@@ -10,15 +10,30 @@ export interface LLMGenerateInput {
   messages: LLMMessage[];
 }
 
+export interface LLMGenerateUsage {
+  promptEvalCount?: number;
+  evalCount?: number;
+  totalDurationMs?: number;
+  loadDurationMs?: number;
+  promptEvalDurationMs?: number;
+  evalDurationMs?: number;
+}
+
 export interface LLMGenerateResult {
   text: string;
   provider: string;
   model: string;
+  usage?: LLMGenerateUsage;
+}
+
+export interface LLMGenerateOptions {
+  signal?: AbortSignal;
+  onToken?: (token: string) => void;
 }
 
 export interface MayaLLMProvider {
   id: string;
-  generate(input: LLMGenerateInput): Promise<LLMGenerateResult>;
+  generate(input: LLMGenerateInput, options?: LLMGenerateOptions): Promise<LLMGenerateResult>;
 }
 
 /**

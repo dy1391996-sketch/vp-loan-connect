@@ -28,3 +28,9 @@ data/maya/backups/*.json
 data/maya/exports/*
 !data/maya/backups/.gitkeep
 !data/maya/exports/.gitkeep
+
+# Private Maya media and verification scratch
+data/maya/media/
+data/maya/visual/references/
+work/
+.maya-*/

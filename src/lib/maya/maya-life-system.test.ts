@@ -564,6 +564,16 @@ describe("conversation continuity and prompt message assembly", () => {
     });
     assert.equal(second.conversationId, first.conversationId);
     assert.equal(store.listConversations(owner.ownerId).length, 1);
+    const separateId = newId();
+    const third = await brain.respond({
+      ownerId: owner.ownerId,
+      channel: "web",
+      text: "this is a separate test thread",
+      conversationId: separateId,
+      ownerAuthorized: true,
+    });
+    assert.equal(third.conversationId, separateId);
+    assert.equal(store.listConversations(owner.ownerId).length, 2);
     assert.ok(store.listMessages(owner.ownerId, first.conversationId).length >= 4);
   });
 

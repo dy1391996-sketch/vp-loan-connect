@@ -7,7 +7,11 @@ import { InMemoryMayaStore } from "./store";
 import { ensureSeededOwner } from "./owner";
 import { redactSecrets } from "./secrets";
 
-const globalForMaya = globalThis as unknown as { mayaMemoryStore?: InMemoryMayaStore; mayaPersistChain?: Promise<unknown> };
+const globalForMaya = globalThis as unknown as {
+  mayaMemoryStore?: InMemoryMayaStore;
+  mayaPrismaStore?: InMemoryMayaStore;
+  mayaPersistChain?: Promise<unknown>;
+};
 
 function memoryStore() {
   globalForMaya.mayaMemoryStore ??= new InMemoryMayaStore();
@@ -19,10 +23,17 @@ function usesMemoryStore() {
   return env.MAYA_STORE === "memory";
 }
 
+async function prismaBackedStore() {
+  if (globalForMaya.mayaPrismaStore) return globalForMaya.mayaPrismaStore;
+  const store = new InMemoryMayaStore(await loadMayaSnapshotFromPrisma(prisma));
+  globalForMaya.mayaPrismaStore = store;
+  return store;
+}
+
 async function runWithMayaRuntime<T>(fn: (input: { store: InMemoryMayaStore; brain: MayaBrain }) => Promise<T>, debug = false) {
   const env = getMayaEnv();
   const useMemory = usesMemoryStore();
-  const store = useMemory ? memoryStore() : new InMemoryMayaStore(await loadMayaSnapshotFromPrisma(prisma));
+  const store = useMemory ? memoryStore() : await prismaBackedStore();
   await ensureSeededOwner(store);
   const brain = new MayaBrain({
     store,

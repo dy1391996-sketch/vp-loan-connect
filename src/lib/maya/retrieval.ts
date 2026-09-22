@@ -1,7 +1,7 @@
 import type { MayaMemory, MayaPerson, MayaProject, RetrievedMemory } from "./types";
-import { tokenOverlap, tokenize } from "./classify";
 import type { MayaStore } from "./store";
 import { HISTORICAL_PROVENANCE } from "./types";
+import { contentTokens, focusRecentMessages, looksLikeExplicitRecall, meaningfulOverlap } from "./topic-focus";
 
 export interface RetrievalInput {
   ownerId: string;
@@ -11,42 +11,37 @@ export interface RetrievalInput {
 }
 
 export function retrieveRelevantContext(store: MayaStore, input: RetrievalInput) {
-  const limit = input.limit ?? 8;
+  const limit = Math.min(input.limit ?? 4, 4);
   const now = Date.now();
   const people = matchPeople(store, input.ownerId, input.utterance);
   const projects = matchProjects(store, input.ownerId, input.utterance);
-  const loops = store.listOpenLoops(input.ownerId, ["open", "waiting"]);
+  const loops = relevantLoops(store.listOpenLoops(input.ownerId, ["open", "waiting"]), input.utterance);
+  const explicitRecall = looksLikeExplicitRecall(input.utterance);
   const memories = store
     .listMemories({ ownerId: input.ownerId, status: ["active", "uncertain"], limit: 400 })
     .filter((memory) => HISTORICAL_PROVENANCE.includes(memory.provenance) || memory.type === "CONVERSATION_SUMMARY");
 
   const ranked: RetrievedMemory[] = memories
-    .map((memory) => scoreMemory(memory, input, people, projects, loops.map((loop) => loop.relatedMemoryId), now))
-    .filter((row) => row.score > 0.12)
+    .map((memory) => scoreMemory(memory, input, people, projects, loops.map((loop) => loop.relatedMemoryId), now, explicitRecall))
+    // Relevance is mandatory. Entity/recency alone used to flood call/VP Nest facts into unrelated turns.
+    .filter((row) => row.score > 0 && row.reasons.includes("relevance"))
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 
-  const recentMessages = input.conversationId ? store.listMessages(input.ownerId, input.conversationId, 12) : [];
-  // Prefer the freshest turns; drop leading stale assistant monologues if the window is full of noise.
-  const trimmedRecent = sanitizeRecentMessages(recentMessages);
+  const recentMessages = input.conversationId ? store.listMessages(input.ownerId, input.conversationId, 16) : [];
+  const trimmedRecent = focusRecentMessages(recentMessages, input.utterance);
   const relationshipState = store.getRelationshipState(input.ownerId);
-  const timeline = store.listTimeline(input.ownerId).slice(0, 8);
+  const timeline = store.listTimeline(input.ownerId).slice(0, 4);
 
   return {
     ranked,
     people,
     projects,
-    loops: loops.slice(0, 6),
+    loops: loops.slice(0, 2),
     recentMessages: trimmedRecent,
     relationshipState,
     timeline,
   };
-}
-
-function sanitizeRecentMessages(messages: ReturnType<MayaStore["listMessages"]>) {
-  if (messages.length <= 8) return messages;
-  // Keep the latest 8 turns for the local model context window / coherence.
-  return messages.slice(-8);
 }
 
 function scoreMemory(
@@ -56,10 +51,21 @@ function scoreMemory(
   projects: MayaProject[],
   unresolvedIds: Array<string | null | undefined>,
   now: number,
+  explicitRecall: boolean,
 ): RetrievedMemory {
   const reasons: string[] = [];
-  const relevance = tokenOverlap(memory.content, input.utterance);
-  if (relevance > 0) reasons.push("relevance");
+  const relevance = meaningfulOverlap(memory.content, input.utterance);
+  const isSummary = memory.type === "CONVERSATION_SUMMARY";
+  // Summaries are noisy (often Maya monologue). Only inject on strong overlap or explicit recall.
+  const relevanceFloor = isSummary ? (explicitRecall ? 0.18 : 0.28) : explicitRecall ? 0.1 : 0.16;
+  if (relevance >= relevanceFloor) reasons.push("relevance");
+
+  // Clock-bearing memories need a shared topic noun (call/doctor/…) — not just "kitne baje?".
+  if (reasons.includes("relevance") && memoryHasClock(memory.content) && !clockTopicAligned(memory.content, input.utterance) && !explicitRecall) {
+    const idx = reasons.indexOf("relevance");
+    if (idx >= 0) reasons.splice(idx, 1);
+  }
+
   const ageDays = Math.max(0, (now - Date.parse(memory.createdAt)) / 86_400_000);
   const recency = Math.exp(-ageDays / 21);
   if (recency > 0.5) reasons.push("recency");
@@ -74,12 +80,43 @@ function scoreMemory(
   if (entity) reasons.push("entity");
   const unresolved = unresolvedIds.includes(memory.memoryId) ? 1 : 0;
   if (unresolved) reasons.push("unresolved");
-  const score = relevance * 0.35 + recency * 0.2 + importance * 0.2 + relationship * 0.1 + entity * 0.1 + unresolved * 0.05;
+
+  // Without relevance/entity, score must stay 0 so recency/importance alone cannot force injection.
+  if (!reasons.includes("relevance") && !reasons.includes("entity")) {
+    return { memory, score: 0, reasons };
+  }
+
+  const score =
+    relevance * 0.55 +
+    (isSummary ? 0 : recency * 0.1) +
+    importance * 0.15 +
+    relationship * 0.05 +
+    entity * 0.1 +
+    unresolved * 0.05;
   return { memory, score, reasons };
 }
 
+function relevantLoops(loops: ReturnType<MayaStore["listOpenLoops"]>, utterance: string) {
+  return loops.filter((loop) => meaningfulOverlap(loop.description, utterance) >= 0.16);
+}
+
+const CLOCK_TOPIC =
+  /\b(call|meeting|appointment|doctor|client|interview|flight|train|bus|class|school|office|chai|birthday|party|wedding)\b/i;
+
+function memoryHasClock(text: string) {
+  return /\b\d{1,2}[:.]\d{2}\b|\b\d{1,2}\s*(?:am|pm|baje)\b/i.test(text);
+}
+
+function clockTopicAligned(memoryText: string, utterance: string) {
+  const memTopics = memoryText.match(CLOCK_TOPIC) || [];
+  const askTopics = utterance.match(CLOCK_TOPIC) || [];
+  if (!memTopics.length || !askTopics.length) return false;
+  const ask = new Set(askTopics.map((t) => t.toLowerCase()));
+  return memTopics.some((t) => ask.has(t.toLowerCase()));
+}
+
 function matchPeople(store: MayaStore, ownerId: string, utterance: string) {
-  const tokens = new Set(tokenize(utterance));
+  const tokens = new Set(contentTokens(utterance));
   return store.listPeople(ownerId).filter((person) => {
     const names = [person.name, ...person.aliases].map((value) => value.toLowerCase());
     return names.some((name) => utterance.toLowerCase().includes(name) || tokens.has(name));
@@ -89,7 +126,7 @@ function matchPeople(store: MayaStore, ownerId: string, utterance: string) {
 function matchProjects(store: MayaStore, ownerId: string, utterance: string) {
   return store.listProjects(ownerId).filter((project) => {
     const names = [project.name, ...project.aliases].map((value) => value.toLowerCase());
-    return names.some((name) => utterance.toLowerCase().includes(name)) || (project.description && tokenOverlap(project.description, utterance) > 0.25);
+    return names.some((name) => utterance.toLowerCase().includes(name)) || (project.description && meaningfulOverlap(project.description, utterance) > 0.25);
   });
 }
 

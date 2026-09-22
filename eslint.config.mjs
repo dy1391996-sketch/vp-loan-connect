@@ -13,7 +13,17 @@ const compat = new FlatCompat({
 
 const config = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
-  { ignores: [".next/**", "node_modules/**", "coverage/**", "next-env.d.ts"] },
+  {
+    ignores: [
+      ".next/**",
+      ".vercel/**",
+      ".maya-*/**",
+      "work/**",
+      "node_modules/**",
+      "coverage/**",
+      "next-env.d.ts",
+    ],
+  },
 ];
 
 export default config;

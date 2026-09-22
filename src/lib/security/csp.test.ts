@@ -58,4 +58,10 @@ describe("Content-Security-Policy", () => {
     assert.match(connectSrc, /https:\/\/www\.google-analytics\.com/);
     assert.doesNotMatch(connectSrc, /(^|\s)\*(?=\s|$)/);
   });
+
+  it("allows Chrome Web Speech recognition endpoints (free browser STT)", () => {
+    const connectSrc = directive("connect-src");
+    assert.match(connectSrc, /wss:\/\/www\.google\.com/);
+    assert.match(connectSrc, /https:\/\/www\.google\.com\/speech-api\//);
+  });
 });

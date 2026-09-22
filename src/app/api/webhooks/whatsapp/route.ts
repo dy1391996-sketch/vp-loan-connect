@@ -1,5 +1,4 @@
 import { hasValidMetaSignature } from "@/lib/meta/whatsapp-signature";
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { CONSENT_VERSION, MARKETING_CONSENT_TEXT } from "@/lib/constants";

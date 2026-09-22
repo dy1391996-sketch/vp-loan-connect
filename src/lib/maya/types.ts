@@ -217,6 +217,20 @@ export interface MayaDebugInfo {
   conflictDecisions: string[];
   modelProvider: string;
   latencyMs: number;
+  phaseMs?: {
+    writePipeline?: number;
+    compile?: number;
+    model?: number;
+    groundPersist?: number;
+  };
+  usage?: {
+    promptEvalCount?: number;
+    evalCount?: number;
+    totalDurationMs?: number;
+    loadDurationMs?: number;
+    promptEvalDurationMs?: number;
+    evalDurationMs?: number;
+  };
 }
 
 export interface MayaTurnResult {
