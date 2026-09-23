@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { BarChart3, FileText, Landmark, LayoutDashboard, Settings, UsersRound, WalletCards, Waypoints } from "lucide-react";
+import { BarChart3, FileText, Landmark, LayoutDashboard, Megaphone, Settings, UsersRound, WalletCards, Waypoints } from "lucide-react";
 import { LogoutButton } from "./logout-button";
 
 const links = [
   ["Overview", "/admin", LayoutDashboard],
+  ["Marketing", "/admin/marketing", Megaphone],
   ["Leads", "/admin/leads", UsersRound],
   ["Payments", "/admin/payments", WalletCards],
   ["Reports", "/admin/reports", FileText],
