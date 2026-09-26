@@ -15,6 +15,7 @@ export const META_FUNNEL_EVENTS = [
   "Purchase",
   "InstagramProfileClick",
   "InstagramAdLanding",
+  "LoanAssistanceEnquiry",
 ] as const;
 
 export type MetaFunnelEvent = (typeof META_FUNNEL_EVENTS)[number];
@@ -77,6 +78,8 @@ export function metaPixelEventName(event: MetaFunnelEvent): string {
       return "SubmitApplication";
     case "EligibilityViewed":
       return "ViewContent";
+    case "LoanAssistanceEnquiry":
+      return "Lead";
     default:
       return event;
   }

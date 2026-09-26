@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { ButtonLink } from "@/components/ui/button";
@@ -15,6 +16,10 @@ const links = [
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname() || "";
+  const onAssistance = pathname.startsWith("/loan-assistance");
+  const primaryHref = onAssistance ? "#enquiry" : "/apply/quick";
+  const primaryLabel = onAssistance ? "Submit enquiry" : "Check loan options";
   return (
     <header className="sticky top-0 z-50 border-b border-white/60 bg-white/80 backdrop-blur-2xl">
       <div className="page-shell flex min-h-[4.75rem] items-center justify-between gap-4 py-3">
@@ -35,8 +40,8 @@ export function Header() {
           ))}
         </nav>
         <div className="hidden sm:block">
-          <ButtonLink href="/apply/quick" size="sm" variant="dark">
-            Check loan options <ArrowRight size={16} />
+          <ButtonLink href={primaryHref} size="sm" variant="dark">
+            {primaryLabel} <ArrowRight size={16} />
           </ButtonLink>
         </div>
         <button
@@ -57,8 +62,8 @@ export function Header() {
                 {label}
               </Link>
             ))}
-            <ButtonLink href="/apply/quick" className="mt-2 w-full" variant="dark">
-              Check My Loan Options <ArrowRight size={16} />
+            <ButtonLink href={primaryHref} className="mt-2 w-full" variant="dark" onClick={() => setOpen(false)}>
+              {primaryLabel} <ArrowRight size={16} />
             </ButtonLink>
           </nav>
         </div>
