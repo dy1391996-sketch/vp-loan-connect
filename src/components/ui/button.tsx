@@ -43,10 +43,11 @@ export function Button({ children, variant = "primary", size = "md", className, 
   );
 }
 
-export function ButtonLink({ href, children, variant = "primary", size = "md", className }: SharedProps & { href: string }) {
+export function ButtonLink({ href, children, variant = "primary", size = "md", className, onClick }: SharedProps & { href: string; onClick?: () => void }) {
   return (
     <Link
       href={href}
+      onClick={onClick}
       className={cn(
         "inline-flex items-center justify-center gap-2 rounded-2xl font-bold tracking-[-0.01em] transition duration-200",
         variants[variant],

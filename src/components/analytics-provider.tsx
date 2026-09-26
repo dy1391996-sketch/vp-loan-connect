@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { readMarketingConsent } from "@/lib/consent/marketing-consent";
 import { createMetaEventId } from "@/lib/meta/events";
+import { isConsentPageViewPath } from "@/lib/meta/pageview-paths";
 import { getPublicMetaPixelId, setRuntimeMetaPixelId, trackMetaPixelEvent } from "@/lib/meta/pixel-client";
 import { trackEvent } from "@/lib/analytics-client";
 
@@ -100,7 +101,7 @@ export function AnalyticsProvider() {
   useEffect(() => {
     if (consent !== "granted" || !pixelId || !pixelReady) return;
 
-    if (pathname === "/" && landingSentForPath.current !== pathname) {
+    if (isConsentPageViewPath(pathname) && landingSentForPath.current !== pathname) {
       const eventId = createMetaEventId("landing");
       landingSentForPath.current = pathname;
       trackMetaPixelEvent("LandingPageView", { eventId });

@@ -93,6 +93,14 @@ Development only. Returns `404` in production and is unavailable unless `PAYMENT
 
 Requires a valid report token and paid order. Generates a branded PDF, updates report delivery status and returns `application/pdf` with private no-store headers.
 
+## Loan assistance enquiry
+
+### `POST /api/loan-assistance`
+
+Public, same-origin JSON endpoint for the Instagram loan-assistance landing page. Stores name, mobile, city, state and loan category after explicit follow-up consent. Does not accept Aadhaar, PAN, bank details or documents.
+
+Rate limited by IP and mobile. A repeated submission key, or the same mobile inside five days, returns the existing reference with `status: "duplicate"` and no new Meta `eventId`. A new row returns `status: "created"`. When marketing consent is granted, the server sends one Conversions API `Lead` with that `eventId`. There is no public GET.
+
 ## Consultation and lender referral
 
 ### `POST /api/consultations`

@@ -617,6 +617,28 @@ model DataDeletionRequest {
   @@index([mobile, status])
 }
 
+model LoanAssistanceEnquiry {
+  id                  String   @id @default(uuid()) @db.Uuid
+  publicRef           String   @unique @db.VarChar(16)
+  fullName            String   @db.VarChar(120)
+  mobile              String   @db.VarChar(16)
+  city                String   @db.VarChar(80)
+  state               String   @db.VarChar(80)
+  loanType            String   @db.VarChar(80)
+  consentVersion      String   @db.VarChar(40)
+  followUpConsentAt   DateTime
+  source              String   @db.VarChar(120)
+  utm                 Json?
+  clientSubmissionKey String   @unique @db.VarChar(64)
+  metaEventId         String?  @unique @db.VarChar(50)
+  isTest              Boolean  @default(false)
+  createdAt           DateTime @default(now())
+
+  @@index([mobile, createdAt])
+  @@index([isTest, createdAt])
+  @@index([loanType])
+}
+
 model AnalyticsEvent {
   id         String   @id @default(uuid()) @db.Uuid
   leadId     String?  @db.Uuid

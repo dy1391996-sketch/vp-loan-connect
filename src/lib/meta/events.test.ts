@@ -25,6 +25,7 @@ describe("Meta funnel events", () => {
       "Purchase",
       "InstagramProfileClick",
       "InstagramAdLanding",
+      "LoanAssistanceEnquiry",
     ]) {
       assert.equal(isMetaFunnelEvent(name), true);
       assert.ok(META_FUNNEL_EVENTS.includes(name as (typeof META_FUNNEL_EVENTS)[number]));
@@ -59,6 +60,8 @@ describe("Meta funnel events", () => {
     assert.equal(metaPixelEventName("EligibilityViewed"), "ViewContent");
     assert.equal(metaPixelEventName("CheckoutStarted"), "InitiateCheckout");
     assert.equal(metaPixelEventName("PaymentFailed"), "PaymentFailed");
+    assert.equal(metaPixelEventName("LoanAssistanceEnquiry"), "Lead");
+    assert.equal(metaBrowserTrackMethod(metaPixelEventName("LoanAssistanceEnquiry")), "track");
     const names = (["QuickApplyStarted", "OTPVerified", "AssessmentCompleted"] as const).map((event) => metaPixelEventName(event));
     assert.equal(new Set(names).size, 3);
     assert.equal(names.includes("Lead"), false);
@@ -102,6 +105,29 @@ describe("Meta CAPI readiness", () => {
     assert.notEqual(payload.data[0].user_data.em?.[0], "User@Example.com");
     assert.equal(payload.data[0].custom_data?.currency, "INR");
     assert.equal(payload.data[0].custom_data?.value, 116.82);
+  });
+
+  it("maps a confirmed loan-assistance enquiry to one Lead and hashes the phone", () => {
+    const config = getMetaCapiConfig({
+      NEXT_PUBLIC_META_PIXEL_ID: "pixel-1",
+      META_CAPI_ACCESS_TOKEN: "token-1",
+    });
+    assert.ok(config);
+    const payload = buildCapIPayload(
+      {
+        eventName: "LoanAssistanceEnquiry",
+        eventId: "vplc_lead_abc",
+        eventSourceUrl: "https://www.vploanconnect.in/loan-assistance",
+        userData: { phone: "+919812345670" },
+        customData: { content_category: "Personal loan", lead_source: "instagram_loan_assistance" },
+      },
+      config!,
+    );
+    assert.equal(payload.data[0].event_name, "Lead");
+    assert.equal(payload.data[0].event_id, "vplc_lead_abc");
+    assert.equal(payload.data[0].custom_data?.content_category, "Personal loan");
+    assert.equal(JSON.stringify(payload).includes("9812345670"), false);
+    assert.equal(JSON.stringify(payload).includes("token-1"), false);
   });
 
   it("surfaces sanitized Meta OAuth 190 fields without exposing the token", async () => {
