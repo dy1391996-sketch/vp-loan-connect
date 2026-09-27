@@ -2,6 +2,13 @@
 
 All notable changes to VP Loan Connect are documented here.
 
+## Unreleased
+
+### Added
+
+- Instagram loan-assistance landing page and enquiry store, with consent, duplicate protection and a server-confirmed Meta Lead event.
+- Ready-to-enter Instagram campaign package for a five-day, India, website-enquiry promotion.
+
 ## 0.1.0 — 2026-07-23
 
 ### Added

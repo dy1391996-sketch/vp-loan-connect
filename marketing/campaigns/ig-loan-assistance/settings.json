@@ -1,0 +1,27 @@
+{
+  "status": "draft_ready_not_live",
+  "adsLive": false,
+  "campaignName": "IG Loan Assistance 5-day",
+  "objective": "OUTCOME_LEADS",
+  "destinationType": "WEBSITE",
+  "optimizationEvent": "Lead",
+  "callToAction": "LEARN_MORE",
+  "instagramIdentity": "@vploanconnect",
+  "advantagePlusCampaignBudget": false,
+  "adSetDailyBudgetInr": 300,
+  "campaignSpendingLimitInr": 1500,
+  "dailyBudgetIsHardCap": false,
+  "lengthDays": 5,
+  "schedule": "Set start to the actual launch time in Asia/Kolkata and end to start plus 5 x 24 hours.",
+  "location": "IN",
+  "ageMin": 18,
+  "ageMax": 65,
+  "genders": "all",
+  "publisherPlatforms": ["instagram"],
+  "instagramPositions": ["stream", "story", "reels"],
+  "facebookPositions": [],
+  "destinations": {
+    "assist_a": "https://www.vploanconnect.in/loan-assistance?utm_source=instagram&utm_medium=paid_social&utm_campaign=ig_loan_assistance_5d&utm_content=assist_a",
+    "assist_b": "https://www.vploanconnect.in/loan-assistance?utm_source=instagram&utm_medium=paid_social&utm_campaign=ig_loan_assistance_5d&utm_content=assist_b"
+  }
+}

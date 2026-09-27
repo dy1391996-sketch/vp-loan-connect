@@ -9,6 +9,8 @@ Older notes that used `@vploanconnect.in` are superseded for website configurati
 
 Organic Instagram only. This folder does **not** configure Ads Manager, budgets, Boost Post, Pixel, or CAPI.
 
+The separate loan-assistance ad package is `marketing/campaigns/ig-loan-assistance/`. That package is a draft until Meta confirms the ads are published.
+
 ## Generate assets
 
 ```bash
